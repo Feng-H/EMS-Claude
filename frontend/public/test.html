@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>滚动条测试</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            overflow-x: hidden;
+            border: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        /* 隐藏滚动条 */
+        *::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+        }
+
+        html, body, * {
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f7fafc;
+        }
+
+        .sidebar {
+            width: 260px;
+            height: 100vh;
+            background: #2d3748;
+            position: fixed;
+            left: 0;
+            top: 0;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            color: white;
+            overflow-y: scroll; /* 可以滚动，但滚动条被隐藏 */
+        }
+
+        .sidebar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .sidebar h2 {
+            margin-bottom: 20px;
+        }
+
+        .sidebar nav {
+            flex: 1;
+        }
+
+        .sidebar nav a {
+            display: block;
+            color: #a0aec0;
+            text-decoration: none;
+            padding: 10px 0;
+            border-bottom: 1px solid #4a5568;
+        }
+
+        .sidebar nav a:hover {
+            color: white;
+        }
+
+        .collapse-btn {
+            width: 36px;
+            height: 36px;
+            border: 1px solid #4a5568;
+            border-radius: 8px;
+            background: transparent;
+            color: #a0aec0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .collapse-btn:hover {
+            background: #4a5568;
+            color: white;
+        }
+
+        .collapse-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .main-content {
+            margin-left: 260px;
+            width: calc(100% - 260px);
+            min-height: 100vh;
+            background: white;
+            padding: 40px;
+            overflow-y: scroll; /* 可以滚动，但滚动条被隐藏 */
+        }
+
+        .main-content h1 {
+            color: #2d3748;
+            margin-bottom: 20px;
+        }
+
+        .content-block {
+            background: #edf2f7;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+
+        .status {
+            background: #48bb78;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .error {
+            background: #f56565;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2 style="margin: 0;">EMS</h2>
+            <button class="collapse-btn" title="折叠按钮">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="15 18 9 12 15 6"/>
+                </svg>
+            </button>
+        </div>
+        <nav>
+            <a href="#">菜单项 1</a>
+            <a href="#">菜单项 2</a>
+            <a href="#">菜单项 3</a>
+            <a href="#">菜单项 4</a>
+            <a href="#">菜单项 5</a>
+            <a href="#">菜单项 6</a>
+            <a href="#">菜单项 7</a>
+            <a href="#">菜单项 8</a>
+            <a href="#">菜单项 9</a>
+            <a href="#">菜单项 10</a>
+            <a href="#">菜单项 11</a>
+            <a href="#">菜单项 12</a>
+            <a href="#">菜单项 13</a>
+            <a href="#">菜单项 14</a>
+            <a href="#">菜单项 15</a>
+        </nav>
+    </div>
+
+    <div class="main-content">
+        <h1>滚动条测试页面</h1>
+
+        <div class="status">
+            ✅ 如果你能滚动页面（鼠标滚轮或触摸板），但看不到滚动条 → CSS生效了
+        </div>
+
+        <div class="error">
+            ❌ 如果你看到右侧有灰色/黑色的滚动条 → CSS没生效
+        </div>
+
+        <div class="content-block">
+            <h3>测试说明</h3>
+            <p>这个页面设置了隐藏所有滚动条，但内容可以滚动。</p>
+        </div>
+
+        <div class="content-block">
+            <h3>内容块 1</h3>
+            <p>这是一些测试内容...</p>
+        </div>
+
+        <div class="content-block">
+            <h3>内容块 2</h3>
+            <p>这是一些测试内容...</p>
+        </div>
+
+        <div class="content-block">
+            <h3>内容块 3</h3>
+            <p>这是一些测试内容...</p>
+        </div>
+
+        <div class="content-block">
+            <h3>内容块 4</h3>
+            <p>这是一些测试内容...</p>
+        </div>
+
+        <div class="content-block">
+            <h3>内容块 5</h3>
+            <p>这是一些测试内容...</p>
+        </div>
+
+        <div class="content-block">
+            <h3>内容块 6</h3>
+            <p>这是一些测试内容...</p>
+        </div>
+
+        <div class="content-block">
+            <h3>内容块 7</h3>
+            <p>这是一些测试内容...</p>
+        </div>
+
+        <div class="content-block">
+            <h3>内容块 8</h3>
+            <p>这是一些测试内容...</p>
+        </div>
+
+        <div class="content-block">
+            <h3>内容块 9</h3>
+            <p>这是一些测试内容...</p>
+        </div>
+
+        <div class="content-block">
+            <h3>内容块 10</h3>
+            <p>测试页面底部</p>
+        </div>
+    </div>
+</body>
+</html>
