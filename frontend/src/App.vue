@@ -1,71 +1,41 @@
 <template>
-  <router-view />
+  <router-view v-slot="{ Component, route }">
+    <component
+      :is="route.meta?.layout === 'full-screen' ? 'div' : MainLayout"
+      v-if="Component"
+    >
+      <component :is="Component" />
+    </component>
+  </router-view>
 </template>
 
 <script setup lang="ts">
+import MainLayout from '@/views/layout/MainLayout.vue'
 </script>
 
 <style>
-/* Global Reset - Fix Scrollbar and Borders */
-html {
-  border: none !important;
-  outline: none !important;
-  box-shadow: none !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  width: 100vw !important;
-  overflow-x: hidden !important;
-  overflow-y: auto !important;
-}
-
-body {
-  border: none !important;
-  outline: none !important;
-  box-shadow: none !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  width: 100vw !important;
-  overflow-x: hidden !important;
-  overflow-y: auto !important;
+/* Global Reset */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
 }
 
 #app {
-  border: none !important;
-  outline: none !important;
-  box-shadow: none !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  width: 100% !important;
-  display: block !important;
-  overflow-x: hidden !important;
+  width: 100%;
+  min-height: 100vh;
 }
 
-/* Hide scrollbar completely - remove the black bar */
+/* Hide scrollbar */
 html::-webkit-scrollbar,
-body::-webkit-scrollbar,
-#app::-webkit-scrollbar {
-  display: none !important;
-  width: 0 !important;
-  height: 0 !important;
+body::-webkit-scrollbar {
+  display: none;
 }
 
-/* Firefox scrollbar */
-html, body, #app {
-  scrollbar-width: none !important;
-  -ms-overflow-style: none !important;
-}
-
-/* Remove ALL borders and outlines */
-* {
-  border: none !important;
-  outline: none !important;
-}
-
-*:focus,
-*:focus-visible,
-*:focus-within {
-  outline: none !important;
-  box-shadow: none !important;
+html, body {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 /* Reset box model */

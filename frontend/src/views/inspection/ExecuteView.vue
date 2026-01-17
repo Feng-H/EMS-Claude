@@ -1,222 +1,241 @@
 <template>
-  <div class="execute-view">
+  <div class="inspection-execute-view">
     <!-- 扫码页面 -->
     <div v-if="step === 'scan'" class="scan-page">
-      <div class="scan-header">
-        <h1>设备点检</h1>
-        <p>请扫描设备二维码开始点检</p>
-      </div>
+      <!-- Header -->
+      <mobile-header title="设备点检" :show-back="false" />
 
-      <div class="scan-area">
-        <div v-if="!scanning" class="scan-placeholder" @click="startScan">
-          <el-icon size="64"><Grid /></el-icon>
-          <p>点击开始扫码</p>
+      <div class="scan-content">
+        <div class="scan-instructions">
+          <p>请扫描设备二维码开始点检</p>
         </div>
-        <video v-show="scanning" ref="videoRef" class="scan-video" autoplay playsinline></video>
-        <canvas v-show="scanning" ref="canvasRef" class="scan-canvas"></canvas>
-      </div>
 
-      <div class="scan-actions">
-        <el-button @click="manualInput" type="primary" plain>
-          手动输入设备编号
-        </el-button>
-      </div>
-
-      <!-- 我今天的任务 -->
-      <div class="my-tasks">
-        <div class="section-title">我的今日任务</div>
-        <el-card v-for="task in myTasks" :key="task.id" class="task-card" shadow="hover">
-          <div class="task-info">
-            <span class="task-equipment">{{ task.equipment_name || task.equipment_code }}</span>
-            <el-tag :type="getTaskStatusType(task.status)" size="small">
-              {{ getTaskStatusText(task.status) }}
-            </el-tag>
+        <div class="scan-area">
+          <div v-if="!scanning" class="scan-placeholder" @click="startScan">
+            <van-icon name="scan" size="64" color="#409eff" />
+            <p>点击开始扫码</p>
           </div>
-          <el-button
-            v-if="task.status === 'pending' || task.status === 'in_progress'"
-            type="primary"
-            size="small"
-            @click="resumeTask(task)"
-          >
-            {{ task.status === 'in_progress' ? '继续' : '开始' }}
-          </el-button>
-        </el-card>
-        <el-empty v-if="myTasks.length === 0" description="暂无任务" :image-size="60" />
+          <video v-show="scanning" ref="videoRef" class="scan-video" autoplay playsinline></video>
+          <canvas v-show="scanning" ref="canvasRef" class="scan-canvas"></canvas>
+        </div>
+
+        <van-button type="primary" plain block @click="manualInput">
+          手动输入设备编号
+        </van-button>
+
+        <!-- 我今天的任务 -->
+        <div class="my-tasks">
+          <div class="section-title">我的今日任务</div>
+          <van-cell-group inset>
+            <van-cell
+              v-for="task in myTasks"
+              :key="task.id"
+              class="task-cell"
+              :title="task.equipment_name || task.equipment_code"
+              :label="`模板：${task.template_name}`"
+            >
+              <template #right-icon>
+                <van-tag :type="getTaskStatusType(task.status)">
+                  {{ getTaskStatusText(task.status) }}
+                </van-tag>
+              </template>
+            </van-cell>
+          </van-cell-group>
+          <div v-if="myTasks.length === 0" class="empty-tasks">
+            <van-empty description="暂无任务" />
+          </div>
+
+          <!-- 任务操作按钮 -->
+          <div v-for="task in myTasks" :key="`action-${task.id}`" class="task-action">
+            <van-button
+              v-if="task.status === 'pending' || task.status === 'in_progress'"
+              type="primary"
+              size="small"
+              block
+              @click="resumeTask(task)"
+            >
+              {{ task.status === 'in_progress' ? '继续' : '开始' }}
+            </van-button>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- 点检执行页面 -->
     <div v-else-if="step === 'inspect'" class="inspect-page">
-      <div class="inspect-header">
-        <el-button link @click="goBack">
-          <el-icon><ArrowLeft /></el-icon>
-          返回
-        </el-button>
-        <h2>{{ equipment?.name || equipment?.code }}</h2>
-        <p class="template-name">{{ templateName }}</p>
-      </div>
+      <!-- Header -->
+      <mobile-header
+        :title="equipment?.name || equipment?.code"
+        :show-back="true"
+        @click-left="goBack"
+      />
+
+      <div class="template-info">{{ templateName }}</div>
 
       <!-- 进度指示 -->
-      <div class="progress-indicator">
-        <el-progress
-          :percentage="progress"
-          :color="progress === 100 ? '#67c23a' : '#409eff'"
-        />
-        <span class="progress-text">{{ currentItemIndex + 1 }} / {{ inspectionItems.length }}</span>
+      <div class="progress-section">
+        <van-progress :percentage="progress" :color="progress === 100 ? '#07c160' : '#1989fa'" />
+        <div class="progress-text">
+          <span>{{ currentItemIndex + 1 }} / {{ inspectionItems.length }}</span>
+          <span>完成度 {{ progress }}%</span>
+        </div>
       </div>
 
       <!-- 点检项目列表 -->
-      <div class="items-container">
-        <el-card
+      <div class="items-list">
+        <div
           v-for="(item, index) in inspectionItems"
           :key="item.id"
-          :class="['item-card', { active: index === currentItemIndex, completed: itemsResult[item.id] }]"
-          shadow="hover"
+          class="item-card"
+          :class="{ active: index === currentItemIndex, completed: itemsResult[item.id] }"
           @click="selectItem(index)"
         >
           <div class="item-number">{{ index + 1 }}</div>
           <div class="item-content">
             <div class="item-name">{{ item.name }}</div>
-            <div class="item-method" v-if="item.method">{{ item.method }}</div>
+            <div v-if="item.method" class="item-method">{{ item.method }}</div>
           </div>
           <div class="item-status">
-            <el-icon v-if="itemsResult[item.id] === 'OK'" color="#67c23a" size="24"><CircleCheck /></el-icon>
-            <el-icon v-else-if="itemsResult[item.id] === 'NG'" color="#f56c6c" size="24"><CircleClose /></el-icon>
-            <el-icon v-else color="#dcdfe6" size="24"><CircleCheck /></el-icon>
+            <van-icon v-if="itemsResult[item.id] === 'OK'" name="success" color="#07c160" size="24" />
+            <van-icon v-else-if="itemsResult[item.id] === 'NG'" name="fail" color="#ee0a24" size="24" />
+            <van-icon v-else name="circle" color="#dcdee0" size="24" />
           </div>
-        </el-card>
+        </div>
       </div>
 
       <!-- 操作按钮 -->
-      <div class="inspect-actions">
-        <el-button
-          @click="submitInspection"
-          type="primary"
-          size="large"
-          :disabled="!canSubmit"
-          :loading="submitting"
-        >
-          提交点检结果
-        </el-button>
-      </div>
+      <mobile-action-bar :actions="[
+        {
+          text: '提交点检结果',
+          type: 'primary',
+          disabled: !canSubmit,
+          loading: submitting,
+          onClick: submitInspection
+        }
+      ]" />
     </div>
 
     <!-- 点检项目详情弹窗 -->
-    <el-drawer
-      v-model="showItemDrawer"
-      :title="`${currentItemIndex + 1}. ${currentItem?.name}`"
-      direction="btt"
-      size="70%"
+    <van-popup
+      v-model:show="showItemDrawer"
+      position="bottom"
+      :style="{ height: '70%' }"
+      round
     >
       <div class="item-detail" v-if="currentItem">
-        <div class="detail-section">
-          <div class="section-label">检查方法</div>
-          <div class="section-value">{{ currentItem.method || '无特殊要求' }}</div>
-        </div>
-        <div class="detail-section">
-          <div class="section-label">判定标准</div>
-          <div class="section-value">{{ currentItem.criteria || '无特殊要求' }}</div>
+        <div class="detail-header">
+          <span class="item-index">{{ currentItemIndex + 1 }}.</span>
+          <span class="item-title">{{ currentItem.name }}</span>
         </div>
 
-        <el-divider>点检结果</el-divider>
+        <van-cell-group inset class="detail-info">
+          <van-cell title="检查方法" :value="currentItem.method || '无特殊要求'" />
+          <van-cell title="判定标准" :value="currentItem.criteria || '无特殊要求'" />
+        </van-cell-group>
 
-        <el-radio-group v-model="currentItemResult" class="result-group" size="large">
-          <el-radio-button label="OK">
-            <el-icon color="#67c23a"><CircleCheck /></el-icon>
-            正常
-          </el-radio-button>
-          <el-radio-button label="NG">
-            <el-icon color="#f56c6c"><CircleClose /></el-icon>
-            异常
-          </el-radio-button>
-        </el-radio-group>
+        <van-divider>点检结果</van-divider>
+
+        <van-radio-group v-model="currentItemResult" class="result-group">
+          <van-radio name="OK" class="result-option">
+            <div class="option-content ok">
+              <van-icon name="success" />
+              <span>正常 (OK)</span>
+            </div>
+          </van-radio>
+          <van-radio name="NG" class="result-option">
+            <div class="option-content ng">
+              <van-icon name="fail" />
+              <span>异常 (NG)</span>
+            </div>
+          </van-radio>
+        </van-radio-group>
 
         <div v-if="currentItemResult === 'NG'" class="ng-section">
-          <el-input
+          <van-field
             v-model="currentItemRemark"
             type="textarea"
+            label="异常描述"
             placeholder="请描述异常情况..."
-            :rows="3"
+            rows="3"
             maxlength="200"
             show-word-limit
           />
-          <div class="photo-upload">
-            <el-upload
-              :action="uploadAction"
-              :headers="uploadHeaders"
-              :on-success="onUploadSuccess"
-              :show-file-list="false"
-              accept="image/*"
-              :before-upload="beforeUpload"
-            >
-              <el-button type="primary" plain>
-                <el-icon><Camera /></el-icon>
-                拍照上传
-              </el-button>
-            </el-upload>
-            <img v-if="currentItemPhoto" :src="currentItemPhoto" class="preview-photo" />
-          </div>
+          <van-field label="照片上传">
+            <template #input>
+              <div class="photo-upload">
+                <van-uploader
+                  :after-read="onPhotoRead"
+                  accept="image/*"
+                  :max-size="5 * 1024 * 1024"
+                  @oversize="onPhotoOversize"
+                />
+                <img v-if="currentItemPhoto" :src="currentItemPhoto" class="preview-photo" />
+              </div>
+            </template>
+          </van-field>
         </div>
 
         <div class="drawer-actions">
-          <el-button @click="showItemDrawer = false">取消</el-button>
-          <el-button type="primary" @click="confirmItemResult" :disabled="!currentItemResult">
+          <van-button plain @click="showItemDrawer = false">取消</van-button>
+          <van-button
+            type="primary"
+            :disabled="!currentItemResult"
+            @click="confirmItemResult"
+          >
             确认
-          </el-button>
+          </van-button>
         </div>
       </div>
-    </el-drawer>
+    </van-popup>
 
     <!-- 手动输入对话框 -->
-    <el-dialog v-model="showManualDialog" title="手动输入设备编号" width="90%">
-      <el-input
+    <van-dialog
+      v-model:show="showManualDialog"
+      title="手动输入设备编号"
+      show-cancel-button
+      @confirm="confirmManualInput"
+    >
+      <van-field
         v-model="manualGrid"
         placeholder="请输入设备二维码内容"
         @keyup.enter="confirmManualInput"
       />
-      <template #footer>
-        <el-button @click="showManualDialog = false">取消</el-button>
-        <el-button type="primary" @click="confirmManualInput">确定</el-button>
-      </template>
-    </el-dialog>
+    </van-dialog>
 
     <!-- 完成结果弹窗 -->
-    <el-dialog v-model="showResultDialog" title="点检完成" width="90%" :close-on-click-modal="false">
+    <van-dialog
+      v-model:show="showResultDialog"
+      :title="ngCount > 0 ? '点检完成，发现异常' : '点检完成，全部正常'"
+      :show-cancel-button="false"
+      confirm-button-text="完成"
+      @confirm="goBackToScan"
+    >
       <div class="result-content">
-        <el-result :icon="ngCount > 0 ? 'warning' : 'success'">
-          <template #title>
-            <h3>{{ ngCount > 0 ? '点检完成，发现异常' : '点检完成，全部正常' }}</h3>
-          </template>
-          <template #sub-title>
-            <p>共检查 {{ totalCount }} 项，正常 {{ okCount }} 项，异常 {{ ngCount }} 项</p>
-          </template>
-        </el-result>
+        <van-icon
+          :name="ngCount > 0 ? 'warning-o' : 'success'"
+          :color="ngCount > 0 ? '#ff976a' : '#07c160'"
+          size="64"
+        />
+        <div class="result-summary">
+          <p>共检查 {{ totalCount }} 项</p>
+          <p>正常 {{ okCount }} 项，异常 {{ ngCount }} 项</p>
+        </div>
 
         <div v-if="ngCount > 0" class="ng-items">
           <div class="section-label">异常项目：</div>
-          <el-tag v-for="itemId in ngItemIds" :key="itemId" type="danger" style="margin: 4px">
+          <van-tag v-for="itemId in ngItemIds" :key="itemId" type="danger" style="margin: 4px">
             {{ getItemName(itemId) }}
-          </el-tag>
+          </van-tag>
         </div>
       </div>
-      <template #footer>
-        <el-button type="primary" @click="goBackToScan">完成</el-button>
-      </template>
-    </el-dialog>
+    </van-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import {
-  Grid,
-  ArrowLeft,
-  CircleCheck,
-  CircleClose,
-  Camera
-} from '@element-plus/icons-vue'
+import { showToast, showDialog } from 'vant'
 import {
   inspectionTaskApi,
   type InspectionTask,
@@ -225,6 +244,8 @@ import {
   type Equipment
 } from '@/api/inspection'
 import { useAuthStore } from '@/stores/auth'
+import MobileHeader from '@/components/mobile/MobileHeader.vue'
+import MobileActionBar from '@/components/mobile/MobileActionBar.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -255,12 +276,6 @@ const showManualDialog = ref(false)
 const manualGrid = ref('')
 const showResultDialog = ref(false)
 
-// 上传配置
-const uploadAction = computed(() => `${import.meta.env.VITE_API_BASE_URL}/upload`)
-const uploadHeaders = computed(() => ({
-  Authorization: `Bearer ${authStore.token}`
-}))
-
 const templateName = computed(() => {
   return myTasks.value.find(t => t.id === taskId.value)?.template_name || ''
 })
@@ -289,11 +304,11 @@ const ngItemIds = computed(() => {
 
 const getTaskStatusType = (status: string) => {
   const map: Record<string, any> = {
-    pending: 'info',
+    pending: 'primary',
     in_progress: 'warning',
     completed: 'success'
   }
-  return map[status] || 'info'
+  return map[status] || 'default'
 }
 
 const getTaskStatusText = (status: string) => {
@@ -316,16 +331,15 @@ const loadMyTasks = async () => {
     const data = await inspectionTaskApi.getMyTasks()
     myTasks.value = data
   } catch (error: any) {
-    ElMessage.error(error.message || '加载任务失败')
+    showToast(error.message || '加载任务失败')
   }
 }
 
 // 启动扫码
 const startScan = async () => {
   try {
-    // 检查是否支持摄像头
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      ElMessage.warning('当前浏览器不支持扫码，请使用手动输入')
+      showToast('当前浏览器不支持扫码，请使用手动输入')
       return
     }
 
@@ -342,7 +356,7 @@ const startScan = async () => {
       }
     }
   } catch (error: any) {
-    ElMessage.error(error.message || '无法访问摄像头')
+    showToast(error.message || '无法访问摄像头')
     scanning.value = false
   }
 }
@@ -356,13 +370,13 @@ const stopScan = () => {
   scanning.value = false
 }
 
-// 扫码循环（使用简单的扫码检测）
+// 扫码循环
 let scanInterval: number | null = null
 const startScanLoop = () => {
   if (scanInterval) clearInterval(scanInterval)
   scanInterval = window.setInterval(() => {
     // 实际项目中应集成 jsQR 或 html5-qrcode 库
-    // 这里简化处理，等待用户手动输入或点击任务
+    // 这里简化处理
   }, 500)
 }
 
@@ -375,7 +389,6 @@ const onScanSuccess = async (qrCode: string) => {
 // 开始点检
 const startInspection = async (qrCode: string, equipmentId?: number) => {
   try {
-    // 获取GPS位置
     let latitude: number | undefined
     let longitude: number | undefined
     try {
@@ -383,7 +396,7 @@ const startInspection = async (qrCode: string, equipmentId?: number) => {
       latitude = position.coords.latitude
       longitude = position.coords.longitude
     } catch {
-      // GPS获取失败，继续但可能触发警告
+      // GPS获取失败，继续
     }
 
     const response: StartInspectionResponse = await inspectionTaskApi.start({
@@ -398,7 +411,6 @@ const startInspection = async (qrCode: string, equipmentId?: number) => {
     equipment.value = response.equipment || null
     inspectionItems.value = response.items || []
 
-    // 重置状态
     itemsResult.value = {}
     itemsRemark.value = {}
     itemsPhoto.value = {}
@@ -406,7 +418,7 @@ const startInspection = async (qrCode: string, equipmentId?: number) => {
 
     step.value = 'inspect'
   } catch (error: any) {
-    ElMessage.error(error.message || '启动点检失败')
+    showToast(error.message || '启动点检失败')
   }
 }
 
@@ -433,7 +445,7 @@ const manualInput = () => {
 // 确认手动输入
 const confirmManualInput = () => {
   if (!manualGrid.value.trim()) {
-    ElMessage.warning('请输入设备二维码')
+    showToast('请输入设备二维码')
     return
   }
   showManualDialog.value = false
@@ -451,7 +463,6 @@ const selectItem = (index: number) => {
   currentItemIndex.value = index
   const item = inspectionItems.value[index]
 
-  // 加载已保存的结果
   currentItemResult.value = itemsResult.value[item.id] || ''
   currentItemRemark.value = itemsRemark.value[item.id] || ''
   currentItemPhoto.value = itemsPhoto.value[item.id] || ''
@@ -477,26 +488,14 @@ const confirmItemResult = () => {
   }
 }
 
-// 上传前
-const beforeUpload = (file: File) => {
-  const isImage = file.type.startsWith('image/')
-  if (!isImage) {
-    ElMessage.error('只能上传图片')
-    return false
-  }
-  const isLt5M = file.size / 1024 / 1024 < 5
-  if (!isLt5M) {
-    ElMessage.error('图片大小不能超过5MB')
-    return false
-  }
-  return true
+// 照片读取
+const onPhotoRead = (file: any) => {
+  currentItemPhoto.value = file.content
 }
 
-// 上传成功
-const onUploadSuccess = (response: any) => {
-  if (response.url) {
-    currentItemPhoto.value = response.url
-  }
+// 照片过大
+const onPhotoOversize = () => {
+  showToast('图片大小不能超过5MB')
 }
 
 // 提交点检
@@ -512,7 +511,6 @@ const submitInspection = async () => {
       photo_url: itemsPhoto.value[itemId]
     }))
 
-    // 获取GPS位置
     let latitude: number | undefined
     let longitude: number | undefined
     try {
@@ -532,7 +530,7 @@ const submitInspection = async () => {
 
     showResultDialog.value = true
   } catch (error: any) {
-    ElMessage.error(error.message || '提交失败')
+    showToast(error.message || '提交失败')
   } finally {
     submitting.value = false
   }
@@ -546,13 +544,18 @@ const goBackToScan = () => {
 }
 
 // 返回
-const goBack = () => {
+const goBack = async () => {
   if (progress.value > 0) {
-    ElMessageBox.confirm('返回将丢失当前点检进度，确定返回？', '提示', {
-      type: 'warning'
-    }).then(() => {
+    try {
+      await showDialog({
+        title: '提示',
+        message: '返回将丢失当前点检进度，确定返回？',
+        showCancelButton: true
+      })
       step.value = 'scan'
-    }).catch(() => {})
+    } catch {
+      // 用户取消
+    }
   } else {
     step.value = 'scan'
   }
@@ -561,7 +564,6 @@ const goBack = () => {
 onMounted(() => {
   loadMyTasks()
 
-  // 检查是否有taskId参数（从任务列表进入）
   const taskParam = route.params.taskId
   if (taskParam) {
     const task = myTasks.value.find(t => t.id === Number(taskParam))
@@ -578,28 +580,29 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.execute-view {
+.inspection-execute-view {
   min-height: 100vh;
   background: #f5f5f5;
 }
 
 /* 扫码页面 */
 .scan-page {
-  padding: 20px;
+  min-height: 100vh;
 }
 
-.scan-header {
+.scan-content {
+  padding: 16px;
+  padding-bottom: 80px;
+}
+
+.scan-instructions {
   text-align: center;
   margin-bottom: 20px;
 }
 
-.scan-header h1 {
-  font-size: 24px;
-  margin: 0 0 8px;
-}
-
-.scan-header p {
+.scan-instructions p {
   color: #666;
+  font-size: 16px;
   margin: 0;
 }
 
@@ -623,6 +626,11 @@ onUnmounted(() => {
   cursor: pointer;
 }
 
+.scan-placeholder p {
+  margin-top: 12px;
+  font-size: 14px;
+}
+
 .scan-video,
 .scan-canvas {
   width: 100%;
@@ -636,14 +644,8 @@ onUnmounted(() => {
   left: 0;
 }
 
-.scan-actions {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 30px;
-}
-
 .my-tasks {
-  margin-top: 20px;
+  margin-top: 30px;
 }
 
 .section-title {
@@ -652,63 +654,51 @@ onUnmounted(() => {
   margin-bottom: 12px;
 }
 
-.task-card {
+.task-cell {
+  margin-bottom: 8px;
+  border-radius: 8px;
+}
+
+.task-action {
+  margin-top: -4px;
   margin-bottom: 12px;
 }
 
-.task-info {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.task-equipment {
-  font-weight: 500;
+.empty-tasks {
+  margin-top: 20px;
 }
 
 /* 点检执行页面 */
 .inspect-page {
   min-height: 100vh;
+  background: #f5f5f5;
+  padding-bottom: 80px;
+}
+
+.template-info {
+  padding: 12px 16px;
+  text-align: center;
+  color: #666;
+  font-size: 14px;
   background: #fff;
 }
 
-.inspect-header {
+.progress-section {
   padding: 16px;
-  background: #409eff;
-  color: #fff;
-}
-
-.inspect-header :deep(.el-icon) {
-  font-size: 18px !important;
-}
-
-.inspect-header h2 {
-  margin: 8px 0 4px;
-  font-size: 20px;
-}
-
-.template-name {
-  margin: 0;
-  opacity: 0.8;
-  font-size: 14px;
-}
-
-.progress-indicator {
-  padding: 16px;
-  background: #f5f5f5;
-  display: flex;
-  align-items: center;
-  gap: 16px;
+  background: #fff;
+  margin-bottom: 12px;
 }
 
 .progress-text {
-  white-space: nowrap;
-  font-weight: 500;
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 14px;
+  color: #666;
 }
 
-.items-container {
-  padding: 16px;
+.items-list {
+  padding: 0 16px;
 }
 
 .item-card {
@@ -716,13 +706,16 @@ onUnmounted(() => {
   align-items: center;
   gap: 12px;
   margin-bottom: 12px;
+  padding: 12px;
+  background: #fff;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s;
 }
 
 .item-card.active {
-  border-color: #409eff;
-  background: #ecf5ff;
+  border: 1px solid #1989fa;
+  background: #ecf9ff;
 }
 
 .item-card.completed {
@@ -733,82 +726,100 @@ onUnmounted(() => {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #409eff;
+  background: #1989fa;
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: bold;
+  flex-shrink: 0;
 }
 
 .item-card.completed .item-number {
-  background: #67c23a;
+  background: #07c160;
 }
 
 .item-content {
   flex: 1;
+  min-width: 0;
 }
 
 .item-name {
   font-weight: 500;
   margin-bottom: 4px;
+  font-size: 15px;
 }
 
 .item-method {
-  font-size: 12px;
+  font-size: 13px;
   color: #999;
-}
-
-.inspect-actions {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 16px;
-  background: #fff;
-  box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-}
-
-.inspect-actions .el-button {
-  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* 项目详情 */
 .item-detail {
-  padding: 16px;
+  padding: 20px 16px;
+  max-height: 70vh;
+  overflow-y: auto;
 }
 
-.detail-section {
-  margin-bottom: 16px;
-}
-
-.section-label {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 8px;
-}
-
-.section-value {
-  font-size: 16px;
-  color: #333;
-}
-
-.result-group {
+.detail-header {
   display: flex;
-  width: 100%;
+  align-items: center;
+  gap: 8px;
   margin-bottom: 16px;
 }
 
-.result-group .el-radio-button {
-  flex: 1;
-}
-
-.result-group .el-radio-button__inner {
-  width: 100%;
+.item-index {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #1989fa;
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.item-title {
+  font-size: 18px;
+  font-weight: 500;
+  flex: 1;
+}
+
+.detail-info {
+  margin-bottom: 16px;
+}
+
+.result-group {
+  margin-bottom: 16px;
+}
+
+.result-option {
+  padding: 12px;
+  margin-bottom: 8px;
+  border: 1px solid #ebedf0;
+  border-radius: 8px;
+}
+
+.option-content {
+  display: flex;
+  align-items: center;
   gap: 8px;
+  font-size: 16px;
+}
+
+.option-content.ok {
+  color: #07c160;
+}
+
+.option-content.ng {
+  color: #ee0a24;
 }
 
 .ng-section {
@@ -816,7 +827,6 @@ onUnmounted(() => {
 }
 
 .photo-upload {
-  margin-top: 12px;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -839,10 +849,26 @@ onUnmounted(() => {
 /* 结果弹窗 */
 .result-content {
   text-align: center;
+  padding: 20px;
+}
+
+.result-summary {
+  margin: 16px 0;
+}
+
+.result-summary p {
+  margin: 4px 0;
+  font-size: 15px;
 }
 
 .ng-items {
   margin-top: 16px;
   text-align: left;
+}
+
+.section-label {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 8px;
 }
 </style>

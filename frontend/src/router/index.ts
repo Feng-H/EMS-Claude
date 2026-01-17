@@ -7,13 +7,51 @@ const routes: RouteRecordRaw[] = [
     path: '/login',
     name: 'Login',
     component: () => import('@/views/auth/LoginView.vue'),
-    meta: { requiresAuth: false },
+    meta: { requiresAuth: false, layout: 'full-screen' },
   },
   {
     path: '/change-password',
     name: 'ChangePassword',
     component: () => import('@/views/auth/ChangePasswordView.vue'),
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, layout: 'full-screen' },
+  },
+  // H5移动端首页（全屏布局）
+  {
+    path: '/h5',
+    name: 'H5Home',
+    component: () => import('@/views/h5/IndexView.vue'),
+    meta: { requiresAuth: true, layout: 'full-screen' },
+  },
+  // H5移动端路由
+  {
+    path: '/h5/inspection',
+    name: 'H5Inspection',
+    component: () => import('@/views/inspection/ExecuteView.vue'),
+    meta: { requiresAuth: true, layout: 'full-screen' },
+  },
+  {
+    path: '/h5/repair/report',
+    name: 'H5RepairReport',
+    component: () => import('@/views/repair/ReportView.vue'),
+    meta: { requiresAuth: true, layout: 'full-screen' },
+  },
+  {
+    path: '/h5/repair/execute',
+    name: 'H5RepairExecute',
+    component: () => import('@/views/repair/ExecuteView.vue'),
+    meta: { requiresAuth: true, layout: 'full-screen' },
+  },
+  {
+    path: '/h5/maintenance',
+    name: 'H5Maintenance',
+    component: () => import('@/views/maintenance/ExecuteView.vue'),
+    meta: { requiresAuth: true, layout: 'full-screen' },
+  },
+  {
+    path: '/h5/tasks',
+    name: 'H5Tasks',
+    component: () => import('@/views/h5/TasksView.vue'),
+    meta: { requiresAuth: true, layout: 'full-screen' },
   },
   {
     path: '/',
@@ -159,7 +197,8 @@ router.beforeEach((to, from, next) => {
     return
   }
 
-  if (to.name === 'Login' && authStore.isLoggedIn) {
+  // 允许通过 ?force=true 参数强制访问登录页
+  if (to.name === 'Login' && authStore.isLoggedIn && !to.query.force) {
     next({ name: 'Dashboard' })
     return
   }
