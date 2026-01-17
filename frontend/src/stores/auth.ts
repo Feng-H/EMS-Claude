@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { authApi, type LoginRequest, type UserInfo } from '@/api/auth'
+import { authApi, type LoginRequest, type LoginResponse, type UserInfo } from '@/api/auth'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref<string>(localStorage.getItem('ems_token') || '')
@@ -10,14 +10,17 @@ export const useAuthStore = defineStore('auth', () => {
   const userRole = computed(() => userInfo.value?.role || '')
   const userName = computed(() => userInfo.value?.name || '')
   const userId = computed(() => userInfo.value?.id || 0)
+  const mustChangePassword = computed(() => userInfo.value?.must_change_password || false)
 
-  async function login(credentials: LoginRequest) {
+  async function login(credentials: LoginRequest): Promise<LoginResponse> {
     const response = await authApi.login(credentials)
     token.value = response.token
     userInfo.value = response.user_info
 
     localStorage.setItem('ems_token', response.token)
     localStorage.setItem('ems_user', JSON.stringify(response.user_info))
+
+    return response
   }
 
   function logout() {
@@ -56,6 +59,7 @@ export const useAuthStore = defineStore('auth', () => {
     userRole,
     userName,
     userId,
+    mustChangePassword,
     login,
     logout,
     getUserInfo,

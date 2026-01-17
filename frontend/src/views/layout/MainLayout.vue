@@ -28,7 +28,7 @@
       <!-- 导航菜单 -->
       <nav class="sidebar-nav">
         <div class="nav-section">
-          <div v-if="!sidebarCollapsed" class="nav-section-title">主要功能</div>
+          <div v-if="!sidebarCollapsed" class="nav-section-title">基础功能</div>
           <router-link to="/dashboard" class="nav-item" :class="{ active: isActive('/dashboard') }">
             <div class="nav-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -58,7 +58,40 @@
             <div v-if="!sidebarCollapsed" class="nav-indicator"></div>
           </router-link>
 
-          <router-link v-if="canManageOrg" to="/organization" class="nav-item" :class="{ active: isActive('/organization') }">
+          <div v-if="canManageOrg" class="nav-group" :class="{ active: isGroupActive('/organization') }">
+            <button class="nav-item nav-group-toggle" @click="toggleGroup('organization')">
+              <div class="nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M3 21h18"/>
+                  <rect x="5" y="3" width="4" height="14" rx="1"/>
+                  <rect x="15" y="8" width="4" height="9" rx="1"/>
+                  <path d="M10 21v-4"/>
+                </svg>
+              </div>
+              <transition name="nav-text">
+                <span v-show="!sidebarCollapsed" class="nav-text">组织架构</span>
+              </transition>
+              <transition name="arrow">
+                <svg v-show="!sidebarCollapsed" class="nav-arrow" :class="{ expanded: expandedGroups.organization }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </transition>
+            </button>
+            <transition name="submenu">
+              <div v-show="sidebarCollapsed || expandedGroups.organization" class="nav-submenu" :class="{ 'always-show': sidebarCollapsed }">
+                <router-link to="/organization" class="nav-subitem" :class="{ active: isActive('/organization') && !isActive('/organization/users') }">
+                  <span class="submenu-dot"></span>
+                  <span class="submenu-text">组织管理</span>
+                </router-link>
+                <router-link to="/organization/users" class="nav-subitem" :class="{ active: isActive('/organization/users') }">
+                  <span class="submenu-dot"></span>
+                  <span class="submenu-text">人员管理</span>
+                </router-link>
+              </div>
+            </transition>
+          </div>
+
+          <router-link v-if="!canManageOrg" to="/organization" class="nav-item" :class="{ active: isActive('/organization') }">
             <div class="nav-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                 <path d="M3 21h18"/>
@@ -330,6 +363,7 @@ const themeStore = useThemeStore()
 
 const sidebarCollapsed = ref(false)
 const expandedGroups = ref({
+  organization: true,
   inspection: true,
   repair: false,
   maintenance: false,
@@ -432,12 +466,6 @@ html, body {
   scrollbar-width: none !important;
   -ms-overflow-style: none !important;
   box-sizing: border-box;
-}
-
-/* Remove all borders and outlines */
-* {
-  border: none !important;
-  outline: none !important;
 }
 
 *:focus,

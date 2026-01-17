@@ -25,6 +25,15 @@ const (
 	RoleOperator    UserRole = "operator"
 )
 
+// User approval status
+type UserApprovalStatus string
+
+const (
+	ApprovalStatusPending  UserApprovalStatus = "pending"
+	ApprovalStatusApproved UserApprovalStatus = "approved"
+	ApprovalStatusRejected UserApprovalStatus = "rejected"
+)
+
 // Organization structure
 type Base struct {
 	BaseModel
@@ -51,14 +60,18 @@ type Workshop struct {
 // User
 type User struct {
 	BaseModel
-	Username     string   `json:"username" gorm:"uniqueIndex;size:50;not null"`
-	PasswordHash string   `json:"-" gorm:"size:255;not null"`
-	Name         string   `json:"name" gorm:"size:100;not null"`
-	Role         UserRole `json:"role" gorm:"type:varchar(20);not null;default:'operator'"`
-	FactoryID    *uint    `json:"factory_id"`
-	Factory      *Factory `json:"factory,omitempty" gorm:"foreignKey:FactoryID"`
-	Phone        string   `json:"phone" gorm:"size:20"`
-	IsActive     bool     `json:"is_active" gorm:"default:true"`
+	Username           string             `json:"username" gorm:"uniqueIndex;size:50;not null"`
+	PasswordHash       string             `json:"-" gorm:"size:255;not null"`
+	Name               string             `json:"name" gorm:"size:100;not null"`
+	Role               UserRole           `json:"role" gorm:"type:varchar(20);not null;default:'operator'"`
+	FactoryID          *uint              `json:"factory_id"`
+	Factory            *Factory           `json:"factory,omitempty" gorm:"foreignKey:FactoryID"`
+	Phone              string             `json:"phone" gorm:"size:20"`
+	IsActive           bool               `json:"is_active" gorm:"default:true"`
+	ApprovalStatus     UserApprovalStatus `json:"approval_status" gorm:"type:varchar(20);default:'approved'"`
+	MustChangePassword bool               `json:"must_change_password" gorm:"default:false"`
+	FirstLogin         bool               `json:"first_login" gorm:"default:true"`
+	RejectionReason    string             `json:"rejection_reason,omitempty" gorm:"type:text"`
 }
 
 // Equipment

@@ -46,7 +46,7 @@ body {
 * {
   border-width: 0;
   border-style: solid;
-  border-color: currentColor;
+  border-color: var(--el-border-color);
 }
 
 /* Scrollbar styling */

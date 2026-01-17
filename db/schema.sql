@@ -30,6 +30,7 @@ DROP TYPE IF EXISTS repair_status CASCADE;
 -- =====================================================
 
 CREATE TYPE user_role AS ENUM ('admin', 'supervisor', 'engineer', 'maintenance', 'operator');
+CREATE TYPE user_approval_status AS ENUM ('pending', 'approved', 'rejected');
 CREATE TYPE repair_status AS ENUM ('pending', 'assigned', 'in_progress', 'testing', 'confirmed', 'audited', 'closed');
 
 -- =====================================================
@@ -77,6 +78,10 @@ CREATE TABLE users (
     factory_id INTEGER REFERENCES factories(id) ON DELETE SET NULL,
     phone VARCHAR(20),
     is_active BOOLEAN DEFAULT true,
+    approval_status user_approval_status DEFAULT 'approved',
+    must_change_password BOOLEAN DEFAULT false,
+    first_login BOOLEAN DEFAULT true,
+    rejection_reason TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

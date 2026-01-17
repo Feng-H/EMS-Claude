@@ -113,13 +113,25 @@ func main() {
 		{
 			auth.POST("/login", v1.Login)
 			auth.POST("/refresh", v1.RefreshToken)
+			auth.POST("/apply", v1.ApplyForAccount)
 			auth.GET("/me", middleware.AuthMiddleware(), v1.GetCurrentUser)
+			auth.POST("/change-password", middleware.AuthMiddleware(), v1.ChangePassword)
 		}
 
 		// Protected routes
 		protected := api.Group("")
 		protected.Use(middleware.AuthMiddleware())
 		{
+			// User management routes (admin only)
+			users := protected.Group("/users")
+			{
+				users.GET("", v1.GetUsers)
+				users.POST("", v1.CreateUser)
+				users.GET("/applications", v1.GetPendingApplications)
+				users.PUT("/:id/approve", v1.ApproveApplication)
+				users.PUT("/:id", v1.UpdateUser)
+			}
+
 			// Organization routes
 			org := protected.Group("/organization")
 			{

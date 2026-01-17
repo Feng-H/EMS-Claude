@@ -55,18 +55,20 @@
         </div>
       </div>
 
-      <!-- 右侧：登录表单 -->
+      <!-- 右侧：登录/申请表单 -->
       <div class="form-section">
         <div class="form-card">
           <div class="form-header">
-            <h2>欢迎回来</h2>
-            <p>请登录您的账号以继续</p>
+            <h2>{{ isLoginMode ? '欢迎回来' : '申请账号' }}</h2>
+            <p>{{ isLoginMode ? '请登录您的账号以继续' : '填写信息申请系统账号' }}</p>
           </div>
 
+          <!-- 登录表单 -->
           <el-form
+            v-if="isLoginMode"
             ref="formRef"
-            :model="form"
-            :rules="rules"
+            :model="loginForm"
+            :rules="loginRules"
             @submit.prevent="handleLogin"
             class="login-form"
           >
@@ -78,7 +80,7 @@
                   </svg>
                 </div>
                 <el-input
-                  v-model="form.username"
+                  v-model="loginForm.username"
                   placeholder="用户名"
                   size="large"
                   @keyup.enter="handleLogin"
@@ -95,7 +97,7 @@
                   </svg>
                 </div>
                 <el-input
-                  v-model="form.password"
+                  v-model="loginForm.password"
                   type="password"
                   placeholder="密码"
                   size="large"
@@ -119,13 +121,127 @@
             </el-form-item>
           </el-form>
 
+          <!-- 申请表单 -->
+          <el-form
+            v-else
+            ref="formRef"
+            :model="applyForm"
+            :rules="applyRules"
+            @submit.prevent="handleApply"
+            class="apply-form"
+          >
+            <el-form-item prop="username">
+              <div class="input-group">
+                <div class="input-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4V8a4 4 0 0 0-4-4h-5.586a4 4 0 0 0-2.828 1.172l-2.414 2.414a4 4 0 0 0-5.656 0 4 4 0 0 0 0 5.656l2.414 2.414a4 4 0 0 0 1.172 1.172V8a4 4 0 0 0 4 4v2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <el-input
+                  v-model="applyForm.username"
+                  placeholder="用户名（3-50个字符）"
+                  size="large"
+                />
+              </div>
+            </el-form-item>
+
+            <el-form-item prop="name">
+              <div class="input-group">
+                <div class="input-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                  </svg>
+                </div>
+                <el-input
+                  v-model="applyForm.name"
+                  placeholder="真实姓名"
+                  size="large"
+                />
+              </div>
+            </el-form-item>
+
+            <el-form-item prop="role">
+              <div class="input-group">
+                <div class="input-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  </svg>
+                </div>
+                <el-select
+                  v-model="applyForm.role"
+                  placeholder="选择角色"
+                  size="large"
+                  style="width: 100%;"
+                >
+                  <el-option label="操作工" value="operator" />
+                  <el-option label="维修工" value="maintenance" />
+                  <el-option label="设备工程师" value="engineer" />
+                  <el-option label="设备主管" value="supervisor" />
+                </el-select>
+              </div>
+            </el-form-item>
+
+            <el-form-item prop="phone">
+              <div class="input-group">
+                <div class="input-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                  </svg>
+                </div>
+                <el-input
+                  v-model="applyForm.phone"
+                  placeholder="联系电话（可选）"
+                  size="large"
+                />
+              </div>
+            </el-form-item>
+
+            <el-form-item prop="password">
+              <div class="input-group">
+                <div class="input-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                  </svg>
+                </div>
+                <el-input
+                  v-model="applyForm.password"
+                  type="password"
+                  placeholder="初始密码（至少6位）"
+                  size="large"
+                  show-password
+                />
+              </div>
+            </el-form-item>
+
+            <el-form-item>
+              <el-button
+                type="primary"
+                size="large"
+                :loading="loading"
+                native-type="submit"
+                class="login-btn"
+              >
+                <span v-if="!loading">提交申请</span>
+                <span v-else>提交中...</span>
+              </el-button>
+            </el-form-item>
+          </el-form>
+
           <div class="form-footer">
             <div class="divider">
-              <span>测试环境</span>
+              <span>{{ isLoginMode ? '测试环境' : '申请提示' }}</span>
             </div>
-            <div class="test-account">
+            <div v-if="isLoginMode" class="test-account">
               <span>账号: <strong>admin</strong></span>
               <span>密码: <strong>password123</strong></span>
+            </div>
+            <div v-else class="test-account">
+              <span>提交后需要等待管理员审核</span>
+            </div>
+            <div class="apply-link">
+              <span @click="toggleMode">{{ isLoginMode ? '没有账号？立即申请' : '已有账号？返回登录' }}</span>
             </div>
           </div>
         </div>
@@ -138,6 +254,7 @@
 import { reactive, ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { authApi, type ApplyAccountRequest } from '@/api/auth'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 
 const router = useRouter()
@@ -146,15 +263,53 @@ const authStore = useAuthStore()
 
 const formRef = ref<FormInstance>()
 const loading = ref(false)
+const isLoginMode = ref(true)
 
-const form = reactive({
+// 登录表单
+const loginForm = reactive({
   username: '',
   password: '',
 })
 
-const rules: FormRules = {
+// 申请表单
+const applyForm = reactive({
+  username: '',
+  password: '',
+  name: '',
+  role: 'operator',
+  phone: '',
+})
+
+const loginRules: FormRules = {
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
+}
+
+const applyRules: FormRules = {
+  username: [
+    { required: true, message: '请输入用户名', trigger: 'blur' },
+    { min: 3, max: 50, message: '用户名长度在 3 到 50 个字符', trigger: 'blur' },
+  ],
+  password: [
+    { required: true, message: '请输入密码', trigger: 'blur' },
+    { min: 6, message: '密码长度不能少于 6 个字符', trigger: 'blur' },
+  ],
+  name: [
+    { required: true, message: '请输入姓名', trigger: 'blur' },
+  ],
+  role: [
+    { required: true, message: '请选择角色', trigger: 'change' },
+  ],
+}
+
+const form = loginForm
+const rules = loginRules
+
+function toggleMode() {
+  isLoginMode.value = !isLoginMode.value
+  if (formRef.value) {
+    formRef.value.clearValidate()
+  }
 }
 
 async function handleLogin() {
@@ -165,8 +320,14 @@ async function handleLogin() {
 
     loading.value = true
     try {
-      await authStore.login(form)
+      const response = await authStore.login(loginForm)
       ElMessage.success('登录成功')
+
+      // 检查是否需要修改密码
+      if (response.must_change_password) {
+        router.push('/change-password')
+        return
+      }
 
       const redirect = (route.query.redirect as string) || '/dashboard'
       router.push(redirect)
@@ -178,11 +339,45 @@ async function handleLogin() {
   })
 }
 
+async function handleApply() {
+  if (!formRef.value) return
+
+  await formRef.value.validate(async (valid) => {
+    if (!valid) return
+
+    loading.value = true
+    try {
+      const data: ApplyAccountRequest = {
+        username: applyForm.username,
+        password: applyForm.password,
+        name: applyForm.name,
+        role: applyForm.role,
+        phone: applyForm.phone || undefined,
+      }
+      await authApi.applyAccount(data)
+      ElMessage.success('申请已提交，请等待管理员审核')
+      // 重置表单并切换回登录模式
+      Object.assign(applyForm, {
+        username: '',
+        password: '',
+        name: '',
+        role: 'operator',
+        phone: '',
+      })
+      toggleMode()
+    } catch (error) {
+      // Error is handled by request interceptor
+    } finally {
+      loading.value = false
+    }
+  })
+}
+
 onMounted(() => {
   // 预填充测试账号（开发环境）
   if (import.meta.env.DEV) {
-    form.username = 'admin'
-    form.password = 'password123'
+    loginForm.username = 'admin'
+    loginForm.password = 'password123'
   }
 })
 </script>
@@ -551,6 +746,23 @@ onMounted(() => {
 
 .test-account strong {
   color: var(--color-primary);
+}
+
+.apply-link {
+  margin-top: 12px;
+  text-align: center;
+}
+
+.apply-link span {
+  font-size: 13px;
+  color: var(--color-primary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.apply-link span:hover {
+  color: var(--color-success);
+  text-decoration: underline;
 }
 
 /* 响应式 */

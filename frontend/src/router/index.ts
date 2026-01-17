@@ -10,6 +10,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: false },
   },
   {
+    path: '/change-password',
+    name: 'ChangePassword',
+    component: () => import('@/views/auth/ChangePasswordView.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/',
     component: () => import('@/views/layout/MainLayout.vue'),
     meta: { requiresAuth: true },
@@ -38,6 +44,12 @@ const routes: RouteRecordRaw[] = [
         name: 'Organization',
         component: () => import('@/views/equipment/OrganizationView.vue'),
         meta: { title: '组织架构', roles: ['admin', 'engineer'] },
+      },
+      {
+        path: 'organization/users',
+        name: 'UserManagement',
+        component: () => import('@/views/user/UserManagementView.vue'),
+        meta: { title: '人员管理', roles: ['admin'] },
       },
       // 点检管理路由
       {

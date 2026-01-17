@@ -14,7 +14,10 @@ export interface LoginResponse {
     name: string
     role: string
     factory_id?: number
+    approval_status: string
+    must_change_password: boolean
   }
+  must_change_password: boolean
 }
 
 export interface UserInfo {
@@ -23,6 +26,22 @@ export interface UserInfo {
   name: string
   role: string
   factory_id?: number
+  approval_status: string
+  must_change_password: boolean
+}
+
+export interface ChangePasswordRequest {
+  old_password: string
+  new_password: string
+}
+
+export interface ApplyAccountRequest {
+  username: string
+  password: string
+  name: string
+  role: string
+  factory_id?: number
+  phone?: string
 }
 
 export const authApi = {
@@ -30,4 +49,6 @@ export const authApi = {
   logout: () => request.post('/auth/logout'),
   getUserInfo: () => request.get<UserInfo>('/auth/me'),
   refreshToken: (token: string) => request.post<{ token: string; expire_at: number }>('/auth/refresh', { token }),
+  changePassword: (data: ChangePasswordRequest) => request.post('/auth/change-password', data),
+  applyAccount: (data: ApplyAccountRequest) => request.post('/auth/apply', data),
 }
