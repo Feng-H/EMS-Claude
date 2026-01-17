@@ -215,8 +215,13 @@ const goBack = () => {
 const loadTask = async () => {
   const taskId = route.query.id as string
   if (!taskId) {
-    showToast('缺少任务ID')
-    goBack()
+    // If no ID is provided (e.g., direct access from sidebar), don't crash or go back.
+    // Just show empty state or redirect to task list if desired.
+    // Here we just return and show the "No Data" state if handled by template,
+    // but the template expects 'task' to be populated for 'v-else'
+    // So let's redirect to Task List with a message
+    showToast('请从任务列表选择要执行的任务')
+    router.replace('/maintenance/tasks')
     return
   }
 
@@ -246,7 +251,7 @@ const loadTask = async () => {
     }
   } catch (err: any) {
     showToast(err.response?.data?.error || '加载任务失败')
-    goBack()
+    router.replace('/maintenance/tasks')
   }
 }
 

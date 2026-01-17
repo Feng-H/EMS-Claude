@@ -20,7 +20,7 @@
       <!-- 筛选条件 -->
       <el-form :inline="true" :model="filterForm" class="filter-form">
         <el-form-item label="状态">
-          <el-select v-model="filterForm.status" placeholder="全部" clearable @change="loadOrders">
+          <el-select v-model="filterForm.status" placeholder="全部" clearable @change="loadOrders" style="width: 160px">
             <el-option label="待派单" value="pending" />
             <el-option label="已派单" value="assigned" />
             <el-option label="维修中" value="in_progress" />
@@ -30,7 +30,7 @@
           </el-select>
         </el-form-item>
         <el-form-item label="优先级">
-          <el-select v-model="filterForm.priority" placeholder="全部" clearable @change="loadOrders">
+          <el-select v-model="filterForm.priority" placeholder="全部" clearable @change="loadOrders" style="width: 160px">
             <el-option label="高" :value="1" />
             <el-option label="中" :value="2" />
             <el-option label="低" :value="3" />

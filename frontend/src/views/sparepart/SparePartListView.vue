@@ -305,7 +305,12 @@ const formatDateTime = (dateStr: string) => {
 const loadStats = async () => {
   try {
     const res = await getSparePartStatistics()
-    stats.value = res.data
+    stats.value = res.data || {
+      total_parts: 0,
+      low_stock_count: 0,
+      total_stock_value: 0,
+      monthly_consumption: 0
+    }
   } catch (err) {
     console.error('Failed to load stats:', err)
   }

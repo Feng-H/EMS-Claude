@@ -20,7 +20,7 @@
           <el-input v-model="queryParams.name" placeholder="请输入" clearable />
         </el-form-item>
         <el-form-item label="设备类型">
-          <el-select v-model="queryParams.type_id" placeholder="请选择" clearable>
+          <el-select v-model="queryParams.type_id" placeholder="请选择" clearable style="width: 160px">
             <el-option
               v-for="type in equipmentTypes"
               :key="type.id"
@@ -30,7 +30,7 @@
           </el-select>
         </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="queryParams.status" placeholder="请选择" clearable>
+          <el-select v-model="queryParams.status" placeholder="请选择" clearable style="width: 160px">
             <el-option label="运行中" value="running" />
             <el-option label="已停机" value="stopped" />
             <el-option label="维修中" value="maintenance" />
@@ -57,6 +57,7 @@
         stripe
         style="width: 100%; margin-top: 16px"
       >
+        <el-table-column type="selection" width="55" />
         <el-table-column type="index" label="序号" width="60" />
         <el-table-column prop="code" label="设备编号" width="140" />
         <el-table-column prop="name" label="设备名称" min-width="180" />

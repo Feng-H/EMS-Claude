@@ -16,7 +16,7 @@
       <!-- 筛选条件 -->
       <el-form :inline="true" :model="filterForm" class="filter-form">
         <el-form-item label="状态">
-          <el-select v-model="filterForm.status" placeholder="全部" clearable @change="loadTasks">
+          <el-select v-model="filterForm.status" placeholder="全部" clearable @change="loadTasks" style="width: 160px">
             <el-option label="待执行" value="pending" />
             <el-option label="进行中" value="in_progress" />
             <el-option label="已完成" value="completed" />
@@ -36,7 +36,7 @@
           />
         </el-form-item>
         <el-form-item label="指派给">
-          <el-select v-model="filterForm.assigned_to" placeholder="全部" clearable filterable>
+          <el-select v-model="filterForm.assigned_to" placeholder="全部" clearable filterable style="width: 160px">
             <el-option
               v-for="user in users"
               :key="user.id"

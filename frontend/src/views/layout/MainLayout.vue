@@ -19,7 +19,7 @@
         </div>
         <!-- 折叠按钮 - 固定在右上角 -->
         <button class="sidebar-collapse-btn" @click="toggleSidebar" title="折叠/展开侧边栏">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
             <polyline points="15 18 9 12 15 6"/>
           </svg>
         </button>
@@ -96,7 +96,7 @@
               </transition>
             </button>
             <transition name="submenu">
-              <div v-show="!sidebarCollapsed || expandedGroups.inspection" class="nav-submenu" :class="{ 'always-show': sidebarCollapsed }">
+              <div v-show="sidebarCollapsed || expandedGroups.inspection" class="nav-submenu" :class="{ 'always-show': sidebarCollapsed }">
                 <router-link to="/inspection/tasks" class="nav-subitem" :class="{ active: isActive('/inspection/tasks') }">
                   <span class="submenu-dot"></span>
                   <span class="submenu-text">点检任务</span>
@@ -131,7 +131,7 @@
               </transition>
             </button>
             <transition name="submenu">
-              <div v-show="!sidebarCollapsed || expandedGroups.repair" class="nav-submenu" :class="{ 'always-show': sidebarCollapsed }">
+              <div v-show="sidebarCollapsed || expandedGroups.repair" class="nav-submenu" :class="{ 'always-show': sidebarCollapsed }">
                 <router-link to="/repair/orders" class="nav-subitem" :class="{ active: isActive('/repair/orders') }">
                   <span class="submenu-dot"></span>
                   <span class="submenu-text">维修工单</span>
@@ -165,7 +165,7 @@
               </transition>
             </button>
             <transition name="submenu">
-              <div v-show="!sidebarCollapsed || expandedGroups.maintenance" class="nav-submenu" :class="{ 'always-show': sidebarCollapsed }">
+              <div v-show="sidebarCollapsed || expandedGroups.maintenance" class="nav-submenu" :class="{ 'always-show': sidebarCollapsed }">
                 <router-link v-if="canManageOrg" to="/maintenance/plans" class="nav-subitem" :class="{ active: isActive('/maintenance/plans') }">
                   <span class="submenu-dot"></span>
                   <span class="submenu-text">计划配置</span>
@@ -506,18 +506,20 @@ html, body {
   right: 16px;
   top: 50%;
   transform: translateY(-50%);
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: transparent;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   color: var(--color-text-tertiary);
   cursor: pointer;
   transition: all var(--transition-fast);
   flex-shrink: 0;
+  /* Ensure SVG size is strict */
+  padding: 0;
 }
 
 .sidebar-collapse-btn:hover {

@@ -292,7 +292,7 @@ const submitReport = async () => {
 .page-header :deep(.el-icon) {
   font-size: 18px !important;
 }
-}
+
 
 .page-header h1 {
   margin: 0;

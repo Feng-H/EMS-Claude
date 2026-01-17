@@ -316,13 +316,22 @@ const loadData = async () => {
     const [plansRes, typesRes, eqRes, statsRes] = await Promise.all([
       getMaintenancePlans(),
       equipmentTypeApi.getTypes(),
-      equipmentApi.getList({ page: 1, page_size: 1000 }),
+      equipmentApi.getList({ page: 1, page_size: 100 }), // Reduced page size to avoid 400 error
       getMaintenanceStatistics()
     ])
     plans.value = plansRes.data
     equipmentTypes.value = typesRes.data
     equipment.value = eqRes.data.items
-    stats.value = statsRes.data
+    stats.value = statsRes.data || {
+      total_plans: 0,
+      total_tasks: 0,
+      pending_tasks: 0,
+      in_progress_tasks: 0,
+      completed_tasks: 0,
+      overdue_tasks: 0,
+      today_completed: 0,
+      completion_rate: 0
+    } // Safe fallback
   } catch (err) {
     ElMessage.error('加载数据失败')
   } finally {

@@ -296,7 +296,16 @@ const formatDateTime = (dateStr: string) => {
 const loadStats = async () => {
   try {
     const res = await getMaintenanceStatistics()
-    stats.value = res.data
+    stats.value = res.data || {
+      total_plans: 0,
+      total_tasks: 0,
+      pending_tasks: 0,
+      in_progress_tasks: 0,
+      completed_tasks: 0,
+      overdue_tasks: 0,
+      today_completed: 0,
+      completion_rate: 0
+    }
   } catch (err) {
     console.error('Failed to load stats:', err)
   }
