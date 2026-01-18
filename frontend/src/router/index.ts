@@ -102,33 +102,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/inspection/TaskListView.vue'),
         meta: { title: '点检任务' },
       },
-      // 移动端点检执行（独立页面，不需要主布局）
-      {
-        path: 'inspection/execute/:taskId?',
-        name: 'inspection-execute',
-        component: () => import('@/views/inspection/ExecuteView.vue'),
-        meta: { requiresAuth: true, layout: 'full-screen' },
-      },
       // 维修管理路由
       {
         path: 'repair/orders',
         name: 'RepairOrders',
         component: () => import('@/views/repair/OrderListView.vue'),
         meta: { title: '维修工单' },
-      },
-      // 移动端报修页面（独立页面）
-      {
-        path: 'repair/create',
-        name: 'repair-create',
-        component: () => import('@/views/repair/ReportView.vue'),
-        meta: { requiresAuth: true, layout: 'full-screen' },
-      },
-      // 移动端维修执行页面（独立页面）
-      {
-        path: 'repair/execute/:orderId?',
-        name: 'repair-execute',
-        component: () => import('@/views/repair/ExecuteView.vue'),
-        meta: { requiresAuth: true, layout: 'full-screen' },
       },
       // 保养管理路由
       {
@@ -148,13 +127,6 @@ const routes: RouteRecordRaw[] = [
         name: 'MaintenanceTasks',
         component: () => import('@/views/maintenance/TaskListView.vue'),
         meta: { title: '保养任务' },
-      },
-      // 移动端保养执行页面（独立页面）
-      {
-        path: 'maintenance/execute/:taskId?',
-        name: 'maintenance-execute',
-        component: () => import('@/views/maintenance/ExecuteView.vue'),
-        meta: { requiresAuth: true, layout: 'full-screen' },
       },
       // 备件管理路由
       {

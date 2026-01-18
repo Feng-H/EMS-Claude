@@ -138,10 +138,6 @@
                   <span class="submenu-dot"></span>
                   <span class="submenu-text">模板配置</span>
                 </router-link>
-                <router-link to="/inspection/execute" class="nav-subitem" :class="{ active: isActive('/inspection/execute') }">
-                  <span class="submenu-dot"></span>
-                  <span class="submenu-text">移动端点检</span>
-                </router-link>
               </div>
             </transition>
           </div>
@@ -168,10 +164,6 @@
                 <router-link to="/repair/orders" class="nav-subitem" :class="{ active: isActive('/repair/orders') }">
                   <span class="submenu-dot"></span>
                   <span class="submenu-text">维修工单</span>
-                </router-link>
-                <router-link to="/repair/create" class="nav-subitem" :class="{ active: isActive('/repair/create') }">
-                  <span class="submenu-dot"></span>
-                  <span class="submenu-text">报修申请</span>
                 </router-link>
               </div>
             </transition>
@@ -206,10 +198,6 @@
                 <router-link to="/maintenance/tasks" class="nav-subitem" :class="{ active: isActive('/maintenance/tasks') }">
                   <span class="submenu-dot"></span>
                   <span class="submenu-text">任务管理</span>
-                </router-link>
-                <router-link to="/maintenance/execute" class="nav-subitem" :class="{ active: isActive('/maintenance/execute') }">
-                  <span class="submenu-dot"></span>
-                  <span class="submenu-text">移动端保养</span>
                 </router-link>
               </div>
             </transition>

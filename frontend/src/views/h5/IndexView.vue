@@ -257,7 +257,8 @@ onMounted(async () => {
 .logged-in-view {
   min-height: 100vh;
   background: #f5f5f5;
-  padding-bottom: 20px;
+  padding-top: 46px; /* Vant NavBar 默认高度 */
+  padding-bottom: env(safe-area-inset-bottom, 20px);
 }
 
 .content {

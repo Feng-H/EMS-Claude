@@ -303,6 +303,7 @@ const submitReport = async () => {
 .repair-report-view {
   min-height: 100vh;
   background: #f5f5f5;
+  padding-top: 46px; /* NavBar 高度 */
   padding-bottom: 80px;
 }
 

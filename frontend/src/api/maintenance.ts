@@ -230,3 +230,17 @@ export const getTaskStatusType = (status: MaintenanceTaskStatus): string => {
 // Alias exports for backward compatibility
 export const getStatusName = getTaskStatusName
 export const getStatusType = getTaskStatusType
+
+// API object for unified access
+export const maintenanceApi = {
+  getPlans: getMaintenancePlans,
+  createPlan: createMaintenancePlan,
+  createItem: createMaintenanceItem,
+  generateTasks: generateMaintenanceTasks,
+  getTasks: getMaintenanceTasks,
+  getTask: getMaintenanceTask,
+  getMyTasks: getMyMaintenanceTasks,
+  start: startMaintenance,
+  complete: completeMaintenance,
+  getStatistics: getMaintenanceStatistics
+}

@@ -55,6 +55,7 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     token,
     userInfo,
+    user: userInfo, // Alias for backward compatibility
     isLoggedIn,
     userRole,
     userName,
