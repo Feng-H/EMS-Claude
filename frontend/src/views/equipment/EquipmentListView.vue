@@ -72,13 +72,13 @@
         <el-table-column label="操作" width="200" align="center" fixed="right">
           <template #default="{ row }">
             <el-button size="small" text @click="handleView(row)">查看</el-button>
-            <el-button size="small" text type="primary" @click="handleEdit(row)" v-if="canEdit">
+            <el-button size="small" text type="primary" style="margin-left: 12px" @click="handleEdit(row)" v-if="canEdit">
               编辑
             </el-button>
-            <el-button size="small" text type="warning" @click="handleQRCode(row)">
+            <el-button size="small" text type="warning" style="margin-left: 12px" @click="handleQRCode(row)">
               二维码
             </el-button>
-            <el-button size="small" text type="danger" @click="handleDelete(row)" v-if="canDelete">
+            <el-button size="small" text type="danger" style="margin-left: 12px" @click="handleDelete(row)" v-if="canDelete">
               删除
             </el-button>
           </template>
@@ -400,11 +400,16 @@ async function handleSubmit() {
 
     submitting.value = true
     try {
+      const submitData = { ...form }
+      if (submitData.purchase_date && submitData.purchase_date.length === 10) {
+        submitData.purchase_date = `${submitData.purchase_date}T00:00:00Z`
+      }
+
       if (editingEquipment.value) {
-        await equipmentApi.update(editingEquipment.value.id, form)
+        await equipmentApi.update(editingEquipment.value.id, submitData)
         ElMessage.success('更新成功')
       } else {
-        await equipmentApi.create(form)
+        await equipmentApi.create(submitData)
         ElMessage.success('创建成功')
       }
 

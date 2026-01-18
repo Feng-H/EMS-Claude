@@ -397,8 +397,8 @@ const viewPhoto = (url: string) => {
 
 const executeTask = (task: InspectionTask) => {
   router.push({
-    name: 'inspection-execute',
-    params: { taskId: task.id }
+    name: 'H5Inspection',
+    query: { taskId: task.id }
   })
 }
 

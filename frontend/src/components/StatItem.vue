@@ -5,7 +5,7 @@
     </el-icon>
     <div class="stat-content">
       <div class="stat-label">{{ label }}</div>
-      <div class="stat-value">{{ value }}</div>
+      <div class="stat-value">{{ value ?? '--' }}</div>
     </div>
   </div>
 </template>
@@ -17,7 +17,7 @@ import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 const props = defineProps<{
   icon: string
   label: string
-  value: string | number
+  value?: string | number
   color?: string
 }>()
 

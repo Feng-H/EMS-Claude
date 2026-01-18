@@ -219,7 +219,7 @@ func (r *EquipmentRepository) GetByID(id uint) (*model.Equipment, error) {
 
 func (r *EquipmentRepository) GetByQRCode(qrCode string) (*model.Equipment, error) {
 	var equipment model.Equipment
-	err := r.db.Preload("Type").Where("qr_code = ?", qrCode).First(&equipment).Error
+	err := r.db.Preload("Type").Where("qr_code = ? OR code = ?", qrCode, qrCode).First(&equipment).Error
 	if err != nil {
 		return nil, err
 	}

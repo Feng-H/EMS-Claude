@@ -243,6 +243,7 @@ import {
   type StartInspectionResponse,
   type Equipment
 } from '@/api/inspection'
+import { equipmentApi } from '@/api/equipment'
 import { useAuthStore } from '@/stores/auth'
 import MobileHeader from '@/components/mobile/MobileHeader.vue'
 import MobileActionBar from '@/components/mobile/MobileActionBar.vue'
@@ -383,7 +384,19 @@ const startScanLoop = () => {
 // 扫码成功处理
 const onScanSuccess = async (qrCode: string) => {
   stopScan()
-  await startInspection(qrCode)
+  try {
+    // 先获取设备信息拿到ID
+    const res = await equipmentApi.getByQRCode(qrCode)
+    if (res && res.id) {
+      await startInspection(qrCode, res.id)
+    } else {
+      await startInspection(qrCode)
+    }
+  } catch (error) {
+    // 如果获取失败，仍然尝试启动，让后端处理错误
+    console.warn('获取设备信息失败:', error)
+    await startInspection(qrCode)
+  }
 }
 
 // 开始点检
@@ -404,7 +417,7 @@ const startInspection = async (qrCode: string, equipmentId?: number) => {
       qr_code: qrCode,
       latitude,
       longitude,
-      timestamp: Date.now()
+      timestamp: Math.floor(Date.now() / 1000)
     })
 
     taskId.value = response.task_id
@@ -561,14 +574,26 @@ const goBack = async () => {
   }
 }
 
-onMounted(() => {
-  loadMyTasks()
+onMounted(async () => {
+  // 按照顺序加载任务，避免并发竞争
+  await loadMyTasks()
 
-  const taskParam = route.params.taskId
+  const taskParam = route.params.taskId || route.query.taskId
   if (taskParam) {
-    const task = myTasks.value.find(t => t.id === Number(taskParam))
+    const id = Number(taskParam)
+    const task = myTasks.value.find(t => t.id === id)
     if (task) {
-      resumeTask(task)
+      await resumeTask(task)
+    } else {
+      // 深度查找：如果今日任务列表中没找到（可能是从列表直接跳转的其他日期任务）
+      try {
+        const fullTask = await inspectionTaskApi.getTask(id)
+        if (fullTask) {
+          await resumeTask(fullTask)
+        }
+      } catch (error) {
+        console.warn('获取任务详情失败:', error)
+      }
     }
   }
 })

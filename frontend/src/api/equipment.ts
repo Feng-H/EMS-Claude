@@ -154,4 +154,5 @@ export const equipmentApi = {
   delete: (id: number) => request.delete(`/equipment/${id}`),
 
   getStatistics: () => request.get<EquipmentStatistics>('/equipment/statistics'),
+  getTypes: equipmentTypeApi.getTypes,
 }

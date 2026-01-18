@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -608,7 +609,7 @@ func GetEquipmentByQRCode(c *gin.Context) {
 
 	equipment, err := equipmentService.GetByQRCode(qrCode)
 	if err != nil {
-		if err == service.ErrNotFound {
+		if err == service.ErrNotFound || errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Equipment not found"})
 			return
 		}

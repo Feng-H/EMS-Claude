@@ -146,8 +146,9 @@ type InspectionRecord struct {
 	BaseModel
 	TaskID  uint   `json:"task_id" gorm:"not null"`
 	Task    InspectionTask `json:"-" gorm:"foreignKey:TaskID"`
-	ItemID  uint   `json:"item_id" gorm:"not null"`
-	Result  string `json:"result" gorm:"size:10;not null"` // OK or NG
+	ItemID  uint           `json:"item_id" gorm:"not null"`
+	Item    InspectionItem `json:"item,omitempty" gorm:"foreignKey:ItemID"`
+	Result  string         `json:"result" gorm:"size:10;not null"` // OK or NG
 	Remark  string `json:"remark" gorm:"type:text"`
 	PhotoURL string `json:"photo_url" gorm:"size:500"`
 }
