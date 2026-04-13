@@ -1,0 +1,524 @@
+/* ============================================
+   EMS H5 移动端样式
+   现代化移动端体验优化
+   ============================================ */
+
+/* H5 全局样式 */
+.h5-page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #F8FAFC 0%, #F1F5F9 100%);
+}
+
+/* H5 头部 */
+.h5-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid #E8EDF3;
+}
+
+.h5-header-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: #1A202C;
+}
+
+/* H5 卡片 */
+.h5-card {
+  background: #FFFFFF;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+}
+
+.h5-card:active {
+  transform: scale(0.98);
+}
+
+.h5-card-elevated {
+  background: #FFFFFF;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* H5 按钮样式 */
+.h5-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.h5-btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #FFFFFF;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.h5-btn-primary:active {
+  transform: scale(0.96);
+  box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+}
+
+.h5-btn-success {
+  background: linear-gradient(135deg, #00D2A0 0%, #00A67A 100%);
+  color: #FFFFFF;
+  box-shadow: 0 4px 12px rgba(0, 210, 160, 0.3);
+}
+
+.h5-btn-warning {
+  background: linear-gradient(135deg, #FFB800 0%, #FF9500 100%);
+  color: #FFFFFF;
+  box-shadow: 0 4px 12px rgba(255, 184, 0, 0.3);
+}
+
+.h5-btn-danger {
+  background: linear-gradient(135deg, #FF6B6B 0%, #EE5A5A 100%);
+  color: #FFFFFF;
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+}
+
+/* H5 标签 */
+.h5-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.h5-tag-primary {
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+}
+
+.h5-tag-success {
+  background: rgba(0, 210, 160, 0.1);
+  color: #00D2A0;
+}
+
+.h5-tag-warning {
+  background: rgba(255, 184, 0, 0.1);
+  color: #FFB800;
+}
+
+.h5-tag-danger {
+  background: rgba(255, 107, 107, 0.1);
+  color: #FF6B6B;
+}
+
+.h5-tag-gray {
+  background: rgba(148, 163, 184, 0.15);
+  color: #64748B;
+}
+
+/* H5 状态指示器 */
+.h5-status-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.h5-status-dot::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.h5-status-dot.success { color: #00D2A0; }
+.h5-status-dot.warning { color: #FFB800; }
+.h5-status-dot.danger { color: #FF6B6B; }
+.h5-status-dot.info { color: #5C7CFA; }
+
+/* H5 统计卡片 */
+.h5-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 16px;
+}
+
+.h5-stat-card {
+  background: #FFFFFF;
+  border-radius: 16px;
+  padding: 16px;
+  text-align: center;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+.h5-stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1A202C;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.h5-stat-label {
+  font-size: 12px;
+  color: #94A3B8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* H5 列表项 */
+.h5-list-item {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  background: #FFFFFF;
+  border-radius: 12px;
+  margin-bottom: 8px;
+  transition: all 0.2s ease;
+}
+
+.h5-list-item:active {
+  background: #F8FAFC;
+  transform: scale(0.98);
+}
+
+.h5-list-item-icon {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea15, #764ba215);
+  border-radius: 12px;
+  margin-right: 12px;
+  color: #667eea;
+}
+
+.h5-list-item-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.h5-list-item-title {
+  font-size: 15px;
+  font-weight: 500;
+  color: #1A202C;
+  margin-bottom: 2px;
+}
+
+.h5-list-item-desc {
+  font-size: 13px;
+  color: #94A3B8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.h5-list-item-arrow {
+  color: #CBD5E1;
+  margin-left: 8px;
+}
+
+/* H5 快捷操作网格 */
+.h5-action-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  padding: 20px 16px;
+  background: #FFFFFF;
+  border-radius: 16px;
+  margin-bottom: 16px;
+}
+
+.h5-action-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.h5-action-icon {
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #F8FAFC, #F1F5F9);
+  border-radius: 16px;
+  color: #667eea;
+  transition: all 0.2s ease;
+}
+
+.h5-action-item:active .h5-action-icon {
+  transform: scale(0.92);
+  background: linear-gradient(135deg, #667eea15, #764ba215);
+  color: #667eea;
+}
+
+.h5-action-label {
+  font-size: 12px;
+  color: #64748B;
+  text-align: center;
+}
+
+/* H5 用户卡片 */
+.h5-user-card {
+  display: flex;
+  align-items: center;
+  padding: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20px;
+  margin-bottom: 20px;
+  color: #FFFFFF;
+}
+
+.h5-user-avatar {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  margin-right: 14px;
+  color: #FFFFFF;
+}
+
+.h5-user-name {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.h5-user-role {
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+/* H5 分组标题 */
+.h5-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 16px 12px;
+}
+
+.h5-section-title-text {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1A202C;
+}
+
+.h5-section-title-more {
+  font-size: 13px;
+  color: #667eea;
+}
+
+/* H5 空状态 */
+.h5-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: #94A3B8;
+}
+
+.h5-empty-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.h5-empty-text {
+  font-size: 14px;
+  color: #94A3B8;
+}
+
+/* H5 进度条 */
+.h5-progress-track {
+  height: 6px;
+  background: #E8EDF3;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.h5-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+/* H5 底部安全区 */
+.h5-safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 20px);
+}
+
+/* H5 浮动按钮 */
+.h5-fab {
+  position: fixed;
+  right: 20px;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0));
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+  color: #FFFFFF;
+  z-index: 100;
+}
+
+.h5-fab:active {
+  transform: scale(0.92);
+}
+
+/* H5 搜索框 */
+.h5-search-box {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  background: #FFFFFF;
+  border-radius: 12px;
+  margin: 0 16px 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.h5-search-input {
+  flex: 1;
+  border: none;
+  background: none;
+  font-size: 14px;
+  color: #1A202C;
+  outline: none;
+}
+
+.h5-search-input::placeholder {
+  color: #94A3B8;
+}
+
+.h5-search-icon {
+  color: #94A3B8;
+  margin-right: 10px;
+}
+
+/* H5 Tab 样式优化 */
+.h5-tabs {
+  --tabs-bottom-bar-color: #667eea;
+  --tab-active-text-color: #667eea;
+  --tab-font-size: 15px;
+}
+
+.h5-tabs .van-tab {
+  font-weight: 500;
+}
+
+/* H5 详情页头部 */
+.h5-detail-header {
+  padding: 20px;
+  background: #FFFFFF;
+  border-radius: 0 0 24px 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+}
+
+.h5-detail-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1A202C;
+  margin-bottom: 8px;
+}
+
+.h5-detail-subtitle {
+  font-size: 14px;
+  color: #94A3B8;
+}
+
+/* H5 信息行 */
+.h5-info-row {
+  display: flex;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.h5-info-row:last-child {
+  border-bottom: none;
+}
+
+.h5-info-label {
+  width: 80px;
+  font-size: 13px;
+  color: #64748B;
+}
+
+.h5-info-value {
+  flex: 1;
+  font-size: 14px;
+  color: #1A202C;
+}
+
+/* 暗色模式适配 */
+@media (prefers-color-scheme: dark) {
+  .h5-page {
+    background: linear-gradient(180deg, #0F1419 0%, #1A2332 100%);
+  }
+
+  .h5-card,
+  .h5-card-elevated,
+  .h5-stat-card,
+  .h5-list-item,
+  .h5-action-grid,
+  .h5-search-box {
+    background: #1A2332;
+  }
+
+  .h5-header {
+    background: rgba(26, 35, 50, 0.95);
+    border-bottom-color: #2D3748;
+  }
+
+  .h5-stat-value,
+  .h5-list-item-title,
+  .h5-section-title-text,
+  .h5-info-value,
+  .h5-detail-title,
+  .h5-search-input {
+    color: #F0F3FF;
+  }
+
+  .h5-stat-label,
+  .h5-list-item-desc,
+  .h5-section-title-more,
+  .h5-action-label,
+  .h5-empty-text,
+  .h5-info-label,
+  .h5-detail-subtitle,
+  .h5-search-icon,
+  .h5-search-input::placeholder {
+    color: #6B7280;
+  }
+
+  .h5-progress-track {
+    background: #2D3748;
+  }
+
+  .h5-info-row {
+    border-bottom-color: #2D3748;
+  }
+}

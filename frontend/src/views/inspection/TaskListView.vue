@@ -410,7 +410,9 @@ onMounted(() => {
 
 <style scoped>
 .task-list-view {
-  padding: 20px;
+  padding: 24px;
+  max-width: 1600px;
+  margin: 0 auto;
 }
 
 .card-header {
@@ -419,36 +421,303 @@ onMounted(() => {
   align-items: center;
 }
 
-.filter-form {
-  margin-bottom: 16px;
+.card-header span {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
+.card-header span::before {
+  content: '';
+  width: 4px;
+  height: 18px;
+  background: linear-gradient(180deg, var(--color-primary), #764ba2);
+  border-radius: 2px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* 筛选表单优化 */
+.filter-form {
+  background: var(--color-bg-secondary);
+  padding: 20px;
+  border-radius: var(--radius-lg);
+  margin-bottom: 20px;
+  border: 1px solid var(--color-border);
+}
+
+.filter-form :deep(.el-form-item) {
+  margin-bottom: 0;
+  margin-right: 20px;
+}
+
+.filter-form :deep(.el-form-item__label) {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  font-size: 14px;
+}
+
+/* 统计卡片行优化 */
 .stats-row {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
+}
+
+.stats-row :deep(.el-col) {
+  margin-bottom: 12px;
+}
+
+.stats-row :deep(.el-statistic) {
+  background: var(--color-bg-card);
+  padding: 20px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  transition: all var(--transition-base);
+  position: relative;
+  overflow: hidden;
+}
+
+.stats-row :deep(.el-statistic::before) {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--color-primary), #764ba2);
+  opacity: 0;
+  transition: opacity var(--transition-base);
+}
+
+.stats-row :deep(.el-statistic:hover) {
+  border-color: var(--color-primary-dim);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-card);
+}
+
+.stats-row :deep(.el-statistic:hover::before) {
+  opacity: 1;
+}
+
+.stats-row :deep(.el-statistic__head) {
+  font-size: 13px;
+  color: var(--color-text-tertiary);
+  margin-bottom: 8px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stats-row :deep(.el-statistic__number) {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  font-family: var(--font-numbers);
+}
+
+.stats-row :deep(.el-statistic__content) {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
 }
 
 .stat-pending {
-  color: #909399;
+  color: var(--color-text-tertiary);
 }
 
 .stat-progress {
-  color: #e6a23c;
+  color: var(--color-warning);
 }
 
 .stat-completed {
-  color: #67c23a;
+  color: var(--color-success);
 }
 
+/* 表格优化 */
 .task-table {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
 }
 
+.task-table :deep(.el-table__header-wrapper) {
+  background: var(--color-bg-secondary);
+}
+
+.task-table :deep(.el-table__header th) {
+  background: var(--color-bg-elevated);
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid var(--color-border);
+  padding: 14px 0;
+}
+
+.task-table :deep(.el-table__body tr) {
+  transition: background var(--transition-fast);
+}
+
+.task-table :deep(.el-table__body tr:hover > td) {
+  background: var(--color-bg-tertiary);
+}
+
+.task-table :deep(.el-table__body td) {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+/* 标签优化 */
+.task-table :deep(.el-tag) {
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  font-size: 12px;
+}
+
+/* 进度条优化 */
+.task-table :deep(.el-progress) {
+  width: 120px;
+}
+
+.task-table :deep(.el-progress__bar) {
+  border-radius: var(--radius-sm);
+}
+
+/* 按钮优化 */
+.task-table :deep(.el-button--small.is-link) {
+  font-weight: 500;
+  padding: 4px 8px;
+}
+
+/* 分页优化 */
 .pagination {
   display: flex;
   justify-content: flex-end;
+  padding: 16px 0;
+  gap: 8px;
+}
+
+.pagination :deep(.el-pagination) {
+  gap: 8px;
+}
+
+.pagination :deep(.el-pagination.is-background .el-pager li) {
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  min-width: 32px;
+  height: 32px;
+  line-height: 32px;
+}
+
+.pagination :deep(.el-pagination.is-background .el-pager li:not(.disabled).is-active) {
+  background: linear-gradient(135deg, var(--color-primary), #764ba2);
+}
+
+.pagination :deep(.el-pagination.is-background .btn-prev),
+.pagination :deep(.el-pagination.is-background .btn-next) {
+  border-radius: var(--radius-sm);
+  min-width: 32px;
+  height: 32px;
+}
+
+/* 详情对话框优化 */
+.task-detail {
+  padding: 8px 0;
 }
 
 .task-detail :deep(.el-descriptions) {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
+}
+
+.task-detail :deep(.el-descriptions__label) {
+  font-weight: 500;
+  width: 120px;
+}
+
+.task-detail :deep(.el-divider__text) {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+/* 空状态优化 */
+:deep(.el-empty) {
+  padding: 60px 0;
+}
+
+:deep(.el-empty__description) {
+  color: var(--color-text-tertiary);
+}
+
+/* 对话框优化 */
+:deep(.el-dialog) {
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+:deep(.el-dialog__header) {
+  border-bottom: 1px solid var(--color-border);
+  padding: 20px;
+}
+
+:deep(.el-dialog__title) {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+:deep(.el-dialog__body) {
+  padding: 24px;
+}
+
+/* 卡片优化 */
+:deep(.el-card) {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-base);
+}
+
+:deep(.el-card:hover) {
+  box-shadow: var(--shadow-md);
+}
+
+:deep(.el-card__header) {
+  border-bottom: 1px solid var(--color-border);
+  padding: 16px 20px;
+  background: var(--color-bg-elevated);
+}
+
+:deep(.el-card__body) {
+  padding: 20px;
+}
+
+/* 响应式 */
+@media (max-width: 1200px) {
+  .task-list-view {
+    padding: 16px;
+  }
+
+  .stats-row :deep(.el-statistic__number) {
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .filter-form :deep(.el-form-item) {
+    width: 100%;
+    margin-right: 0;
+    margin-bottom: 12px;
+  }
+
+  .stats-row :deep(.el-statistic__number) {
+    font-size: 20px;
+  }
 }
 </style>

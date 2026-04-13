@@ -13,6 +13,9 @@ import App from './App.vue'
 import router from './router'
 import './style.css'
 import './styles/design-system.css'
+import './styles/utilities.css'
+import './styles/h5.css'
+import './styles/pc.css'
 
 const app = createApp(App)
 const pinia = createPinia()
