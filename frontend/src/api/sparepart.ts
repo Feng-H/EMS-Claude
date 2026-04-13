@@ -188,3 +188,24 @@ export const createConsumption = (data: CreateConsumptionRequest) => {
 export const getSparePartStatistics = () => {
   return request.get<SparePartStatistics>('/spareparts/statistics')
 }
+
+// =====================================================
+// API Object (for backward compatibility)
+// =====================================================
+export const sparePartApi = {
+  // Part Management
+  getSpareParts,
+  createSparePart,
+  updateSparePart,
+  deleteSparePart,
+  // Inventory
+  getInventory,
+  stockIn,
+  stockOut,
+  getLowStockAlerts,
+  // Consumption
+  getConsumptions,
+  createConsumption,
+  // Statistics
+  getSparePartStatistics
+}
