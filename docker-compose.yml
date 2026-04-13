@@ -61,7 +61,7 @@ services:
     container_name: ems-backend
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "9000:8080"  # 避免与 nextcloud 8080 冲突
     environment:
       - GIN_MODE=release
     volumes:
@@ -84,6 +84,7 @@ services:
 
   # =====================================================
   # Frontend Web Service
+  # 使用内部端口，由 nginx-proxy-manager 反向代理
   # =====================================================
   frontend:
     build:
@@ -92,8 +93,7 @@ services:
     container_name: ems-frontend
     restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
+      - "3000:80"  # 只映射到内部端口，不占用80/443
     volumes:
       - frontend_uploads:/usr/share/nginx/html/uploads
     depends_on:
