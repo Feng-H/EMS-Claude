@@ -11,7 +11,6 @@ dist/
 /backend/main
 /backend/*.test
 /backend/*.out
-/backend/go.sum
 /backend/vendor/
 
 # Node
