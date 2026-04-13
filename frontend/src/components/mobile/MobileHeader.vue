@@ -69,43 +69,44 @@ const onClickRight = () => {
 
 <style scoped>
 :deep(.van-nav-bar) {
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(250, 249, 245, 0.95);
   backdrop-filter: blur(10px);
-  border-bottom: 1px solid #E8EDF3;
+  border-bottom: 1px solid var(--color-border);
 }
 
 :deep(.van-nav-bar__title) {
   font-size: 17px;
-  font-weight: 600;
-  color: #1A202C;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  font-family: var(--font-serif);
 }
 
 :deep(.van-nav-bar__text) {
-  color: #667eea;
+  color: var(--color-terracotta);
   font-size: 15px;
   font-weight: 500;
 }
 
 :deep(.van-icon) {
-  color: #64748B;
+  color: var(--color-text-secondary);
 }
 
 @media (prefers-color-scheme: dark) {
   :deep(.van-nav-bar) {
-    background: rgba(26, 35, 50, 0.95);
-    border-bottom-color: #2D3748;
+    background: rgba(26, 26, 19, 0.95);
+    border-bottom-color: var(--color-border);
   }
 
   :deep(.van-nav-bar__title) {
-    color: #F0F3FF;
+    color: var(--color-text-primary);
   }
 
   :deep(.van-nav-bar__text) {
-    color: #667eea;
+    color: var(--color-terracotta);
   }
 
   :deep(.van-icon) {
-    color: #9CA3AF;
+    color: var(--color-text-tertiary);
   }
 }
 </style>

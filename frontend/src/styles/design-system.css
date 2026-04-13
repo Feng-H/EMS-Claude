@@ -1,19 +1,62 @@
 /* ============================================
    EMS 设备管理系统 - 设计系统
-   工业科技风格 | 支持深色/浅色主题切换
+   Claude风格 | 暖陶土色调 | 知性编辑布局
    ============================================ */
 
-[data-theme="dark"] {
-  /* 字体 */
-  --font-display: 'Noto Sans SC', -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+/* ==================== 通用变量（所有主题共享） ==================== */
+:root {
+  /* 字体 - Claude风格 */
+  --font-serif: 'Georgia', 'Noto Serif SC', serif;
+  --font-sans: 'Noto Sans SC', -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', 'Consolas', monospace;
-  --font-numbers: 'DIN Alternate', 'Oswald', 'Roboto Condensed', var(--font-display);
+  --font-display: var(--font-sans);
+  --font-numbers: 'DIN Alternate', 'Oswald', 'Roboto Condensed', var(--font-sans);
 
-  /* 主色调 - 工业蓝 */
-  --color-primary: #00D4FF;
-  --color-primary-dim: rgba(0, 212, 255, 0.15);
-  --color-primary-glow: rgba(0, 212, 255, 0.5);
-  --color-primary-hover: #33E1FF;
+  /* Claude 品牌色 */
+  --color-terracotta: #c96442;
+  --color-terracotta-light: #d97757;
+  --color-coral: #d97757;
+
+  /* 状态色 - 暖色调 */
+  --color-success: #6b8e23;
+  --color-success-dim: rgba(107, 142, 35, 0.15);
+  --color-warning: #d97757;
+  --color-warning-dim: rgba(217, 119, 87, 0.15);
+  --color-danger: #b53333;
+  --color-danger-dim: rgba(181, 51, 51, 0.15);
+  --color-info: #3898ec;
+  --color-info-dim: rgba(56, 152, 236, 0.15);
+
+  /* 间距 */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
+  --space-3xl: 48px;
+
+  /* 圆角 - Claude风格（更圆润） */
+  --radius-sharp: 4px;
+  --radius-subtle: 6px;
+  --radius-comfortable: 8px;
+  --radius-generous: 12px;
+  --radius-very: 16px;
+  --radius-high: 24px;
+  --radius-max: 32px;
+
+  /* 过渡 */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-theme="dark"] {
+  /* 主色调 - 暖陶土色 */
+  --color-primary: #c96442;
+  --color-primary-dim: rgba(201, 100, 66, 0.15);
+  --color-primary-glow: rgba(201, 100, 66, 0.4);
+  --color-primary-hover: #d97757;
 
   /* 状态色 */
   --color-success: #00FFA3;
@@ -37,12 +80,21 @@
   --space-xl: 32px;
   --space-2xl: 48px;
 
-  /* 圆角 */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
-  --radius-2xl: 24px;
+  /* 圆角 - Claude风格 */
+  --radius-sharp: 4px;
+  --radius-subtle: 6px;
+  --radius-comfortable: 8px;
+  --radius-generous: 12px;
+  --radius-very: 16px;
+  --radius-high: 24px;
+  --radius-max: 32px;
+
+  /* 兼容性别名 */
+  --radius-sm: var(--radius-sharp);
+  --radius-md: var(--radius-comfortable);
+  --radius-lg: var(--radius-generous);
+  --radius-xl: var(--radius-very);
+  --radius-2xl: var(--radius-high);
 
   /* 过渡 */
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -52,62 +104,72 @@
 
 /* ==================== 深色主题 ==================== */
 [data-theme="dark"] {
-  /* 背景色 - 深色主题 */
-  --color-bg-primary: #0A0E17;
-  --color-bg-secondary: #111827;
-  --color-bg-tertiary: #1A2332;
-  --color-bg-elevated: #1F2937;
-  --color-bg-card: #151C2C;
-  --color-bg-card-hover: #1A2235;
-  --color-bg-input: #0F1420;
+  /* 背景色 - Claude深色主题 */
+  --color-bg-primary: #141413;
+  --color-bg-secondary: #30302e;
+  --color-bg-tertiary: #3d3d3a;
+  --color-bg-elevated: #1a1a19;
+  --color-bg-card: #1a1a19;
+  --color-bg-card-hover: #242421;
+  --color-bg-input: #242421;
 
-  /* 文本色 */
-  --color-text-primary: #F0F3FF;
-  --color-text-secondary: #9CA3AF;
-  --color-text-tertiary: #6B7280;
-  --color-text-muted: #4B5563;
+  /* 文本色 - Claude深色 */
+  --color-text-primary: #faf9f5;
+  --color-text-secondary: #b0aea5;
+  --color-text-tertiary: #87867f;
+  --color-text-muted: #5e5d59;
 
   /* 边框和分割线 */
-  --color-border: #1F2937;
-  --color-border-dim: rgba(31, 41, 55, 0.5);
-  --color-divider: rgba(148, 163, 184, 0.1);
+  --color-border: #30302e;
+  --color-border-dim: rgba(48, 48, 46, 0.5);
+  --color-divider: rgba(183, 183, 179, 0.1);
 
-  /* 阴影 */
+  /* 阴影 - Claude深色 */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.3);
-  --shadow-glow: 0 0 20px var(--color-primary-glow);
-  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.3);
+  --shadow-glow: 0 0 20px rgba(201, 100, 66, 0.3);
+  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.35);
+
+  /* Ring阴影 - Claude特色 */
+  --ring-warm: 0px 0px 0px 1px rgba(183, 183, 179, 0.5);
+  --ring-subtle: 0px 0px 0px 1px rgba(183, 183, 179, 0.3);
+  --ring-deep: 0px 0px 0px 1px rgba(183, 183, 179, 0.7);
 }
 
 /* ==================== 浅色主题 ==================== */
 [data-theme="light"] {
-  /* 背景色 - 浅色主题 */
-  --color-bg-primary: #F5F7FA;
-  --color-bg-secondary: #FFFFFF;
-  --color-bg-tertiary: #E8EDF3;
-  --color-bg-elevated: #FFFFFF;
-  --color-bg-card: #FFFFFF;
-  --color-bg-card-hover: #F8FAFC;
-  --color-bg-input: #F0F4F8;
+  /* 背景色 - Claude浅色主题 */
+  --color-bg-primary: #f5f4ed;
+  --color-bg-secondary: #faf9f5;
+  --color-bg-tertiary: #e8e6dc;
+  --color-bg-elevated: #ffffff;
+  --color-bg-card: #faf9f5;
+  --color-bg-card-hover: #ffffff;
+  --color-bg-input: #faf9f5;
 
-  /* 文本色 */
-  --color-text-primary: #1A202C;
-  --color-text-secondary: #4A5568;
-  --color-text-tertiary: #718096;
-  --color-text-muted: #A0AEC0;
+  /* 文本色 - Claude暖灰色系 */
+  --color-text-primary: #141413;
+  --color-text-secondary: #5e5d59;
+  --color-text-tertiary: #87867f;
+  --color-text-muted: #b0aea5;
 
-  /* 边框和分割线 */
-  --color-border: #E2E8F0;
-  --color-border-dim: rgba(226, 232, 240, 0.5);
-  --color-divider: rgba(0, 0, 0, 0.06);
+  /* 边框和分割线 - Claude暖色 */
+  --color-border: #f0eee6;
+  --color-border-dim: rgba(240, 238, 230, 0.5);
+  --color-divider: rgba(141, 140, 135, 0.08);
 
-  /* 阴影 - 浅色主题用柔和阴影 */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.1);
-  --shadow-glow: 0 0 20px rgba(0, 212, 255, 0.3);
-  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.08);
+  /* 阴影 - Claude浅色 */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.08);
+  --shadow-glow: 0 0 20px rgba(201, 100, 66, 0.2);
+  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.05);
+
+  /* Ring阴影 - Claude特色 */
+  --ring-warm: 0px 0px 0px 1px #d1cfc5;
+  --ring-subtle: 0px 0px 0px 1px #e0dfd6;
+  --ring-deep: 0px 0px 0px 1px #c2c0b6;
 }
 
 /* 全局重置 */

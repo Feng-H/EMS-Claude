@@ -434,7 +434,7 @@ onMounted(() => {
   content: '';
   width: 4px;
   height: 18px;
-  background: linear-gradient(180deg, var(--color-primary), #764ba2);
+  background: var(--color-terracotta);
   border-radius: 2px;
 }
 
@@ -489,7 +489,7 @@ onMounted(() => {
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, var(--color-primary), #764ba2);
+  background: var(--color-terracotta);
   opacity: 0;
   transition: opacity var(--transition-base);
 }
@@ -617,7 +617,7 @@ onMounted(() => {
 }
 
 .pagination :deep(.el-pagination.is-background .el-pager li:not(.disabled).is-active) {
-  background: linear-gradient(135deg, var(--color-primary), #764ba2);
+  background: var(--color-terracotta);
 }
 
 .pagination :deep(.el-pagination.is-background .btn-prev),

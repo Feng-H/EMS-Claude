@@ -226,7 +226,7 @@ onMounted(async () => {
 <style scoped>
 .h5-home-view {
   min-height: 100vh;
-  background: linear-gradient(180deg, #F8FAFC 0%, #F1F5F9 100%);
+  background: var(--color-bg-primary);
 }
 
 /* 未登录状态 */
@@ -237,55 +237,56 @@ onMounted(async () => {
   justify-content: center;
   min-height: 100vh;
   padding: 40px;
-  background: linear-gradient(180deg, #F8FAFC 0%, #F1F5F9 100%);
+  background: var(--color-bg-primary);
 }
 
 .login-icon {
-  margin-bottom: 24px;
+  margin-bottom: var(--space-xl);
   opacity: 0.6;
 }
 
 .login-text {
   font-size: 17px;
-  color: #64748B;
-  margin-bottom: 32px;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-2xl);
   font-weight: 500;
 }
 
 .login-btn {
   width: 200px;
   height: 50px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: var(--radius-high);
+  background: var(--color-terracotta);
   border: none;
   font-size: 16px;
-  font-weight: 600;
-  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+  font-weight: 500;
+  box-shadow: 0 8px 24px rgba(201, 100, 66, 0.3);
+  color: #faf9f5;
 }
 
 .login-btn:active {
   transform: scale(0.96);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 12px rgba(201, 100, 66, 0.3);
 }
 
 /* 已登录状态 */
 .logged-in-view {
   min-height: 100vh;
-  background: linear-gradient(180deg, #F8FAFC 0%, #F1F5F9 100%);
+  background: var(--color-bg-primary);
   padding-top: 46px;
   padding-bottom: env(safe-area-inset-bottom, 20px);
 }
 
 .content {
-  padding: 16px;
+  padding: var(--space-lg);
 }
 
 /* 用户卡片优化 */
 .user-card {
-  margin-bottom: 20px;
-  border-radius: 20px;
+  margin-bottom: var(--space-xl);
+  border-radius: var(--radius-high);
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-md);
 }
 
 .user-card :deep(.van-cell-group) {
@@ -293,9 +294,9 @@ onMounted(async () => {
 }
 
 .user-card :deep(.van-cell) {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 20px;
-  color: #FFFFFF;
+  background: var(--color-terracotta);
+  padding: var(--space-xl);
+  color: #faf9f5;
 }
 
 .user-info {
@@ -306,7 +307,7 @@ onMounted(async () => {
 }
 
 .user-info :deep(.van-icon) {
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(250, 249, 245, 0.9);
 }
 
 .user-details {
@@ -315,38 +316,41 @@ onMounted(async () => {
 
 .user-name {
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 500;
   margin-bottom: 4px;
-  color: #FFFFFF;
+  color: #faf9f5;
+  font-family: var(--font-serif);
 }
 
 .user-role {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(250, 249, 245, 0.8);
 }
 
 /* Section 标题优化 */
 .section :deep(.van-cell) {
   background: transparent;
-  padding: 12px 16px 8px;
+  padding: var(--space-md) var(--space-lg) var(--space-sm);
 }
 
 .section :deep(.van-cell__title) {
   font-size: 15px;
-  font-weight: 600;
-  color: #1A202C;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  font-family: var(--font-serif);
 }
 
 /* 快捷操作网格优化 */
 .action-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  padding: 20px 16px;
-  background: #FFFFFF;
-  border-radius: 16px;
-  margin-bottom: 16px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  gap: var(--space-lg);
+  padding: var(--space-xl) var(--space-lg);
+  background: var(--color-bg-card);
+  border-radius: var(--radius-very);
+  margin-bottom: var(--space-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border);
 }
 
 .action-item {
@@ -354,9 +358,9 @@ onMounted(async () => {
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  padding: 8px 0;
+  padding: var(--space-sm) 0;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-fast);
 }
 
 .action-item :deep(.van-icon) {
@@ -365,102 +369,104 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #F8FAFC, #F1F5F9);
-  border-radius: 14px;
-  transition: all 0.2s;
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-high);
+  transition: all var(--transition-fast);
+  color: var(--color-terracotta);
 }
 
 .action-item:active :deep(.van-icon) {
   transform: scale(0.92);
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.15));
+  background: var(--color-primary-dim);
 }
 
 .action-item:active .action-label {
-  color: #667eea;
+  color: var(--color-terracotta);
 }
 
 .action-label {
   font-size: 12px;
-  color: #64748B;
+  color: var(--color-text-secondary);
   text-align: center;
   font-weight: 500;
-  transition: color 0.2s;
+  transition: color var(--transition-fast);
 }
 
 /* Cell Group 优化 */
 .content :deep(.van-cell-group) {
-  border-radius: 16px;
+  border-radius: var(--radius-very);
   overflow: hidden;
-  margin-bottom: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  margin-bottom: var(--space-md);
+  box-shadow: var(--shadow-sm);
 }
 
 .content :deep(.van-cell) {
-  background: #FFFFFF;
-  padding: 14px 16px;
+  background: var(--color-bg-card);
+  padding: 14px var(--space-lg);
+  border: 1px solid var(--color-border);
 }
 
 .content :deep(.van-cell:not(:last-child)::after) {
-  left: 16px;
-  border-color: #F1F5F9;
+  left: var(--space-lg);
+  border-color: var(--color-border);
 }
 
 .content :deep(.van-cell__title) {
   font-size: 15px;
   font-weight: 500;
-  color: #1A202C;
+  color: var(--color-text-primary);
 }
 
 .content :deep(.van-cell__label) {
   font-size: 13px;
-  color: #94A3B8;
+  color: var(--color-text-tertiary);
 }
 
 .content :deep(.van-cell__value) {
   font-size: 14px;
-  color: #667eea;
+  color: var(--color-terracotta);
   font-weight: 500;
 }
 
 .content :deep(.van-icon__image) {
-  color: #667eea;
+  color: var(--color-terracotta);
 }
 
 /* 暗色模式适配 */
 @media (prefers-color-scheme: dark) {
   .h5-home-view,
   .login-prompt {
-    background: linear-gradient(180deg, #0F1419 0%, #1A2332 100%);
+    background: var(--color-bg-primary);
   }
 
   .login-text {
-    color: #6B7280;
+    color: var(--color-text-tertiary);
   }
 
   .action-grid,
   .content :deep(.van-cell) {
-    background: #1A2332;
+    background: var(--color-bg-card);
   }
 
   .section :deep(.van-cell__title),
   .content :deep(.van-cell__title) {
-    color: #F0F3FF;
+    color: var(--color-text-primary);
   }
 
   .content :deep(.van-cell__label) {
-    color: #6B7280;
+    color: var(--color-text-tertiary);
   }
 
   .content :deep(.van-cell:not(:last-child)::after) {
-    border-color: #2D3748;
+    border-color: var(--color-border);
   }
 
   .action-label {
-    color: #6B7280;
+    color: var(--color-text-tertiary);
   }
 
   .action-item :deep(.van-icon) {
-    background: linear-gradient(135deg, #2D3748, #1F2937);
+    background: var(--color-bg-tertiary);
   }
 }
 </style>

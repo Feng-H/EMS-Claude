@@ -1,29 +1,30 @@
 /* ============================================
-   EMS PC 端样式优化
-   统一的桌面端体验
+   EMS PC 端样式
+   Claude风格 | 暖陶土色调 | 知性编辑布局
    ============================================ */
 
 /* 页面容器 */
 .page-container {
   max-width: 1600px;
   margin: 0 auto;
-  padding: 24px;
+  padding: var(--space-xl);
 }
 
 .page-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 24px;
+  margin-bottom: var(--space-xl);
 }
 
 .page-title {
   font-size: 24px;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--color-text-primary);
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-md);
+  font-family: var(--font-serif);
 }
 
 .page-title-icon {
@@ -32,23 +33,24 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--color-primary-dim), rgba(118, 75, 162, 0.15));
-  border-radius: var(--radius-md);
-  color: var(--color-primary);
+  background: var(--color-primary-dim);
+  border-radius: var(--radius-generous);
+  color: var(--color-terracotta);
 }
 
 .page-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-md);
 }
 
 /* 卡片优化 */
 .el-card {
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-generous);
   box-shadow: var(--shadow-sm);
   transition: all var(--transition-base);
+  background: var(--color-bg-card);
 }
 
 .el-card:hover {
@@ -57,20 +59,21 @@
 
 .el-card__header {
   border-bottom: 1px solid var(--color-border);
-  padding: 16px 20px;
-  background: var(--color-bg-elevated);
+  padding: var(--space-lg) var(--space-xl);
+  background: var(--color-bg-secondary);
 }
 
 .el-card__body {
-  padding: 20px;
+  padding: var(--space-xl);
 }
 
 /* 表单优化 */
 .filter-form {
   background: var(--color-bg-secondary);
-  padding: 16px;
-  border-radius: var(--radius-md);
-  margin-bottom: 20px;
+  padding: var(--space-lg);
+  border-radius: var(--radius-generous);
+  margin-bottom: var(--space-xl);
+  border: 1px solid var(--color-border);
 }
 
 .filter-form :deep(.el-form-item) {
@@ -84,23 +87,23 @@
 
 /* 统计卡片行 */
 .stats-row {
-  margin-bottom: 20px;
+  margin-bottom: var(--space-xl);
 }
 
 .stats-row :deep(.el-col) {
-  margin-bottom: 12px;
+  margin-bottom: var(--space-md);
 }
 
 .stats-row :deep(.el-statistic) {
   background: var(--color-bg-card);
-  padding: 20px;
-  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  border-radius: var(--radius-generous);
   border: 1px solid var(--color-border);
   transition: all var(--transition-base);
 }
 
 .stats-row :deep(.el-statistic:hover) {
-  border-color: var(--color-primary-dim);
+  border-color: var(--color-terracotta);
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
 }
@@ -108,19 +111,22 @@
 .stats-row :deep(.el-statistic__head) {
   font-size: 13px;
   color: var(--color-text-tertiary);
-  margin-bottom: 8px;
+  margin-bottom: var(--space-sm);
   font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .stats-row :deep(.el-statistic__number) {
   font-size: 28px;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--color-text-primary);
+  font-family: var(--font-serif);
 }
 
 /* 表格优化 */
 .el-table {
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-generous);
   overflow: hidden;
 }
 
@@ -131,7 +137,7 @@
 .el-table :deep(.el-table__header th) {
   background: var(--color-bg-elevated);
   color: var(--color-text-secondary);
-  font-weight: 600;
+  font-weight: 500;
   font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -143,59 +149,69 @@
 }
 
 .el-table :deep(.el-table__body td) {
-  border-bottom: 1px solid var(--color-divider);
+  border-bottom: 1px solid var(--color-border);
 }
 
 /* 分页优化 */
 .pagination {
   display: flex;
   justify-content: flex-end;
-  padding: 16px 0;
+  padding: var(--space-lg) 0;
 }
 
 .pagination :deep(.el-pagination) {
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .pagination :deep(.el-pagination.is-background .el-pager li) {
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-subtle);
   font-weight: 500;
 }
 
 .pagination :deep(.el-pagination.is-background .el-pager li:not(.disabled).is-active) {
-  background: linear-gradient(135deg, var(--color-primary), #764ba2);
+  background: var(--color-terracotta);
 }
 
-/* 按钮优化 */
+.pagination :deep(.el-pagination.is-background .btn-prev),
+.pagination :deep(.el-pagination.is-background .btn-next) {
+  border-radius: var(--radius-subtle);
+}
+
+/* 按钮优化 - Claude风格 */
 .el-button--primary {
-  background: linear-gradient(135deg, var(--color-primary), #764ba2);
-  border: none;
+  background: var(--color-terracotta);
+  border-color: var(--color-terracotta);
+  color: #faf9f5;
   font-weight: 500;
 }
 
 .el-button--primary:hover {
-  background: linear-gradient(135deg, #7c8ff5, #8b5db8);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+  box-shadow: 0 4px 12px rgba(201, 100, 66, 0.3);
 }
 
 .el-button--success {
-  background: linear-gradient(135deg, var(--color-success), #00A67A);
-  border: none;
+  background: var(--color-success);
+  border-color: var(--color-success);
+  color: #faf9f5;
 }
 
 .el-button--warning {
-  background: linear-gradient(135deg, var(--color-warning), #FF9500);
-  border: none;
+  background: var(--color-warning);
+  border-color: var(--color-warning);
+  color: #faf9f5;
 }
 
 .el-button--danger {
-  background: linear-gradient(135deg, var(--color-danger), #EE5A5A);
-  border: none;
+  background: var(--color-danger);
+  border-color: var(--color-danger);
+  color: #faf9f5;
 }
 
 /* 标签优化 */
 .el-tag {
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-subtle);
   font-weight: 500;
   padding: 4px 10px;
 }
@@ -203,7 +219,7 @@
 .el-tag--primary {
   background: var(--color-primary-dim);
   border-color: var(--color-primary-dim);
-  color: var(--color-primary);
+  color: var(--color-terracotta);
 }
 
 .el-tag--success {
@@ -234,7 +250,7 @@
 .el-input__wrapper,
 .el-textarea__inner,
 .el-select .el-input__wrapper {
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-generous);
   border-color: var(--color-border);
   transition: all var(--transition-fast);
 }
@@ -242,62 +258,63 @@
 .el-input__wrapper:hover,
 .el-textarea__inner:hover,
 .el-select .el-input__wrapper:hover {
-  border-color: var(--color-primary-dim);
+  border-color: var(--color-text-tertiary);
 }
 
 .el-input__wrapper.is-focus,
 .el-textarea__inner:focus,
 .el-select .el-input__wrapper.is-focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-dim);
+  border-color: var(--color-info);
+  box-shadow: 0 0 0 3px var(--color-info-dim);
 }
 
 /* 进度条优化 */
 .el-progress__bar {
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-subtle);
 }
 
 .el-progress.is-success .el-progress__bar__inner {
-  background: linear-gradient(90deg, var(--color-success), #00A67A);
+  background: var(--color-success);
 }
 
 .el-progress.is-warning .el-progress__bar__inner {
-  background: linear-gradient(90deg, var(--color-warning), #FF9500);
+  background: var(--color-warning);
 }
 
 .el-progress.is-exception .el-progress__bar__inner {
-  background: linear-gradient(90deg, var(--color-danger), #EE5A5A);
+  background: var(--color-danger);
 }
 
 /* 对话框优化 */
 .el-dialog {
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-generous);
   box-shadow: var(--shadow-lg);
 }
 
 .el-dialog__header {
   border-bottom: 1px solid var(--color-border);
-  padding: 20px;
+  padding: var(--space-xl);
 }
 
 .el-dialog__title {
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--color-text-primary);
+  font-family: var(--font-serif);
 }
 
 .el-dialog__body {
-  padding: 24px;
+  padding: var(--space-xl);
 }
 
 .el-dialog__footer {
   border-top: 1px solid var(--color-border);
-  padding: 16px 20px;
+  padding: var(--space-lg) var(--space-xl);
 }
 
 /* 描述列表优化 */
 .el-descriptions {
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-generous);
   overflow: hidden;
 }
 
@@ -326,7 +343,7 @@
 
 /* 消息提示优化 */
 .el-message {
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-generous);
   box-shadow: var(--shadow-md);
 }
 
@@ -347,41 +364,41 @@
 
 /* 通知优化 */
 .el-notification {
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-generous);
   box-shadow: var(--shadow-lg);
 }
 
 /* 抽屉优化 */
 .el-drawer {
-  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+  border-radius: var(--radius-generous) 0 0 var(--radius-generous);
 }
 
 .el-drawer__header {
   margin-bottom: 0;
-  padding: 20px;
+  padding: var(--space-xl);
   border-bottom: 1px solid var(--color-border);
 }
 
 .el-drawer__body {
-  padding: 20px;
+  padding: var(--space-xl);
 }
 
 /* Popover 优化 */
 .el-popover {
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-generous);
   box-shadow: var(--shadow-md);
 }
 
 /* 下拉菜单优化 */
 .el-dropdown-menu {
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-generous);
   box-shadow: var(--shadow-md);
-  padding: 8px;
+  padding: var(--space-sm);
 }
 
 .el-dropdown-menu__item {
-  border-radius: var(--radius-sm);
-  padding: 8px 12px;
+  border-radius: var(--radius-subtle);
+  padding: var(--space-sm) var(--space-md);
   margin-bottom: 4px;
 }
 
@@ -395,9 +412,9 @@
 }
 
 .el-menu-item {
-  border-radius: var(--radius-sm);
-  margin: 4px 8px;
-  padding: 0 16px;
+  border-radius: var(--radius-subtle);
+  margin: 4px var(--space-sm);
+  padding: 0 var(--space-lg);
 }
 
 .el-menu-item:hover {
@@ -406,7 +423,7 @@
 
 .el-menu-item.is-active {
   background: var(--color-primary-dim);
-  color: var(--color-primary);
+  color: var(--color-terracotta);
 }
 
 .el-sub-menu__title:hover {
@@ -416,11 +433,11 @@
 /* 响应式 */
 @media (max-width: 1200px) {
   .page-container {
-    padding: 16px;
+    padding: var(--space-lg);
   }
 
   .stats-row :deep(.el-col) {
-    margin-bottom: 8px;
+    margin-bottom: var(--space-sm);
   }
 
   .stats-row :deep(.el-statistic__number) {
@@ -432,7 +449,7 @@
   .page-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 16px;
+    gap: var(--space-lg);
   }
 
   .page-actions {
@@ -441,12 +458,12 @@
   }
 
   .filter-form {
-    padding: 12px;
+    padding: var(--space-md);
   }
 
   .filter-form :deep(.el-form-item) {
     width: 100%;
-    margin-bottom: 12px;
+    margin-bottom: var(--space-md);
   }
 
   .pagination {

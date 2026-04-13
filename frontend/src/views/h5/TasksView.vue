@@ -189,12 +189,12 @@ onMounted(() => {
 <style scoped>
 .h5-tasks-view {
   min-height: 100vh;
-  background: linear-gradient(180deg, #F8FAFC 0%, #F1F5F9 100%);
+  background: var(--color-bg-primary);
 }
 
 /* 优化 Tabs 样式 */
 .tasks-tabs :deep(.van-tabs__wrap) {
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(250, 249, 245, 0.95);
   backdrop-filter: blur(10px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
@@ -202,33 +202,33 @@ onMounted(() => {
 .tasks-tabs :deep(.van-tab) {
   font-size: 15px;
   font-weight: 500;
-  color: #64748B;
+  color: var(--color-text-secondary);
 }
 
 .tasks-tabs :deep(.van-tab--active) {
-  color: #667eea;
-  font-weight: 600;
+  color: var(--color-terracotta);
+  font-weight: 500;
 }
 
 .tasks-tabs :deep(.van-tabs__line) {
-  background: linear-gradient(90deg, #667eea, #764ba2);
+  background: var(--color-terracotta);
   height: 3px;
   border-radius: 2px;
 }
 
 .task-list {
-  padding: 16px;
+  padding: var(--space-lg);
 }
 
 .task-card {
-  background: #FFFFFF;
-  border-radius: 16px;
-  padding: 16px;
-  margin-bottom: 12px;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-very);
+  padding: var(--space-lg);
+  margin-bottom: var(--space-md);
   cursor: pointer;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  transition: all 0.2s ease;
-  border: 1px solid transparent;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
+  border: 1px solid var(--color-border);
 }
 
 .task-card:active {
@@ -240,13 +240,14 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: var(--space-md);
 }
 
 .task-equipment {
-  font-weight: 600;
+  font-weight: 500;
   font-size: 16px;
-  color: #1A202C;
+  color: var(--color-text-primary);
+  font-family: var(--font-serif);
 }
 
 .task-info {
@@ -264,13 +265,13 @@ onMounted(() => {
   top: 6px;
   bottom: 6px;
   width: 3px;
-  background: linear-gradient(180deg, #667eea, #764ba2);
+  background: var(--color-terracotta);
   border-radius: 2px;
 }
 
 .task-detail {
   font-size: 13px;
-  color: #64748B;
+  color: var(--color-text-secondary);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -278,40 +279,40 @@ onMounted(() => {
 
 .task-detail::before {
   content: '•';
-  color: #CBD5E1;
+  color: var(--color-text-muted);
 }
 
 /* 优化标签样式 */
 .task-card :deep(.van-tag) {
   padding: 4px 10px;
-  border-radius: 6px;
+  border-radius: var(--radius-subtle);
   font-size: 12px;
   font-weight: 500;
 }
 
 .task-card :deep(.van-tag--primary) {
-  background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
+  background: var(--color-primary-dim);
+  color: var(--color-terracotta);
 }
 
 .task-card :deep(.van-tag--success) {
-  background: rgba(0, 210, 160, 0.1);
-  color: #00D2A0;
+  background: var(--color-success-dim);
+  color: var(--color-success);
 }
 
 .task-card :deep(.van-tag--warning) {
-  background: rgba(255, 184, 0, 0.1);
-  color: #FFB800;
+  background: var(--color-warning-dim);
+  color: var(--color-warning);
 }
 
 .task-card :deep(.van-tag--danger) {
-  background: rgba(255, 107, 107, 0.1);
-  color: #FF6B6B;
+  background: var(--color-danger-dim);
+  color: var(--color-danger);
 }
 
 .task-card :deep(.van-tag--default) {
-  background: rgba(148, 163, 184, 0.15);
-  color: #64748B;
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-tertiary);
 }
 
 /* 空状态优化 */
@@ -320,38 +321,38 @@ onMounted(() => {
 }
 
 .task-list :deep(.van-empty__description) {
-  color: #94A3B8;
+  color: var(--color-text-tertiary);
 }
 
 /* 暗色模式适配 */
 @media (prefers-color-scheme: dark) {
   .h5-tasks-view {
-    background: linear-gradient(180deg, #0F1419 0%, #1A2332 100%);
+    background: var(--color-bg-primary);
   }
 
   .tasks-tabs :deep(.van-tabs__wrap) {
-    background: rgba(26, 35, 50, 0.95);
+    background: rgba(26, 26, 19, 0.95);
   }
 
   .tasks-tabs :deep(.van-tab) {
-    color: #6B7280;
+    color: var(--color-text-tertiary);
   }
 
   .task-card {
-    background: #1A2332;
-    border-color: #2D3748;
+    background: var(--color-bg-card);
+    border-color: var(--color-border);
   }
 
   .task-equipment {
-    color: #F0F3FF;
+    color: var(--color-text-primary);
   }
 
   .task-detail {
-    color: #6B7280;
+    color: var(--color-text-tertiary);
   }
 
   .task-detail::before {
-    color: #4B5563;
+    color: var(--color-text-muted);
   }
 }
 </style>
