@@ -1,9 +1,9 @@
 server:
   port: 8080
-  mode: debug # debug, release, test
+  mode: release
 
 storage:
-  mode: memory # memory=内存模式(快速启动), database=数据库模式
+  mode: database # Docker部署使用数据库模式
 
 database:
   host: postgres
@@ -14,7 +14,7 @@ database:
   sslmode: disable
   max_idle_conns: 10
   max_open_conns: 100
-  conn_max_lifetime: 3600 # seconds
+  conn_max_lifetime: 3600
 
 redis:
   host: redis
@@ -29,19 +29,19 @@ jwt:
   issuer: ems-system
 
 log:
-  level: debug # debug, info, warn, error
+  level: info
   filename: logs/ems.log
-  max_size: 100 # MB
+  max_size: 100
   max_backups: 3
-  max_age: 28 # days
+  max_age: 28
   compress: true
 
 upload:
-  max_size: 10485760 # 10MB
+  max_size: 10485760
   allowed_types: ["image/jpeg", "image/png", "image/jpg"]
   save_path: ./uploads
 
 app:
   qr_code_base_url: "https://ems.example.com/equipment/"
-  gps_validation_enabled: false # Set to true to enable GPS verification
+  gps_validation_enabled: false
   gps_tolerance_meters: 100

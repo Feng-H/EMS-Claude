@@ -36,6 +36,47 @@ func main() {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
+	// 根据配置选择存储模式
+	storageMode := "memory"
+	if config.Cfg.Storage.Mode != "" {
+		storageMode = config.Cfg.Storage.Mode
+	}
+
+	log.Printf("Starting EMS in %s mode", storageMode)
+
+	if storageMode == "memory" {
+		runMemoryMode()
+	} else {
+		runDatabaseMode()
+	}
+}
+
+// runMemoryMode 内存模式运行
+func runMemoryMode() {
+	log.Println("Running in MEMORY mode - data will be lost on restart")
+
+	// 初始化内存存储
+	v1.InitMemory()
+	log.Println("Memory store initialized with mock data")
+
+	// Setup Gin
+	gin.SetMode(config.Cfg.Server.Mode)
+	router := gin.Default()
+
+	// CORS middleware
+	router.Use(CORSMiddleware())
+
+	// Setup routes
+	setupMemoryRoutes(router)
+
+	// Start server
+	startServer(router)
+}
+
+// runDatabaseMode 数据库模式运行
+func runDatabaseMode() {
+	log.Println("Running in DATABASE mode")
+
 	// Initialize database
 	if err := database.Init(); err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
@@ -91,7 +132,18 @@ func main() {
 	router := gin.Default()
 
 	// CORS middleware
-	router.Use(func(c *gin.Context) {
+	router.Use(CORSMiddleware())
+
+	// Setup routes
+	setupDatabaseRoutes(router)
+
+	// Start server
+	startServer(router)
+}
+
+// CORSMiddleware CORS 中间件
+func CORSMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
@@ -103,9 +155,191 @@ func main() {
 		}
 
 		c.Next()
-	})
+	}
+}
 
-	// API routes
+// setupMemoryRoutes 设置内存模式路由
+func setupMemoryRoutes(router *gin.Engine) {
+	api := router.Group("/api/v1")
+	{
+		// Auth routes (public)
+		auth := api.Group("/auth")
+		{
+			auth.POST("/login", v1.LoginMemory)
+			auth.POST("/logout", v1.LogoutMemory)
+			auth.POST("/refresh", v1.RefreshTokenMemory)
+			auth.POST("/change-password", middleware.AuthMiddleware(), v1.ChangePasswordMemory)
+			auth.POST("/apply", v1.ApplyAccountMemory)
+			auth.GET("/me", middleware.AuthMiddleware(), v1.GetCurrentUserMemory)
+		}
+
+		// Protected routes
+		protected := api.Group("")
+		protected.Use(middleware.AuthMiddleware())
+		{
+			// User management routes (admin only)
+			users := protected.Group("/users")
+			{
+				users.GET("", v1.GetUsersMemory)
+				users.POST("", v1.CreateUserMemory)
+				users.GET("/applications", v1.GetPendingApplicationsMemory)
+				users.PUT("/:id", v1.UpdateUserMemory)
+				users.PUT("/:id/approve", v1.ApproveApplicationMemory)
+			}
+
+			// Organization routes
+			org := protected.Group("/organization")
+			{
+				// Bases
+				org.GET("/bases", v1.ListBasesMemory)
+				org.POST("/bases", v1.CreateBaseMemory)
+				org.PUT("/bases/:id", v1.UpdateBaseMemory)
+				org.DELETE("/bases/:id", v1.DeleteBaseMemory)
+
+				// Factories
+				org.GET("/factories", v1.ListFactoriesMemory)
+				org.POST("/factories", v1.CreateFactoryMemory)
+				org.PUT("/factories/:id", v1.UpdateFactoryMemory)
+				org.DELETE("/factories/:id", v1.DeleteFactoryMemory)
+
+				// Workshops
+				org.GET("/workshops", v1.ListWorkshopsMemory)
+				org.POST("/workshops", v1.CreateWorkshopMemory)
+				org.PUT("/workshops/:id", v1.UpdateWorkshopMemory)
+				org.DELETE("/workshops/:id", v1.DeleteWorkshopMemory)
+			}
+
+			// Equipment routes
+			equipment := protected.Group("/equipment")
+			{
+				equipment.GET("", v1.ListEquipmentMemory)
+				equipment.GET("/:id", v1.GetEquipmentMemory)
+				equipment.GET("/qr/:code", v1.GetEquipmentByQRCodeMemory)
+				equipment.POST("", v1.CreateEquipmentMemory)
+				equipment.PUT("/:id", v1.UpdateEquipmentMemory)
+				equipment.DELETE("/:id", v1.DeleteEquipmentMemory)
+				equipment.GET("/statistics", v1.GetEquipmentStatisticsMemory)
+
+				// Equipment types
+				equipment.GET("/types", v1.ListEquipmentTypesMemory)
+				equipment.POST("/types", v1.CreateEquipmentTypeMemory)
+				equipment.PUT("/types/:id", v1.UpdateEquipmentTypeMemory)
+				equipment.DELETE("/types/:id", v1.DeleteEquipmentTypeMemory)
+			}
+
+			// Inspection routes
+			inspection := protected.Group("/inspection")
+			{
+				// Templates
+				inspection.GET("/templates", v1.ListInspectionTemplatesMemory)
+				inspection.GET("/templates/:id", v1.GetInspectionTemplateMemory)
+				inspection.POST("/templates", v1.CreateInspectionTemplateMemory)
+				inspection.POST("/items", v1.CreateInspectionItemMemory)
+
+				// Tasks
+				inspection.GET("/tasks", v1.ListInspectionTasksMemory)
+				inspection.GET("/tasks/:id", v1.GetInspectionTaskMemory)
+				inspection.GET("/my-tasks", v1.GetMyTasksMemory)
+				inspection.GET("/my-stats", v1.GetMyTaskStatisticsMemory)
+				inspection.POST("/start", v1.StartInspectionMemory)
+				inspection.POST("/complete", v1.CompleteInspectionMemory)
+				inspection.GET("/statistics", v1.GetInspectionStatisticsMemory)
+			}
+
+			// Repair routes
+			repair := protected.Group("/repair")
+			{
+				repair.GET("/orders", v1.ListRepairOrdersMemory)
+				repair.GET("/orders/:id", v1.GetRepairOrderMemory)
+				repair.POST("/orders", v1.CreateRepairOrderMemory)
+				repair.POST("/orders/:id/assign", v1.AssignRepairOrderMemory)
+				repair.POST("/orders/:id/start", v1.StartRepairMemory)
+				repair.POST("/orders/:id/update", v1.UpdateRepairMemory)
+				repair.POST("/orders/:id/confirm", v1.ConfirmRepairMemory)
+				repair.POST("/orders/:id/audit", v1.AuditRepairMemory)
+				repair.GET("/my-tasks", v1.GetMyRepairTasksMemory)
+				repair.GET("/my-stats", v1.GetMyRepairStatisticsMemory)
+				repair.GET("/statistics", v1.GetRepairStatisticsMemory)
+			}
+
+			// Maintenance routes
+			maintenance := protected.Group("/maintenance")
+			{
+				// Plans
+				maintenance.GET("/plans", v1.ListMaintenancePlansMemory)
+				maintenance.POST("/plans", v1.CreateMaintenancePlanMemory)
+				maintenance.POST("/items", v1.CreateMaintenanceItemMemory)
+
+				// Tasks
+				maintenance.POST("/tasks/generate", v1.GenerateMaintenanceTasksMemory)
+				maintenance.GET("/tasks", v1.ListMaintenanceTasksMemory)
+				maintenance.GET("/tasks/:id", v1.GetMaintenanceTaskMemory)
+				maintenance.GET("/my-tasks", v1.GetMyMaintenanceTasksMemory)
+
+				// Execution
+				maintenance.POST("/start", v1.StartMaintenanceMemory)
+				maintenance.POST("/complete", v1.CompleteMaintenanceMemory)
+
+				// Statistics
+				maintenance.GET("/statistics", v1.GetMaintenanceStatisticsMemory)
+			}
+
+			// Spare parts routes
+			spareparts := protected.Group("/spareparts")
+			{
+				// Parts
+				spareparts.GET("", v1.ListSparePartsMemory)
+				spareparts.POST("", v1.CreateSparePartMemory)
+				spareparts.PUT("/:id", v1.UpdateSparePartMemory)
+				spareparts.DELETE("/:id", v1.DeleteSparePartMemory)
+
+				// Inventory
+				spareparts.GET("/inventory", v1.GetInventoryMemory)
+				spareparts.POST("/stock-in", v1.StockInMemory)
+				spareparts.POST("/stock-out", v1.StockOutMemory)
+				spareparts.GET("/alerts", v1.GetLowStockAlertsMemory)
+
+				// Consumption
+				spareparts.GET("/consumptions", v1.GetConsumptionsMemory)
+				spareparts.POST("/consumptions", v1.CreateConsumptionMemory)
+
+				// Statistics
+				spareparts.GET("/statistics", v1.GetSparePartStatisticsMemory)
+			}
+
+			// Analytics routes
+			analytics := protected.Group("/analytics")
+			{
+				analytics.GET("/dashboard", v1.GetDashboardOverviewMemory)
+				analytics.GET("/mttr-mtbf", v1.GetMTTRMTBFMemory)
+				analytics.GET("/trends", v1.GetTrendDataMemory)
+				analytics.GET("/failures", v1.GetFailureAnalysisMemory)
+				analytics.GET("/top-failures", v1.GetTopFailureEquipmentMemory)
+			}
+
+			// Knowledge base routes
+			knowledge := protected.Group("/knowledge")
+			{
+				knowledge.GET("", v1.ListKnowledgeArticlesMemory)
+				knowledge.GET("/:id", v1.GetKnowledgeArticleMemory)
+				knowledge.POST("", v1.CreateKnowledgeArticleMemory)
+				knowledge.PUT("/:id", v1.UpdateKnowledgeArticleMemory)
+				knowledge.DELETE("/:id", v1.DeleteKnowledgeArticleMemory)
+				knowledge.GET("/search", v1.SearchKnowledgeArticlesMemory)
+				knowledge.POST("/convert-repair", v1.ConvertFromRepairMemory)
+			}
+		}
+	}
+
+	// Swagger documentation
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	// Health check
+	router.GET("/health", v1.HealthCheckMemory)
+}
+
+// setupDatabaseRoutes 设置数据库模式路由
+func setupDatabaseRoutes(router *gin.Engine) {
 	api := router.Group("/api/v1")
 	{
 		// Auth routes (public)
@@ -276,8 +510,10 @@ func main() {
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok", "service": "ems-api"})
 	})
+}
 
-	// Start server
+// startServer 启动 HTTP 服务器
+func startServer(router *gin.Engine) {
 	srv := &http.Server{
 		Addr:           fmt.Sprintf(":%d", config.Cfg.Server.Port),
 		Handler:        router,

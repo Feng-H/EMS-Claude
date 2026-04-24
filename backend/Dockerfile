@@ -41,6 +41,9 @@ COPY --from=builder /build/ems-api .
 # Copy config files
 COPY config ./config
 
+# Set Docker config as active
+RUN mv config/config.docker.yaml config/config.yaml
+
 # Create directories
 RUN mkdir -p logs uploads
 

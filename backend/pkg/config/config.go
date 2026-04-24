@@ -9,6 +9,7 @@ import (
 
 type Config struct {
 	Server   ServerConfig
+	Storage  StorageConfig
 	Database DatabaseConfig
 	Redis    RedisConfig
 	JWT      JWTConfig
@@ -20,6 +21,10 @@ type Config struct {
 type ServerConfig struct {
 	Port int
 	Mode string
+}
+
+type StorageConfig struct {
+	Mode string // memory 或 database
 }
 
 type DatabaseConfig struct {
