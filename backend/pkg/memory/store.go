@@ -138,6 +138,10 @@ func (s *Store) NextID() uint {
 }
 
 // InitMockData 初始化模拟数据 (工业世界模拟器版本)
+func timePtr(t time.Time) *time.Time {
+	return &t
+}
+
 func (s *Store) InitMockData() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -172,13 +176,25 @@ func (s *Store) InitMockData() {
 	cncType := &model.EquipmentType{BaseModel: model.BaseModel{ID: s.nextIDInternal()}, Name: "高精度数控机床", Category: "加工设备"}
 	s.EquipmentTypes[cncType.ID] = cncType
 	
-	equipA := &model.Equipment{BaseModel: model.BaseModel{ID: s.nextIDInternal()}, Code: "CNC-001", Name: "李四负责-A区机床", TypeID: cncType.ID, WorkshopID: workshop.ID, Status: "running", QRCode: "QR-A"}
+	equipA := &model.Equipment{
+		BaseModel: model.BaseModel{ID: s.nextIDInternal()}, Code: "CNC-001", Name: "李四负责-A区机床", TypeID: cncType.ID, 
+		WorkshopID: workshop.ID, Status: "running", QRCode: "QR-A",
+		PurchasePrice: 280000.00, PurchaseDate: timePtr(now.AddDate(-3, 0, 0)), ServiceLifeYears: 8, ScrapValue: 28000.00, HourlyLoss: 150.00,
+	}
 	s.Equipment[equipA.ID] = equipA
 	
-	equipB := &model.Equipment{BaseModel: model.BaseModel{ID: s.nextIDInternal()}, Code: "CNC-002", Name: "张三负责-B区机床", TypeID: cncType.ID, WorkshopID: workshop.ID, Status: "stopped", QRCode: "QR-B"}
+	equipB := &model.Equipment{
+		BaseModel: model.BaseModel{ID: s.nextIDInternal()}, Code: "CNC-002", Name: "张三负责-B区机床", TypeID: cncType.ID, 
+		WorkshopID: workshop.ID, Status: "stopped", QRCode: "QR-B",
+		PurchasePrice: 280000.00, PurchaseDate: timePtr(now.AddDate(-3, 0, 0)), ServiceLifeYears: 8, ScrapValue: 28000.00, HourlyLoss: 150.00,
+	}
 	s.Equipment[equipB.ID] = equipB
 
-	agingEquip := &model.Equipment{BaseModel: model.BaseModel{ID: s.nextIDInternal()}, Code: "PRESS-05", Name: "12年老旧冲床", TypeID: cncType.ID, WorkshopID: workshop.ID, Status: "maintenance", QRCode: "QR-OLD"}
+	agingEquip := &model.Equipment{
+		BaseModel: model.BaseModel{ID: s.nextIDInternal()}, Code: "PRESS-05", Name: "12年老旧冲床", TypeID: cncType.ID, 
+		WorkshopID: workshop.ID, Status: "maintenance", QRCode: "QR-OLD",
+		PurchasePrice: 150000.00, PurchaseDate: timePtr(now.AddDate(-12, 0, 0)), ServiceLifeYears: 10, ScrapValue: 5000.00, HourlyLoss: 80.00,
+	}
 	s.Equipment[agingEquip.ID] = agingEquip
 
 	pumpPart := &model.SparePart{BaseModel: model.BaseModel{ID: s.nextIDInternal()}, Code: "PUMP-01", Name: "高压柱塞泵", Unit: "台", SafetyStock: 2}

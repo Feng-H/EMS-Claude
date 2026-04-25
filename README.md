@@ -109,7 +109,3 @@ docker compose down
 ## 开发文档
 
 详细开发文档请参阅 [CLAUDE.md](./CLAUDE.md)
-
-## License
-
-MIT

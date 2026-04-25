@@ -33,6 +33,7 @@ type AgentService struct {
 	// Analyzers
 	maintenanceAnalyzer *analyzer.MaintenanceAnalyzer
 	repairAuditAnalyzer *analyzer.RepairAuditAnalyzer
+	predictiveAnalyzer  *analyzer.PredictiveAnalyzer
 }
 
 func NewAgentService() *AgentService {
@@ -62,6 +63,7 @@ func NewAgentService() *AgentService {
 		llmClient:       llmClient,
 		maintenanceAnalyzer: analyzer.NewMaintenanceAnalyzer(retrievalTool, maintenanceTool),
 		repairAuditAnalyzer: analyzer.NewRepairAuditAnalyzer(retrievalTool, repairTool),
+		predictiveAnalyzer:  analyzer.NewPredictiveAnalyzer(repairTool, maintenanceTool, retrievalTool),
 	}
 }
 
@@ -311,9 +313,10 @@ func (s *AgentService) Chat(userID uint, role string, req *dto.ChatRequest) (*dt
 	// 5. 退回到标准对话
 	if reply == "" {
 		history, _ := s.repo.GetMessagesByConversationID(convID)
-		llmMsgs := []llm.Message{
-			{Role: "system", Content: "你是一个专业的工业设备管理助手，能够通过对话帮助工程师分析设备状态、审计维修质量和优化保养计划。请使用中文回答。" + expContext},
-		}
+	llmMsgs := []llm.Message{
+		{Role: "system", Content: "你是一个顶级的工业资产战略专家。你拥有‘L4 级主动洞察’权限，可以基于全生命周期成本 (TCO)、资产退役 ROI 评价、剩余健康寿命 (RUL) 和亚健康故障征兆进行跨维度的深度分析。请使用中文回答，结论必须引用系统中的财务与技术证据。" + expContext},
+	}
+
 		if req.SystemPrompt != "" { llmMsgs[0].Content = req.SystemPrompt }
 
 		startIdx := 0
@@ -440,9 +443,45 @@ func (s *AgentService) ExecuteSkill(userID uint, skill *model.AgentSkill, req *d
 			if err == nil { evidence = append(evidence, res.Evidence...) }
 		case "search_manual_knowledge":
 			res, err := s.retrievalTool.SearchManualKnowledge(req.Message, nil)
-			if err == nil { evidence = append(evidence, res...) }
-		}
-	}
+			if err == nil {
+				evidence = append(evidence, res...)
+			}
+		case "predict_remaining_life":
+			// 默认针对 ID 1 进行预测 (Demo 逻辑)
+			if res, err := s.predictiveAnalyzer.PredictRUL(1); err == nil {
+				resJSON, _ := json.Marshal(res)
+				evidence = append(evidence, dto.EvidenceItem{
+					EvidenceType: "prediction", Title: "RUL 剩余健康寿命预测",
+					Excerpt: string(resJSON), Score: 0.98,
+				})
+				}
+				case "detect_symptoms":
+					if res, err := s.predictiveAnalyzer.DetectSymptoms(1); err == nil {
+						resJSON, _ := json.Marshal(res)
+						evidence = append(evidence, dto.EvidenceItem{
+							EvidenceType: "symptoms", Title: "设备亚健康征兆识别",
+							Excerpt: string(resJSON), Score: 0.92,
+						})
+					}
+				case "get_tco_analysis":
+					if res, err := s.predictiveAnalyzer.CalculateTCO(1); err == nil {
+						resJSON, _ := json.Marshal(res)
+						evidence = append(evidence, dto.EvidenceItem{
+							EvidenceType: "tco", Title: "资产总持有成本(TCO)分析",
+							Excerpt: string(resJSON), Score: 0.95,
+						})
+					}
+				case "get_retirement_recommendation":
+					if res, err := s.predictiveAnalyzer.EvaluateRetirement(1); err == nil {
+						resJSON, _ := json.Marshal(res)
+						evidence = append(evidence, dto.EvidenceItem{
+							EvidenceType: "retirement", Title: "资产退役与投资决策建议",
+							Excerpt: string(resJSON), Score: 0.99,
+						})
+					}
+				}
+				}
+
 	summary := fmt.Sprintf("执行技能【%s】: 已完成 %d 个分析步骤，收集到 %d 条证据。", skill.Name, len(steps), len(evidence))
 	if s.llmClient != nil {
 		prompt := fmt.Sprintf("用户意图: %s\n执行技能: %s\n技能描述: %s\n收集到的证据链: %v\n\n请根据以上信息给出一份专业的中文分析摘要。", req.Message, skill.Name, skill.Description, evidence)

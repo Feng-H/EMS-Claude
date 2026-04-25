@@ -69,6 +69,18 @@ func (t *PromptTool) BuildKnowledgeExtractionPrompt(history interface{}) string 
 3. 语言必须是中文。`, history)
 }
 
+func (t *PromptTool) BuildSymptomAnalysisPrompt(findings interface{}) string {
+	return fmt.Sprintf(`你是一个资深的设备预测性维护专家。请分析以下识别出的设备“亚健康”征兆，并生成一份具有前瞻性的预警报告。
+
+### 征兆发现
+%v
+
+### 输出要求
+1. 语言：中文
+2. 重点：解释这些微小异常背后隐藏的系统性风险，并给出预防性建议。
+3. 风格：具有警示性且逻辑严密。`, findings)
+}
+
 func (t *PromptTool) BuildSkillExtractionPrompt(history interface{}) string {
 	return fmt.Sprintf(`你是一个高级工业诊断专家。请分析以下工程师与 AI 助手的对话记录，看其中是否隐藏了一套通用的“故障排查或数据分析逻辑”。
 

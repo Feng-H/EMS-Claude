@@ -86,6 +86,7 @@ type AgentMessage struct {
 	Conversation   *AgentConversation `json:"-" gorm:"foreignKey:ConversationID;constraint:OnDelete:CASCADE;"`
 	Role           string    `json:"role" gorm:"size:20;not null"` // system, user, assistant, tool
 	Content        string    `json:"content" gorm:"type:text;not null"`
+	ImageURL       string    `json:"image_url" gorm:"size:500"`    // 多模态图片支持
 	ToolCalls      string    `json:"tool_calls" gorm:"type:jsonb"`
 	SkillID        string    `json:"skill_id" gorm:"size:100"`
 	KnowledgeIDs   string    `json:"knowledge_ids" gorm:"type:jsonb;default:'[]'"`

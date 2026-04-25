@@ -258,3 +258,17 @@ type SkillResponse struct {
 	SuccessRate         float64   `json:"success_rate"`
 	CreatedAt           time.Time `json:"created_at"`
 }
+
+// =====================================================
+// Phase 3: Predictive Maintenance DTOs
+// =====================================================
+
+type RULPrediction struct {
+	EquipmentID      uint      `json:"equipment_id"`
+	EquipmentCode    string    `json:"equipment_code"`
+	HealthScore      float64   `json:"health_score"` // 0-100
+	EstimatedRULDays int       `json:"estimated_rul_days"`
+	Reliability      float64   `json:"reliability"` // 置信度 0-1.0
+	RiskFactors      []string  `json:"risk_factors"`
+	Recommendation   string    `json:"recommendation"`
+}
