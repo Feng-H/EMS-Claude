@@ -174,7 +174,7 @@ const loadTasks = async () => {
     maintenanceTasks.value = maintenanceResponse.data
 
     // 加载维修工单
-    const repairsResponse = await repairOrderApi.getMyOrders()
+    const repairsResponse = await repairOrderApi.getMyTasks()
     repairOrders.value = repairsResponse.data
   } catch (error: any) {
     showToast('加载任务失败')
