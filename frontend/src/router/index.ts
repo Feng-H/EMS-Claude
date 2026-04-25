@@ -149,6 +149,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/knowledge/KnowledgeView.vue'),
         meta: { title: '知识库' },
       },
+      {
+        path: 'agent/assistant',
+        name: 'ManagementAssistant',
+        component: () => import('@/views/agent/ManagementAssistantView.vue'),
+        meta: { title: '管理助手', roles: ['admin', 'engineer', 'supervisor'] },
+      },
     ],
   },
 ]

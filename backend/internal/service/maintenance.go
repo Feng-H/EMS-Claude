@@ -16,7 +16,7 @@ type MaintenancePlanService struct {
 	taskRepo      *repository.MaintenanceTaskRepository
 	equipRepo     *repository.EquipmentRepository
 	equipTypeRepo *repository.EquipmentTypeRepository
-	userRepo      *UserRepository
+	userRepo      *repository.UserRepository
 }
 
 func NewMaintenancePlanService() *MaintenancePlanService {
@@ -26,7 +26,7 @@ func NewMaintenancePlanService() *MaintenancePlanService {
 		taskRepo:      repository.NewMaintenanceTaskRepository(),
 		equipRepo:     repository.NewEquipmentRepo(),
 		equipTypeRepo: repository.NewEquipmentTypeRepo(),
-		userRepo:      NewUserRepository(),
+		userRepo:      repository.NewUserRepository(),
 	}
 }
 
@@ -115,7 +115,7 @@ type MaintenanceTaskService struct {
 	planRepo        *repository.MaintenancePlanRepository
 	recordRepo      *repository.MaintenanceRecordRepository
 	equipRepo       *repository.EquipmentRepository
-	userRepo        *UserRepository
+	userRepo        *repository.UserRepository
 	planItemRepo    *repository.MaintenancePlanItemRepository
 }
 
@@ -125,7 +125,7 @@ func NewMaintenanceTaskService() *MaintenanceTaskService {
 		planRepo:     repository.NewMaintenancePlanRepository(),
 		recordRepo:   repository.NewMaintenanceRecordRepository(),
 		equipRepo:    repository.NewEquipmentRepo(),
-		userRepo:     NewUserRepository(),
+		userRepo:     repository.NewUserRepository(),
 		planItemRepo: repository.NewMaintenancePlanItemRepository(),
 	}
 }

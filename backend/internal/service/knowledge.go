@@ -8,14 +8,14 @@ import (
 // KnowledgeService
 type KnowledgeService struct {
 	knowledgeRepo *repository.KnowledgeArticleRepository
-	userRepo      *UserRepository
+	userRepo      *repository.UserRepository
 	repairRepo    *repository.RepairOrderRepository
 }
 
 func NewKnowledgeService() *KnowledgeService {
 	return &KnowledgeService{
 		knowledgeRepo: repository.NewKnowledgeArticleRepository(),
-		userRepo:      NewUserRepository(),
+		userRepo:      repository.NewUserRepository(),
 		repairRepo:    repository.NewRepairOrderRepository(),
 	}
 }

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/ems/backend/api/v1"
+	agentController "github.com/ems/backend/internal/agent/controller"
 	"github.com/ems/backend/internal/middleware"
 	"github.com/ems/backend/internal/model"
 	"github.com/ems/backend/pkg/config"
@@ -113,6 +114,13 @@ func runDatabaseMode() {
 		&model.SparePartInventory{},
 		&model.SparePartConsumption{},
 		&model.KnowledgeArticle{},
+		&model.ManualDocument{},
+		&model.ManualChunk{},
+		&model.RepairCostDetail{},
+		&model.EquipmentRuntimeSnapshot{},
+		&model.AgentSession{},
+		&model.AgentArtifact{},
+		&model.AgentEvidenceLink{},
 	); err != nil {
 		log.Fatalf("Failed to migrate database: %v", err)
 	}
@@ -328,6 +336,18 @@ func setupMemoryRoutes(router *gin.Engine) {
 				knowledge.GET("/search", v1.SearchKnowledgeArticlesMemory)
 				knowledge.POST("/convert-repair", v1.ConvertFromRepairMemory)
 			}
+
+			// Agent routes
+			agent := protected.Group("/agent")
+			agentCtrl := agentController.NewAgentController()
+			{
+				agent.POST("/maintenance/recommend", agentCtrl.RecommendMaintenance)
+				agent.POST("/audit/repair", agentCtrl.AuditRepair)
+				agent.POST("/audit/maintenance", agentCtrl.AuditMaintenance)
+				agent.POST("/analyze", agentCtrl.Analyze)
+				agent.GET("/sessions/:id", agentCtrl.GetSession)
+				agent.GET("/artifacts/:id", agentCtrl.GetArtifact)
+			}
 		}
 	}
 
@@ -499,6 +519,18 @@ func setupDatabaseRoutes(router *gin.Engine) {
 				knowledge.DELETE("/:id", v1.DeleteKnowledgeArticle)
 				knowledge.GET("/search", v1.SearchKnowledgeArticles)
 				knowledge.POST("/convert-repair", v1.ConvertFromRepair)
+			}
+
+			// Agent routes
+			agent := protected.Group("/agent")
+			agentCtrl := agentController.NewAgentController()
+			{
+				agent.POST("/maintenance/recommend", agentCtrl.RecommendMaintenance)
+				agent.POST("/audit/repair", agentCtrl.AuditRepair)
+				agent.POST("/audit/maintenance", agentCtrl.AuditMaintenance)
+				agent.POST("/analyze", agentCtrl.Analyze)
+				agent.GET("/sessions/:id", agentCtrl.GetSession)
+				agent.GET("/artifacts/:id", agentCtrl.GetArtifact)
 			}
 		}
 	}

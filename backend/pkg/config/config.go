@@ -18,6 +18,7 @@ type Config struct {
 	Log      LogConfig
 	Upload   UploadConfig
 	App      AppConfig
+	LLM      LLMConfig
 }
 
 type ServerConfig struct {
@@ -87,6 +88,13 @@ type AppConfig struct {
 	QRCodeBaseURL        string
 	GPSValidationEnabled bool
 	GPSToleranceMeters   int
+}
+
+type LLMConfig struct {
+	Provider string // openai, deepseek, ollama
+	BaseURL  string
+	APIKey   string
+	Model    string
 }
 
 var Cfg *Config
@@ -184,6 +192,11 @@ func applyEnvOverrides(cfg *Config) error {
 	if err := overrideInt(&cfg.App.GPSToleranceMeters, "EMS_APP_GPS_TOLERANCE_METERS"); err != nil {
 		return err
 	}
+
+	overrideString(&cfg.LLM.Provider, "EMS_LLM_PROVIDER", "LLM_PROVIDER")
+	overrideString(&cfg.LLM.BaseURL, "EMS_LLM_BASE_URL", "LLM_BASE_URL")
+	overrideString(&cfg.LLM.APIKey, "EMS_LLM_API_KEY", "LLM_API_KEY")
+	overrideString(&cfg.LLM.Model, "EMS_LLM_MODEL", "LLM_MODEL")
 
 	return nil
 }

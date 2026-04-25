@@ -13,7 +13,7 @@ type SparePartService struct {
 	partRepo       *repository.SparePartRepository
 	inventoryRepo  *repository.SparePartInventoryRepository
 	consumptionRepo *repository.SparePartConsumptionRepository
-	userRepo       *UserRepository
+	userRepo       *repository.UserRepository
 }
 
 func NewSparePartService() *SparePartService {
@@ -21,7 +21,7 @@ func NewSparePartService() *SparePartService {
 		partRepo:       repository.NewSparePartRepository(),
 		inventoryRepo:  repository.NewSparePartInventoryRepository(),
 		consumptionRepo: repository.NewSparePartConsumptionRepository(),
-		userRepo:       NewUserRepository(),
+		userRepo:       repository.NewUserRepository(),
 	}
 }
 

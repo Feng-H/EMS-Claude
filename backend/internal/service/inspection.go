@@ -165,7 +165,7 @@ type InspectionTaskService struct {
 	taskRepo    *repository.InspectionTaskRepository
 	recordRepo  *repository.InspectionRecordRepository
 	equipRepo   *repository.EquipmentRepository
-	userRepo    *UserRepository
+	userRepo    *repository.UserRepository
 	templateRepo *repository.InspectionTemplateRepository
 }
 
@@ -174,7 +174,7 @@ func NewInspectionTaskService() *InspectionTaskService {
 		taskRepo:    repository.NewInspectionTaskRepository(),
 		recordRepo:  repository.NewInspectionRecordRepository(),
 		equipRepo:   repository.NewEquipmentRepo(),
-		userRepo:    NewUserRepository(),
+		userRepo:    repository.NewUserRepository(),
 		templateRepo: repository.NewInspectionTemplateRepository(),
 	}
 }
@@ -584,20 +584,4 @@ func abs(x int64) int64 {
 	return x
 }
 
-// UserRepository (minimal, needed for validation)
-type UserRepository struct {
-	db *gorm.DB
-}
 
-func NewUserRepository() *UserRepository {
-	return &UserRepository{db: repository.DB}
-}
-
-func (r *UserRepository) GetByID(id uint) (*model.User, error) {
-	var user model.User
-	err := r.db.First(&user, id).Error
-	if err != nil {
-		return nil, err
-	}
-	return &user, nil
-}

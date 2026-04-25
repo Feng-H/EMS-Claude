@@ -221,6 +221,17 @@
 
         <div class="nav-section">
           <div v-if="!sidebarCollapsed" class="nav-section-title">数据分析</div>
+          <router-link to="/agent/assistant" class="nav-item" :class="{ active: isActive('/agent/assistant') }">
+            <div class="nav-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+              </svg>
+            </div>
+            <transition name="nav-text">
+              <span v-show="!sidebarCollapsed" class="nav-text">管理助手</span>
+            </transition>
+            <div v-if="!sidebarCollapsed" class="nav-indicator"></div>
+          </router-link>
           <router-link to="/analytics" class="nav-item" :class="{ active: isActive('/analytics') }">
             <div class="nav-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">

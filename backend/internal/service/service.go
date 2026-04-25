@@ -351,7 +351,7 @@ type EquipmentService struct {
 	repo       *repository.EquipmentRepository
 	typeRepo   *repository.EquipmentTypeRepository
 	workshopRepo *repository.WorkshopRepository
-	userRepo   *UserRepository
+	userRepo   *repository.UserRepository
 }
 
 func NewEquipmentService() *EquipmentService {
@@ -359,7 +359,7 @@ func NewEquipmentService() *EquipmentService {
 		repo:         repository.NewEquipmentRepo(),
 		typeRepo:     repository.NewEquipmentTypeRepo(),
 		workshopRepo: repository.NewWorkshopRepo(),
-		userRepo:     NewUserRepository(),
+		userRepo:     repository.NewUserRepository(),
 	}
 }
 

@@ -49,6 +49,15 @@ type Store struct {
 	// 知识库
 	KnowledgeArticles map[uint]*model.KnowledgeArticle
 
+	// Agent 相关
+	ManualDocuments    map[uint]*model.ManualDocument
+	ManualChunks       map[uint]*model.ManualChunk
+	RepairCostDetails  map[uint]*model.RepairCostDetail
+	RuntimeSnapshots   map[uint]*model.EquipmentRuntimeSnapshot
+	AgentSessions      map[uint]*model.AgentSession
+	AgentArtifacts     map[uint]*model.AgentArtifact
+	AgentEvidenceLinks map[uint]*model.AgentEvidenceLink
+
 	// ID 计数器
 	nextID uint
 }
@@ -82,6 +91,13 @@ func GetStore() *Store {
 			SparePartInventory:  make(map[uint]*model.SparePartInventory),
 			SparePartConsumption: make(map[uint]*model.SparePartConsumption),
 			KnowledgeArticles:   make(map[uint]*model.KnowledgeArticle),
+			ManualDocuments:    make(map[uint]*model.ManualDocument),
+			ManualChunks:       make(map[uint]*model.ManualChunk),
+			RepairCostDetails:  make(map[uint]*model.RepairCostDetail),
+			RuntimeSnapshots:   make(map[uint]*model.EquipmentRuntimeSnapshot),
+			AgentSessions:      make(map[uint]*model.AgentSession),
+			AgentArtifacts:     make(map[uint]*model.AgentArtifact),
+			AgentEvidenceLinks: make(map[uint]*model.AgentEvidenceLink),
 			nextID:              1,
 		}
 	})

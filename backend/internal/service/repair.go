@@ -14,7 +14,7 @@ type RepairOrderService struct {
 	orderRepo *repository.RepairOrderRepository
 	logRepo   *repository.RepairLogRepository
 	equipRepo *repository.EquipmentRepository
-	userRepo  *UserRepository
+	userRepo  *repository.UserRepository
 }
 
 func NewRepairOrderService() *RepairOrderService {
@@ -22,7 +22,7 @@ func NewRepairOrderService() *RepairOrderService {
 		orderRepo: repository.NewRepairOrderRepository(),
 		logRepo:   repository.NewRepairLogRepository(),
 		equipRepo: repository.NewEquipmentRepo(),
-		userRepo:  NewUserRepository(),
+		userRepo:  repository.NewUserRepository(),
 	}
 }
 
