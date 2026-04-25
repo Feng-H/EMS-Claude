@@ -57,6 +57,7 @@ type Store struct {
 	AgentSessions      map[uint]*model.AgentSession
 	AgentArtifacts     map[uint]*model.AgentArtifact
 	AgentEvidenceLinks map[uint]*model.AgentEvidenceLink
+	AgentUsage         map[uint]*model.AgentUsage
 
 	// ID 计数器
 	nextID uint
@@ -98,6 +99,7 @@ func GetStore() *Store {
 			AgentSessions:      make(map[uint]*model.AgentSession),
 			AgentArtifacts:     make(map[uint]*model.AgentArtifact),
 			AgentEvidenceLinks: make(map[uint]*model.AgentEvidenceLink),
+			AgentUsage:         make(map[uint]*model.AgentUsage),
 			nextID:              1,
 		}
 	})

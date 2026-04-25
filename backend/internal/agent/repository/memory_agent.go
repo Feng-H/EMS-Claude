@@ -171,6 +171,13 @@ func (r *MemoryAgentRepository) CreateEvidenceLinks(links []model.AgentEvidenceL
 	return nil
 }
 
+func (r *MemoryAgentRepository) CreateUsage(usage *model.AgentUsage) error {
+	usage.ID = r.store.NextID()
+	usage.CreatedAt = time.Now()
+	r.store.AgentUsage[usage.ID] = usage
+	return nil
+}
+
 func (r *MemoryAgentRepository) ListSessionsByUserID(userID uint, limit int) ([]model.AgentSession, error) {
 	var results []model.AgentSession
 	count := 0

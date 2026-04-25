@@ -121,6 +121,7 @@ func runDatabaseMode() {
 		&model.AgentSession{},
 		&model.AgentArtifact{},
 		&model.AgentEvidenceLink{},
+		&model.AgentUsage{},
 	); err != nil {
 		log.Fatalf("Failed to migrate database: %v", err)
 	}

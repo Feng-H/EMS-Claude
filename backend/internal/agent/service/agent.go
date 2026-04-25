@@ -64,6 +64,7 @@ func NewAgentService() *AgentService {
 }
 
 func (s *AgentService) RecommendMaintenance(userID uint, role string, req *dto.MaintenanceRecommendRequest) (*dto.AgentResponseEnvelope, error) {
+	startTime := time.Now()
 	traceID := trace.GenerateTraceID()
 	
 	// 1. Derive authorized context
@@ -141,7 +142,7 @@ func (s *AgentService) RecommendMaintenance(userID uint, role string, req *dto.M
 		_ = s.repo.CreateEvidenceLinks([]model.AgentEvidenceLink{link})
 	}
 
-	return &dto.AgentResponseEnvelope{
+	res := &dto.AgentResponseEnvelope{
 		Success:  true,
 		TraceID:  traceID,
 		Language: agentCtx.Language,
@@ -154,10 +155,16 @@ func (s *AgentService) RecommendMaintenance(userID uint, role string, req *dto.M
 		ArtifactID:    artifact.ID,
 		EvidenceCount: len(analysisResult.Evidence),
 		Data:          analysisResult,
-	}, nil
+	}
+
+	// 6. Log usage
+	s.logUsage(session.ID, userID, "maintenance_recommendation", startTime)
+
+	return res, nil
 }
 
 func (s *AgentService) AuditRepair(userID uint, role string, req *dto.RepairAuditRequest) (*dto.AgentResponseEnvelope, error) {
+	startTime := time.Now()
 	traceID := trace.GenerateTraceID()
 	
 	// 1. Derive authorized context
@@ -237,7 +244,7 @@ func (s *AgentService) AuditRepair(userID uint, role string, req *dto.RepairAudi
 		_ = s.repo.CreateEvidenceLinks([]model.AgentEvidenceLink{link})
 	}
 
-	return &dto.AgentResponseEnvelope{
+	res := &dto.AgentResponseEnvelope{
 		Success:  true,
 		TraceID:  traceID,
 		Language: agentCtx.Language,
@@ -250,7 +257,12 @@ func (s *AgentService) AuditRepair(userID uint, role string, req *dto.RepairAudi
 		ArtifactID:    artifact.ID,
 		EvidenceCount: len(analysisResult.Evidence),
 		Data:          analysisResult,
-	}, nil
+	}
+
+	// 6. Log usage
+	s.logUsage(session.ID, userID, "repair_audit", startTime)
+
+	return res, nil
 }
 
 func (s *AgentService) AuditMaintenance(userID uint, role string, req *dto.MaintenanceAuditRequest) (*dto.AgentResponseEnvelope, error) {
@@ -347,15 +359,22 @@ func (s *AgentService) GetArtifact(id uint) (*dto.AgentArtifactResponse, error) 
 
 	_ = json.Unmarshal([]byte(artifact.ResultJSON), &res.ResultJSON)
 
-	for _, ev := range artifact.EvidenceLinks {
-		res.Evidence = append(res.Evidence, dto.EvidenceItem{
-			EvidenceType: ev.EvidenceType,
-			SourceTable:  ev.SourceTable,
-			SourceID:     ev.SourceID,
-			Excerpt:      ev.Excerpt,
-			Score:        ev.Score,
-		})
+	return res, nil
+}
+
+func (s *AgentService) logUsage(sessionID, userID uint, scenario string, startTime time.Time) {
+	duration := time.Since(startTime).Milliseconds()
+	modelName := config.Cfg.LLM.Model
+	if modelName == "" {
+		modelName = "rule-based"
 	}
 
-	return res, nil
+	usage := &model.AgentUsage{
+		SessionID:      sessionID,
+		UserID:         userID,
+		Scenario:       scenario,
+		Model:          modelName,
+		ResponseTimeMs: duration,
+	}
+	_ = s.repo.CreateUsage(usage)
 }

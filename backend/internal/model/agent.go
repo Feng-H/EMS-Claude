@@ -103,6 +103,19 @@ type AgentEvidenceLink struct {
 	SourceTable string    `json:"source_table" gorm:"size:100"`
 	SourceID    uint      `json:"source_id"`
 	Excerpt     string    `json:"excerpt" gorm:"type:text"`
-	Score       float64   `json:"score" gorm:"type:decimal(5,4)"`
+	Score       float64   `json:"score" gorm:type:decimal(5,4)"`
 	CreatedAt   time.Time `json:"created_at"`
+}
+
+type AgentUsage struct {
+	ID            uint      `json:"id" gorm:"primarykey"`
+	SessionID     uint      `json:"session_id" gorm:"index"`
+	UserID        uint      `json:"user_id" gorm:"index"`
+	Scenario      string    `json:"scenario" gorm:"size:50"`
+	Model         string    `json:"model" gorm:"size:100"`
+	PromptTokens  int       `json:"prompt_tokens"`
+	CompletionTokens int    `json:"completion_tokens"`
+	TotalTokens   int       `json:"total_tokens"`
+	ResponseTimeMs int64    `json:"response_time_ms"`
+	CreatedAt     time.Time `json:"created_at"`
 }

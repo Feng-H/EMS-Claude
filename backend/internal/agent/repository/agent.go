@@ -20,6 +20,7 @@ type IAgentRepository interface {
 	CreateArtifact(artifact *model.AgentArtifact) error
 	GetArtifactByID(id uint) (*model.AgentArtifact, error)
 	CreateEvidenceLinks(links []model.AgentEvidenceLink) error
+	CreateUsage(usage *model.AgentUsage) error
 	ListSessionsByUserID(userID uint, limit int) ([]model.AgentSession, error)
 }
 
@@ -136,6 +137,10 @@ func (r *DBAgentRepository) GetArtifactByID(id uint) (*model.AgentArtifact, erro
 
 func (r *DBAgentRepository) CreateEvidenceLinks(links []model.AgentEvidenceLink) error {
 	return r.db.Create(&links).Error
+}
+
+func (r *DBAgentRepository) CreateUsage(usage *model.AgentUsage) error {
+	return r.db.Create(usage).Error
 }
 
 func (r *DBAgentRepository) ListSessionsByUserID(userID uint, limit int) ([]model.AgentSession, error) {

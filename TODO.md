@@ -44,8 +44,9 @@
     - [x] Implement backend session and artifact persistence logic.
     - [x] Add mock data for representative agent scenarios (repeat failures, cost deviation).
     - [x] Support historical analysis loading in frontend.
-- [ ] **Milestone I: Observability and rollout**
-    - [ ] Implement trace logging and usage tracking.
+- [x] **Milestone I: Observability and rollout**
+    - [x] Implement `AgentUsage` model to track tokens and response time.
+    - [x] Integrated usage logging into all agent scenarios.
 
 ---
 
@@ -62,4 +63,4 @@
 - ✅ **Milestone E completed**: Implemented `llm` package and `PromptTool`. Integrated LLM summarization into the agent workflow for Chinese-first professional outputs.
 - ✅ **Milestone G completed**: Built the PC Management Assistant frontend with dual-pane layout, supporting Maintenance Recommendation and Repair Audit scenarios.
 - ✅ **Milestone H completed**: Implemented full persistence flow for Agent sessions and artifacts. Added "story-driven" mock data for realistic demos of repeat-failure and cost-deviation auditing.
-- [ ] **Milestone I: Observability and rollout**
+- ✅ **Milestone I completed**: Implemented `AgentUsage` tracking to monitor LLM performance and cost. Phase 1 is now feature-complete and ready for production-like verification.
