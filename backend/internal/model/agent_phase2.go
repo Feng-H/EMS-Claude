@@ -41,6 +41,7 @@ type AgentKnowledge struct {
 	Status           string    `json:"status" gorm:"size:20;default:'draft';index"` // draft, confirmed, rejected, archived
 	CreatedBy        string    `json:"created_by" gorm:"size:100"`
 	CreatedAt        time.Time `json:"created_at"`
+	UpdatedAt        time.Time `json:"updated_at"`
 	VerifiedBy       *uint     `json:"verified_by"`
 	Verifier         *User     `json:"verifier,omitempty" gorm:"foreignKey:VerifiedBy"`
 	VerifiedAt       *time.Time `json:"verified_at"`

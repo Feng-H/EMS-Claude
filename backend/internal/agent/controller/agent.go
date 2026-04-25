@@ -146,6 +146,27 @@ func (ctrl *AgentController) ListSessions(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
+// AuditKnowledge confirms or rejects a knowledge draft
+func (ctrl *AgentController) AuditKnowledge(c *gin.Context) {
+	id := c.Param("id")
+	var req struct {
+		Status string `json:"status" binding:"required"` // confirmed, rejected
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	userID, _ := middleware.GetUserID(c)
+	err := ctrl.agentService.AuditKnowledge(id, req.Status, userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Knowledge audit complete"})
+}
+
 // =====================================================
 // Phase 2: Chat & Conversation Endpoints
 // =====================================================

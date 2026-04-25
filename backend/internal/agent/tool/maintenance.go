@@ -27,6 +27,32 @@ func NewMaintenanceTool() *MaintenanceTool {
 	}
 }
 
+func (t *MaintenanceTool) GetMaintenanceCompliance(equipmentID uint) (map[string]interface{}, error) {
+	if config.Cfg.Storage.Mode == "memory" {
+		store := memory.GetStore()
+		completed := 0
+		total := 0
+		for _, task := range store.MaintenanceTasks {
+			if task.EquipmentID == equipmentID {
+				total++
+				if task.Status == model.MaintenanceCompleted {
+					completed++
+				}
+			}
+		}
+		rate := 0.0
+		if total > 0 { rate = float64(completed) / float64(total) }
+		return map[string]interface{}{
+			"total_tasks":     total,
+			"completed_tasks": completed,
+			"compliance_rate": rate,
+		}, nil
+	}
+
+	// DB Mode
+	return t.taskRepo.GetComplianceByEquipmentID(equipmentID)
+}
+
 func (t *MaintenanceTool) GetPlanByEquipmentType(typeID uint) (*model.MaintenancePlan, error) {
 	if config.Cfg.Storage.Mode == "memory" {
 		store := memory.GetStore()

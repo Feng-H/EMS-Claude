@@ -261,6 +261,10 @@ func (s *AgentService) GetArtifact(id uint) (*dto.AgentArtifactResponse, error) 
 	return res, nil
 }
 
+func (s *AgentService) AuditKnowledge(id string, status string, verifierID uint) error {
+	return s.repo.UpdateKnowledgeStatus(id, status, &verifierID)
+}
+
 // =====================================================
 // Phase 2: Chat & Conversational Logic
 // =====================================================
@@ -402,6 +406,34 @@ func (s *AgentService) ExecuteSkill(userID uint, skill *model.AgentSkill, req *d
 	evidence := []dto.EvidenceItem{}
 	for _, step := range steps {
 		switch step.Tool {
+		case "get_equipment_profile":
+			if res, err := s.retrievalTool.GetEquipmentProfile(1); err == nil {
+				resJSON, _ := json.Marshal(res)
+				evidence = append(evidence, dto.EvidenceItem{
+					EvidenceType: "equipment_profile", Title: "设备基础信息", Excerpt: string(resJSON), Score: 1.0,
+				})
+			}
+		case "get_failure_stats":
+			if res, err := s.repairTool.GetFailureStats(1); err == nil {
+				resJSON, _ := json.Marshal(res)
+				evidence = append(evidence, dto.EvidenceItem{
+					EvidenceType: "failure_stats", Title: "故障统计分析", Excerpt: string(resJSON), Score: 0.95,
+				})
+			}
+		case "get_cost_analysis":
+			if res, err := s.repairTool.GetCostAnalysis(1); err == nil {
+				resJSON, _ := json.Marshal(res)
+				evidence = append(evidence, dto.EvidenceItem{
+					EvidenceType: "cost_analysis", Title: "维修成本分析", Excerpt: string(resJSON), Score: 0.9,
+				})
+			}
+		case "get_maintenance_compliance":
+			if res, err := s.maintenanceTool.GetMaintenanceCompliance(1); err == nil {
+				resJSON, _ := json.Marshal(res)
+				evidence = append(evidence, dto.EvidenceItem{
+					EvidenceType: "maintenance_compliance", Title: "保养合规性评估", Excerpt: string(resJSON), Score: 0.85,
+				})
+			}
 		case "get_failure_distribution":
 			auditReq := &dto.RepairAuditRequest{EquipmentTypeID: 12}
 			res, err := s.repairAuditAnalyzer.Analyze(auditReq)
@@ -409,10 +441,6 @@ func (s *AgentService) ExecuteSkill(userID uint, skill *model.AgentSkill, req *d
 		case "search_manual_knowledge":
 			res, err := s.retrievalTool.SearchManualKnowledge(req.Message, nil)
 			if err == nil { evidence = append(evidence, res...) }
-		case "get_maintenance_profile":
-			mReq := &dto.MaintenanceRecommendRequest{EquipmentTypeID: 12}
-			res, err := s.maintenanceAnalyzer.Analyze(mReq)
-			if err == nil { evidence = append(evidence, res.Evidence...) }
 		}
 	}
 	summary := fmt.Sprintf("执行技能【%s】: 已完成 %d 个分析步骤，收集到 %d 条证据。", skill.Name, len(steps), len(evidence))

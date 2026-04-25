@@ -202,6 +202,48 @@ func (r *RepairOrderRepository) GetAvgResponseTime() (float64, error) {
 	return avgMinutes, err
 }
 
+func (r *RepairOrderRepository) GetStatisticsByEquipmentID(equipmentID uint) (map[string]interface{}, error) {
+	var repairCount int64
+	var totalDowntime float64
+
+	// Count completed repairs
+	r.db.Model(&model.RepairOrder{}).
+		Where("equipment_id = ? AND status IN ?", equipmentID, []string{"audited", "closed"}).
+		Count(&repairCount)
+
+	// Sum downtime (using PostgreSQL interval extraction)
+	r.db.Model(&model.RepairOrder{}).
+		Select("SUM(EXTRACT(EPOCH FROM (completed_at - started_at)) / 3600)").
+		Where("equipment_id = ? AND started_at IS NOT NULL AND completed_at IS NOT NULL", equipmentID).
+		Scan(&totalDowntime)
+
+	mttr := 0.0
+	if repairCount > 0 { mttr = totalDowntime / float64(repairCount) }
+
+	return map[string]interface{}{
+		"repair_count":   repairCount,
+		"total_downtime": totalDowntime,
+		"mttr":           mttr,
+	}, nil
+}
+
+func (r *RepairOrderRepository) GetCostByEquipmentID(equipmentID uint) (map[string]interface{}, error) {
+	var sparePartCost, laborCost float64
+
+	// Join with RepairCostDetail
+	r.db.Table("repair_cost_details").
+		Select("SUM(spare_part_cost), SUM(labor_cost)").
+		Joins("JOIN repair_orders ON repair_orders.id = repair_cost_details.order_id").
+		Where("repair_orders.equipment_id = ?", equipmentID).
+		Row().Scan(&sparePartCost, &laborCost)
+
+	return map[string]interface{}{
+		"total_cost":      sparePartCost + laborCost,
+		"spare_part_cost": sparePartCost,
+		"labor_cost":      laborCost,
+	}, nil
+}
+
 // RepairLog Repository
 type RepairLogRepository struct {
 	db *gorm.DB

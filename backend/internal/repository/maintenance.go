@@ -205,6 +205,21 @@ func (r *MaintenanceTaskRepository) UpdateOverdueStatus(ids []uint) error {
 		Update("status", "overdue").Error
 }
 
+func (r *MaintenanceTaskRepository) GetComplianceByEquipmentID(equipmentID uint) (map[string]interface{}, error) {
+	var total, completed int64
+	r.db.Model(&model.MaintenanceTask{}).Where("equipment_id = ?", equipmentID).Count(&total)
+	r.db.Model(&model.MaintenanceTask{}).Where("equipment_id = ? AND status = ?", equipmentID, "completed").Count(&completed)
+	
+	rate := 0.0
+	if total > 0 { rate = float64(completed) / float64(total) }
+	
+	return map[string]interface{}{
+		"total_tasks":     total,
+		"completed_tasks": completed,
+		"compliance_rate": rate,
+	}, nil
+}
+
 // MaintenanceRecord Repository
 type MaintenanceRecordRepository struct {
 	db *gorm.DB

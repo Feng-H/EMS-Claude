@@ -1,6 +1,7 @@
 package tool
 
 import (
+	"fmt"
 	"github.com/ems/backend/internal/agent/dto"
 	"github.com/ems/backend/internal/agent/repository"
 	"github.com/ems/backend/internal/model"
@@ -25,6 +26,42 @@ func NewRetrievalTool(agentRepo repository.IAgentRepository) *RetrievalTool {
 		agentRepo:     agentRepo,
 		knowledgeRepo: knowledgeRepo,
 	}
+}
+
+// GetEquipmentProfile returns basic profile for an equipment
+func (t *RetrievalTool) GetEquipmentProfile(id uint) (map[string]interface{}, error) {
+	if config.Cfg.Storage.Mode == "memory" {
+		store := memory.GetStore()
+		e := store.FindEquipment(id)
+		if e == nil { return nil, fmt.Errorf("equipment not found") }
+		
+		res := map[string]interface{}{
+			"id": e.ID, "code": e.Code, "name": e.Name, "status": e.Status,
+		}
+		if et, ok := store.EquipmentTypes[e.TypeID]; ok {
+			res["type_name"] = et.Name
+		}
+		if ws, ok := store.Workshops[e.WorkshopID]; ok {
+			res["workshop_name"] = ws.Name
+			if fac, ok := store.Factories[ws.FactoryID]; ok {
+				res["factory_name"] = fac.Name
+			}
+		}
+		return res, nil
+	}
+
+	// DB Mode
+	repo := internalRepo.NewEquipmentRepo()
+	e, err := repo.GetByID(id)
+	if err != nil { return nil, err }
+	
+	res := map[string]interface{}{
+		"id": e.ID, "code": e.Code, "name": e.Name, "status": e.Status,
+		"type_name": e.Type.Name,
+		"workshop_name": e.Workshop.Name,
+		"factory_name": e.Workshop.Factory.Name,
+	}
+	return res, nil
 }
 
 // SearchManualKnowledge searches both knowledge articles and manual chunks

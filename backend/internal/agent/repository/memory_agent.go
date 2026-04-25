@@ -260,6 +260,20 @@ func (r *MemoryAgentRepository) CreateKnowledge(k *model.AgentKnowledge) error {
 	return nil
 }
 
+func (r *MemoryAgentRepository) UpdateKnowledgeStatus(id string, status string, verifierID *uint) error {
+	if k, ok := r.store.AgentKnowledges[id]; ok {
+		k.Status = status
+		k.UpdatedAt = time.Now()
+		if verifierID != nil {
+			k.VerifiedBy = verifierID
+			now := time.Now()
+			k.VerifiedAt = &now
+		}
+		return nil
+	}
+	return fmt.Errorf("knowledge not found")
+}
+
 // =====================================================
 // Phase 2: Skills
 // =====================================================

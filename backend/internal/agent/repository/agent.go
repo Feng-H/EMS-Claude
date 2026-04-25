@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"time"
 	"github.com/ems/backend/internal/model"
 	"gorm.io/gorm"
 )
@@ -30,6 +31,7 @@ type IAgentRepository interface {
 	CreateMessage(msg *model.AgentMessage) error
 	GetMessagesByConversationID(convID uint) ([]model.AgentMessage, error)
 	CreateKnowledge(knowledge *model.AgentKnowledge) error
+	UpdateKnowledgeStatus(id string, status string, verifierID *uint) error
 
 	// Phase 2: Skills
 	CreateSkill(skill *model.AgentSkill) error
@@ -210,6 +212,19 @@ func (r *DBAgentRepository) GetMessagesByConversationID(convID uint) ([]model.Ag
 
 func (r *DBAgentRepository) CreateKnowledge(k *model.AgentKnowledge) error {
 	return r.db.Create(k).Error
+}
+
+func (r *DBAgentRepository) UpdateKnowledgeStatus(id string, status string, verifierID *uint) error {
+	now := time.Now()
+	updates := map[string]interface{}{
+		"status":      status,
+		"updated_at":  now,
+	}
+	if verifierID != nil {
+		updates["verified_by"] = *verifierID
+		updates["verified_at"] = now
+	}
+	return r.db.Model(&model.AgentKnowledge{}).Where("id = ?", id).Updates(updates).Error
 }
 
 // =====================================================

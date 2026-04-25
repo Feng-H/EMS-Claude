@@ -184,6 +184,7 @@ import { ChatDotRound, CircleCheck, Reading, GoldMedal, Timer } from '@element-p
 import { equipmentApi, orgApi, type EquipmentType, type Factory } from '@/api/equipment'
 import { agentApi, type ChatResponse, type ConversationResponse, type AgentKnowledge } from '@/api/agent'
 import { ElMessage } from 'element-plus'
+import request from '@/api/request'
 
 // 状态管理
 const activeMode = ref('chat')
@@ -265,6 +266,26 @@ async function loadDrafts() {
   // 模拟过滤 draft 状态
   knowledgeDrafts.value = res.data.filter(k => k.status === 'draft')
   draftCount.value = knowledgeDrafts.value.length
+}
+
+async function confirmKnowledge(id: string) {
+  try {
+    await request.put(`/agent/knowledge/${id}/status`, { status: 'confirmed' })
+    ElMessage.success('知识已确认并入库')
+    loadDrafts()
+  } catch (error) {
+    ElMessage.error('操作失败')
+  }
+}
+
+async function rejectKnowledge(id: string) {
+  try {
+    await request.put(`/agent/knowledge/${id}/status`, { status: 'rejected' })
+    ElMessage.success('已拒绝该条目')
+    loadDrafts()
+  } catch (error) {
+    ElMessage.error('操作失败')
+  }
 }
 
 function scrollToBottom() {
