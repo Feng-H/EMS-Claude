@@ -166,16 +166,16 @@ const navigateToTask = (task: any) => {
 const loadTasks = async () => {
   try {
     // 加载点检任务
-    const inspections = await inspectionTaskApi.getMyTasks()
-    inspectionTasks.value = inspections
+    const inspectionsResponse = await inspectionTaskApi.getMyTasks()
+    inspectionTasks.value = inspectionsResponse.data
 
     // 加载保养任务
-    const maintenance = await maintenanceApi.getMyTasks()
-    maintenanceTasks.value = maintenance
+    const maintenanceResponse = await maintenanceApi.getMyTasks()
+    maintenanceTasks.value = maintenanceResponse.data
 
     // 加载维修工单
-    const repairs = await repairOrderApi.getMyOrders()
-    repairOrders.value = repairs
+    const repairsResponse = await repairOrderApi.getMyOrders()
+    repairOrders.value = repairsResponse.data
   } catch (error: any) {
     showToast('加载任务失败')
   }

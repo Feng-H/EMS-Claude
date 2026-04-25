@@ -12,6 +12,8 @@
 http://localhost:5173
 ```
 
+开发脚本会自动拉起 PostgreSQL 和 Redis，并让本地开发与 Docker 容器共用同一套数据。
+
 ### 生产环境
 
 ```bash
@@ -19,7 +21,7 @@ http://localhost:5173
 ./sync-to-prod.sh
 
 # 访问地址
-http://localhost
+http://127.0.0.1:3000
 ```
 
 ## 📖 文档导航
@@ -73,8 +75,6 @@ EMS-Claude/
 ├── backend/           # Go 后端服务
 ├── frontend/          # Vue3 前端应用
 ├── deploy/            # 生产环境配置
-│   ├── nginx.conf
-│   ├── Dockerfile.*
 │   └── docker-compose.yml
 ├── db/                # 数据库脚本
 │   ├── schema.sql

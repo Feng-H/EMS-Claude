@@ -182,7 +182,8 @@ const workshopRules: FormRules = {
 
 async function loadBases() {
   try {
-    bases.value = await orgApi.getBases()
+    const response = await orgApi.getBases()
+    bases.value = response.data
   } catch (error) {
     // Error handled by interceptor
   }
@@ -190,7 +191,8 @@ async function loadBases() {
 
 async function loadFactories() {
   try {
-    factories.value = await orgApi.getFactories()
+    const response = await orgApi.getFactories()
+    factories.value = response.data
   } catch (error) {
     // Error handled by interceptor
   }
@@ -198,7 +200,8 @@ async function loadFactories() {
 
 async function loadWorkshops() {
   try {
-    workshops.value = await orgApi.getWorkshops()
+    const response = await orgApi.getWorkshops()
+    workshops.value = response.data
   } catch (error) {
     // Error handled by interceptor
   }

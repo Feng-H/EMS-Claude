@@ -27,7 +27,7 @@ func Generate(equipmentCode string) ([]byte, error) {
 	}
 
 	// Convert to PNG
-	return qr PNG(DefaultQRCodeSize)
+	return qr.PNG(DefaultQRCodeSize)
 }
 
 // GenerateWithSize generates a QR code with custom size

@@ -356,8 +356,8 @@ const loadOrders = async () => {
     if (filterForm.date_to) params.date_to = filterForm.date_to
 
     const data = await repairOrderApi.getOrders(params)
-    orders.value = data.items
-    pagination.total = data.total
+    orders.value = data.data.items
+    pagination.total = data.data.total
   } catch (error: any) {
     ElMessage.error(error.message || '加载工单列表失败')
   } finally {
@@ -367,14 +367,16 @@ const loadOrders = async () => {
 
 const loadStatistics = async () => {
   try {
-    statistics.value = await repairOrderApi.getStatistics()
+    const data = await repairOrderApi.getStatistics()
+    statistics.value = data.data
   } catch (error: any) {
     console.error('加载统计数据失败', error)
   }
 }
 
 const viewDetail = async (order: RepairOrder) => {
-  currentOrder.value = await repairOrderApi.getOrder(order.id)
+  const response = await repairOrderApi.getOrder(order.id)
+  currentOrder.value = response.data
   showDetailDialog.value = true
 }
 

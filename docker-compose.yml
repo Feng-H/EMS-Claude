@@ -1,17 +1,6 @@
-# =====================================================
-# EMS Docker Compose Configuration
-# =====================================================
-# This file defines the complete EMS system stack
-# =====================================================
-
-version: '3.8'
-
 services:
-  # =====================================================
-  # PostgreSQL Database
-  # =====================================================
   postgres:
-    image: postgres:15
+    image: postgres:15-alpine
     container_name: ems-postgres
     restart: unless-stopped
     environment:
@@ -20,9 +9,11 @@ services:
       POSTGRES_PASSWORD: ems123
       TZ: Asia/Shanghai
     ports:
-      - "5432:5432"
+      - "${EMS_BIND_HOST:-127.0.0.1}:${EMS_POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./db/seeds/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ems -d ems_db"]
       interval: 10s
@@ -31,41 +22,42 @@ services:
     networks:
       - ems-network
 
-  # =====================================================
-  # Redis Cache
-  # =====================================================
   redis:
     image: redis:7-alpine
     container_name: ems-redis
     restart: unless-stopped
-    ports:
-      - "6379:6379"
     command: redis-server --appendonly yes --requirepass ""
+    ports:
+      - "${EMS_BIND_HOST:-127.0.0.1}:${EMS_REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD-SHELL", "timeout 5 nc -z 127.0.0.1 6379 || exit 1"]
+      test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
       - ems-network
 
-  # =====================================================
-  # Backend API Service
-  # =====================================================
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: ems-backend
     restart: unless-stopped
-    ports:
-      - "9000:8080"  # 避免与 nextcloud 8080 冲突
     environment:
-      - GIN_MODE=release
+      EMS_SERVER_MODE: release
+      EMS_STORAGE_MODE: database
+      EMS_DATABASE_HOST: postgres
+      EMS_DATABASE_PORT: 5432
+      EMS_DATABASE_USER: ems
+      EMS_DATABASE_PASSWORD: ems123
+      EMS_DATABASE_NAME: ems_db
+      EMS_REDIS_HOST: redis
+      EMS_REDIS_PORT: 6379
+    ports:
+      - "${EMS_BIND_HOST:-127.0.0.1}:${EMS_BACKEND_PORT:-9000}:8080"
     volumes:
-      - ./backend/config:/app/config
       - backend_uploads:/app/uploads
       - backend_logs:/app/logs
     depends_on:
@@ -82,24 +74,21 @@ services:
     networks:
       - ems-network
 
-  # =====================================================
-  # Frontend Web Service
-  # 使用内部端口，由 nginx-proxy-manager 反向代理
-  # =====================================================
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /api/v1
     container_name: ems-frontend
     restart: unless-stopped
     ports:
-      - "3000:80"  # 只映射到内部端口，不占用80/443
-    volumes:
-      - frontend_uploads:/usr/share/nginx/html/uploads
+      - "${EMS_BIND_HOST:-127.0.0.1}:${EMS_FRONTEND_PORT:-3000}:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost/health"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -107,29 +96,6 @@ services:
     networks:
       - ems-network
 
-  # =====================================================
-  # Nginx Reverse Proxy (Optional)
-  # =====================================================
-  nginx:
-    image: nginx:alpine
-    container_name: ems-nginx
-    restart: unless-stopped
-    ports:
-      - "8081:80"
-    volumes:
-      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
-    depends_on:
-      - backend
-      - frontend
-    networks:
-      - ems-network
-    profiles:
-      - proxy
-
-# =====================================================
-# Volumes
-# =====================================================
 volumes:
   postgres_data:
     driver: local
@@ -139,12 +105,7 @@ volumes:
     driver: local
   backend_logs:
     driver: local
-  frontend_uploads:
-    driver: local
 
-# =====================================================
-# Networks
-# =====================================================
 networks:
   ems-network:
     driver: bridge

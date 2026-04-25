@@ -186,16 +186,16 @@ const goToLogin = () => {
 const loadPendingCounts = async () => {
   try {
     // 加载待处理点检
-    const inspections = await inspectionTaskApi.getMyTasks()
-    pendingInspections.value = inspections.filter(t => t.status === 'pending' || t.status === 'in_progress').length
+    const inspectionsResponse = await inspectionTaskApi.getMyTasks()
+    pendingInspections.value = inspectionsResponse.data.filter(t => t.status === 'pending' || t.status === 'in_progress').length
 
     // 加载待处理保养
-    const maintenance = await maintenanceApi.getMyTasks()
-    pendingMaintenance.value = maintenance.filter(t => t.status === 'pending' || t.status === 'in_progress').length
+    const maintenanceResponse = await maintenanceApi.getMyTasks()
+    pendingMaintenance.value = maintenanceResponse.data.filter(t => t.status === 'pending' || t.status === 'in_progress').length
 
     // 加载待处理维修
-    const repairs = await repairOrderApi.getMyOrders()
-    pendingRepairs.value = repairs.filter(r => r.status === 'pending' || r.status === 'in_progress').length
+    const repairsResponse = await repairOrderApi.getMyOrders()
+    pendingRepairs.value = repairsResponse.data.filter(r => r.status === 'pending' || r.status === 'in_progress').length
   } catch (error) {
     console.error('加载待办数量失败:', error)
   }

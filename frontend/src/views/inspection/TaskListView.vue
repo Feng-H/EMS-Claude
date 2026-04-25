@@ -355,8 +355,8 @@ const loadTasks = async () => {
     if (filterForm.date_to) params.date_to = filterForm.date_to
 
     const data = await inspectionTaskApi.getTasks(params)
-    tasks.value = data.items
-    pagination.total = data.total
+    tasks.value = data.data.items
+    pagination.total = data.data.total
   } catch (error: any) {
     ElMessage.error(error.message || '加载任务列表失败')
   } finally {

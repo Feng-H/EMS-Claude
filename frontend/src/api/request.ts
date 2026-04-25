@@ -24,7 +24,7 @@ request.interceptors.request.use(
 // Response interceptor
 request.interceptors.response.use(
   (response) => {
-    return response.data
+    return response
   },
   (error) => {
     const authStore = useAuthStore()
@@ -45,7 +45,7 @@ request.interceptors.response.use(
           ElMessage.error('服务器错误，请稍后重试')
           break
         default:
-          ElMessage.error(error.response.data?.error || '请求失败')
+          ElMessage.error(error.response.data?.error || error.response.data?.message || '请求失败')
       }
     } else {
       ElMessage.error('网络错误，请检查网络连接')

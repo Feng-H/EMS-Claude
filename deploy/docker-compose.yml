@@ -1,86 +1,106 @@
-version: '3.8'
-
 services:
-  # PostgreSQL 数据库
   postgres:
     image: postgres:15-alpine
     container_name: ems-postgres
+    restart: unless-stopped
     environment:
       POSTGRES_DB: ems_db
       POSTGRES_USER: ems
-      POSTGRES_PASSWORD: ems_password
+      POSTGRES_PASSWORD: ems123
+      TZ: Asia/Shanghai
     ports:
-      - "5432:5432"
+      - "${EMS_BIND_HOST:-127.0.0.1}:${EMS_POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
-      - ./db/seeds/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
-    networks:
-      - ems-network
+      - ../db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ../db/seeds/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ems"]
+      test: ["CMD-SHELL", "pg_isready -U ems -d ems_db"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - ems-network
 
-  # Redis 缓存
   redis:
     image: redis:7-alpine
     container_name: ems-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ""
     ports:
-      - "6379:6379"
+      - "${EMS_BIND_HOST:-127.0.0.1}:${EMS_REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
-    networks:
-      - ems-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - ems-network
 
-  # 后端服务
   backend:
     build:
-      context: .
-      dockerfile: deploy/Dockerfile.backend
+      context: ..
+      dockerfile: backend/Dockerfile
     container_name: ems-backend
-    ports:
-      - "8080:8080"
+    restart: unless-stopped
     environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USER: ems
-      DB_PASSWORD: ems_password
-      DB_NAME: ems_db
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
+      EMS_SERVER_MODE: release
+      EMS_STORAGE_MODE: database
+      EMS_DATABASE_HOST: postgres
+      EMS_DATABASE_PORT: 5432
+      EMS_DATABASE_USER: ems
+      EMS_DATABASE_PASSWORD: ems123
+      EMS_DATABASE_NAME: ems_db
+      EMS_REDIS_HOST: redis
+      EMS_REDIS_PORT: 6379
+    ports:
+      - "${EMS_BIND_HOST:-127.0.0.1}:${EMS_BACKEND_PORT:-9000}:8080"
+    volumes:
+      - backend_uploads:/app/uploads
+      - backend_logs:/app/logs
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     networks:
       - ems-network
-    restart: unless-stopped
 
-  # 前端服务
   frontend:
     build:
-      context: .
-      dockerfile: deploy/Dockerfile.frontend
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /api/v1
     container_name: ems-frontend
+    restart: unless-stopped
     ports:
-      - "80:80"
+      - "${EMS_BIND_HOST:-127.0.0.1}:${EMS_FRONTEND_PORT:-3000}:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     networks:
       - ems-network
-    restart: unless-stopped
 
 volumes:
   postgres_data:
   redis_data:
+  backend_uploads:
+  backend_logs:
 
 networks:
   ems-network:

@@ -17,11 +17,13 @@
       <div class="brand-section">
         <div class="brand-logo">
           <div class="logo-icon">
-            <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M32 8L12 20L8 32L12 44L32 52L52 44L56 32L52 32L32 8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M8 32L16 36M56 32L48 36" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <circle cx="32" cy="28" r="4" fill="currentColor"/>
-              <circle cx="32" cy="44" r="4" fill="currentColor"/>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <!-- 外层工业六角框架 -->
+              <path d="M12 2l9 5v10l-9 5-9-5V7l9-5z" />
+              <!-- 核心齿轮 -->
+              <circle cx="12" cy="12" r="5" />
+              <!-- 智能运维脉冲线 (代表实时监测与诊断) -->
+              <path d="M9.5 12h1l1-2 1.5 4 1-2h1" stroke-width="1.2" />
             </svg>
           </div>
           <h1 class="brand-title">

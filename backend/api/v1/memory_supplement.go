@@ -1314,7 +1314,7 @@ func GetConsumptionsMemory(c *gin.Context) {
 	}
 
 	c.JSON(200, gin.H{
-		"data":  consumptions,
+		"items": consumptions,
 		"total": len(consumptions),
 	})
 }

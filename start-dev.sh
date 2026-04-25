@@ -15,32 +15,78 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+resolve_compose_cmd() {
+    if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+        COMPOSE_CMD=(docker compose)
+        return
+    fi
+
+    if command -v docker-compose >/dev/null 2>&1; then
+        COMPOSE_CMD=(docker-compose)
+        return
+    fi
+
+    echo -e "${RED}错误: 未找到 Docker Compose，请先安装 Docker Desktop 或 docker-compose${NC}"
+    exit 1
+}
+
+wait_for_postgres() {
+    local attempts=30
+
+    while [ $attempts -gt 0 ]; do
+        if "${COMPOSE_CMD[@]}" exec -T postgres pg_isready -U ems -d ems_db >/dev/null 2>&1; then
+            return 0
+        fi
+        sleep 2
+        attempts=$((attempts - 1))
+    done
+
+    echo -e "${RED}错误: PostgreSQL 启动超时${NC}"
+    exit 1
+}
+
 # 进入项目根目录
 cd "$(dirname "$0")"
 
-# 检查 Node.js
-if ! command -v node &> /dev/null; then
+# 检查 Node.js / npm
+if ! command -v node >/dev/null 2>&1; then
     echo -e "${RED}错误: Node.js 未安装${NC}"
     exit 1
 fi
 
+if ! command -v npm >/dev/null 2>&1; then
+    echo -e "${RED}错误: npm 未安装${NC}"
+    exit 1
+fi
+
 # 检查 Go
-if ! command -v go &> /dev/null; then
-    echo -e "${YELLOW}警告: Go 未安装，后端将无法启动${NC}"
+if ! command -v go >/dev/null 2>&1; then
+    echo -e "${RED}错误: Go 未安装，无法启动开发后端${NC}"
+    exit 1
 fi
 
-echo -e "${BLUE}1. 启动后端服务...${NC}"
-if command -v go &> /dev/null; then
-    cd backend
-    go run main.go > /tmp/ems-backend.log 2>&1 &
-    BACKEND_PID=$!
-    echo "后端 PID: $BACKEND_PID"
-    cd ..
-fi
+resolve_compose_cmd
 
-echo -e "${BLUE}2. 启动前端服务...${NC}"
+echo -e "${BLUE}1. 启动数据库与缓存服务...${NC}"
+"${COMPOSE_CMD[@]}" up -d postgres redis
+echo "等待 PostgreSQL 就绪..."
+wait_for_postgres
+echo -e "${GREEN}✓ PostgreSQL / Redis 已就绪${NC}"
+
+echo -e "${BLUE}2. 停止容器化前后端，释放本地开发端口...${NC}"
+"${COMPOSE_CMD[@]}" stop backend frontend >/dev/null 2>&1 || true
+echo -e "${GREEN}✓ 容器化前后端已停止${NC}"
+
+echo -e "${BLUE}3. 启动后端服务...${NC}"
+cd backend
+go run main.go > /tmp/ems-backend.log 2>&1 &
+BACKEND_PID=$!
+echo "后端 PID: $BACKEND_PID"
+cd ..
+
+echo -e "${BLUE}4. 启动前端服务...${NC}"
 cd frontend
-/opt/homebrew/Cellar/node@22/22.16.0/bin/npm run dev > /tmp/ems-frontend.log 2>&1 &
+npm run dev > /tmp/ems-frontend.log 2>&1 &
 FRONTEND_PID=$!
 echo "前端 PID: $FRONTEND_PID"
 cd ..

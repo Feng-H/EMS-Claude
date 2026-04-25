@@ -12,6 +12,21 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+resolve_compose_cmd() {
+    if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+        COMPOSE_CMD=(docker compose)
+        return
+    fi
+
+    if command -v docker-compose >/dev/null 2>&1; then
+        COMPOSE_CMD=(docker-compose)
+        return
+    fi
+
+    echo -e "${RED}错误: 未找到 Docker Compose${NC}"
+    exit 1
+}
+
 echo -e "${BLUE}=========================================${NC}"
 echo -e "${BLUE}  同步开发环境 → 生产环境${NC}"
 echo -e "${BLUE}=========================================${NC}"
@@ -43,15 +58,16 @@ echo -e "${GREEN}✓ 开发环境已停止${NC}"
 
 # 步骤 2: 构建前端
 echo ""
-echo -e "${YELLOW}[2/4] 构建前端生产环境...${NC}"
+echo -e "${YELLOW}[2/4] 校验前端生产构建...${NC}"
 cd frontend
-/opt/homebrew/Cellar/node@22/22.16.0/bin/npm run build
+npm run build
 cd ..
 echo -e "${GREEN}✓ 前端构建完成${NC}"
 
 # 步骤 3: 检查 Docker
 echo ""
 echo -e "${YELLOW}[3/4] 检查 Docker 服务...${NC}"
+resolve_compose_cmd
 if ! docker info > /dev/null 2>&1; then
     echo -e "${RED}错误: Docker 未运行${NC}"
     echo "请先启动 Docker Desktop"
@@ -63,11 +79,9 @@ echo -e "${GREEN}✓ Docker 运行正常${NC}"
 echo ""
 echo -e "${YELLOW}[4/4] 部署到生产环境...${NC}"
 
-# 停止现有容器
-docker-compose -f deploy/docker-compose.yml down 2>/dev/null || true
-
-# 构建并启动
-docker-compose -f deploy/docker-compose.yml up -d --build
+# 确保基础设施服务存在，并构建生产容器
+"${COMPOSE_CMD[@]}" up -d postgres redis
+"${COMPOSE_CMD[@]}" up -d --build backend frontend
 
 # 等待服务启动
 echo ""
@@ -77,7 +91,7 @@ sleep 10
 # 检查服务状态
 echo ""
 echo -e "${YELLOW}检查服务状态...${NC}"
-docker-compose -f deploy/docker-compose.yml ps
+"${COMPOSE_CMD[@]}" ps
 
 echo ""
 echo -e "${GREEN}=========================================${NC}"
@@ -85,11 +99,11 @@ echo -e "${GREEN}  ✓ 同步完成！${NC}"
 echo -e "${GREEN}=========================================${NC}"
 echo ""
 echo -e "生产环境访问地址："
-echo -e "  🌐 前端: ${BLUE}http://localhost${NC}"
-echo -e "  🔧 后端: ${BLUE}http://localhost:8080${NC}"
+echo -e "  🌐 前端: ${BLUE}http://127.0.0.1:3000${NC}"
+echo -e "  🔧 后端: ${BLUE}http://127.0.0.1:9000${NC}"
 echo ""
 echo -e "查看日志："
-echo -e "  docker-compose -f deploy/docker-compose.yml logs -f"
+echo -e "  ${COMPOSE_CMD[*]} logs -f"
 echo ""
 echo -e "${YELLOW}提示：如需返回开发环境，运行：${NC}"
 echo -e "  ${GREEN}./start-dev.sh${NC}"

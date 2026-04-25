@@ -311,7 +311,8 @@ const loadOrder = async () => {
   const orderId = Number(route.params.orderId)
   loading.value = true
   try {
-    order.value = await repairOrderApi.getOrder(orderId)
+    const response = await repairOrderApi.getOrder(orderId)
+    order.value = response.data
     if (order.value.solution) {
       updateForm.solution = order.value.solution
     }

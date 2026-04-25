@@ -269,8 +269,8 @@ async function loadData() {
   loading.value = true
   try {
     const response = await equipmentApi.getList(queryParams)
-    tableData.value = response.items
-    total.value = response.total
+    tableData.value = response.data.items
+    total.value = response.data.total
   } catch (error) {
     // Error handled by interceptor
   } finally {
@@ -280,7 +280,8 @@ async function loadData() {
 
 async function loadEquipmentTypes() {
   try {
-    equipmentTypes.value = await equipmentTypeApi.getTypes()
+    const response = await equipmentTypeApi.getTypes()
+    equipmentTypes.value = response.data
   } catch (error) {
     // Error handled by interceptor
   }

@@ -35,6 +35,7 @@
 - **后端**: Go 1.23 + Gin + GORM + PostgreSQL + Redis
 - **前端**: Vue 3 + TypeScript + Vite + Element Plus
 - **移动端**: Vue 3 + Vant 4 (H5)
+- **UI 风格**: 现代化工业风，支持暗色模式，针对智能运维优化的交互设计
 - **部署**: Docker + Docker Compose
 
 ## 项目结构
@@ -60,47 +61,32 @@ EMS-Claude/
 
 ### 本地开发
 
-#### 1. 启动数据库服务
-
 ```bash
-cd docker
-docker-compose up postgres redis
+./start-dev.sh
 ```
 
-#### 2. 启动后端服务
+- 前端开发服务: http://localhost:5173
+- 后端 API: http://localhost:8080
+- API 文档: http://localhost:8080/swagger/index.html
 
-```bash
-cd backend
-go mod download
-go run main.go
-```
-
-后端服务将在 http://localhost:8080 启动
-
-API文档: http://localhost:8080/swagger/index.html
-
-#### 3. 启动前端服务
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-前端服务将在 http://localhost:5173 启动
+开发环境会自动启动 PostgreSQL 和 Redis，并与 Docker 部署共用同一套数据卷。
 
 ### Docker 部署
 
 ```bash
-# 启动所有服务
-docker-compose up -d
+# 启动所有服务（适合 VPS 上由宿主机 Nginx 反代）
+docker compose up -d --build
 
 # 查看日志
-docker-compose logs -f
+docker compose logs -f
 
 # 停止服务
-docker-compose down
+docker compose down
 ```
+
+- 前端容器默认监听: `127.0.0.1:3000`
+- 后端容器默认监听: `127.0.0.1:9000`
+- 如需调整端口，可覆盖 `EMS_FRONTEND_PORT`、`EMS_BACKEND_PORT`
 
 ## 默认账号
 

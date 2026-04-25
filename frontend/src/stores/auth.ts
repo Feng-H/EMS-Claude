@@ -14,13 +14,13 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function login(credentials: LoginRequest): Promise<LoginResponse> {
     const response = await authApi.login(credentials)
-    token.value = response.token
-    userInfo.value = response.user_info
+    token.value = response.data.token
+    userInfo.value = response.data.user_info
 
-    localStorage.setItem('ems_token', response.token)
-    localStorage.setItem('ems_user', JSON.stringify(response.user_info))
+    localStorage.setItem('ems_token', response.data.token)
+    localStorage.setItem('ems_user', JSON.stringify(response.data.user_info))
 
-    return response
+    return response.data
   }
 
   function logout() {
@@ -31,9 +31,9 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function getUserInfo() {
-    const user = await authApi.getUserInfo()
-    userInfo.value = user
-    localStorage.setItem('ems_user', JSON.stringify(user))
+    const response = await authApi.getUserInfo()
+    userInfo.value = response.data
+    localStorage.setItem('ems_user', JSON.stringify(response.data))
   }
 
   function hasRole(...roles: string[]): boolean {

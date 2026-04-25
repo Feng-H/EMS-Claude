@@ -329,8 +329,8 @@ const getItemName = (itemId: number) => {
 // 加载我的任务
 const loadMyTasks = async () => {
   try {
-    const data = await inspectionTaskApi.getMyTasks()
-    myTasks.value = data
+    const response = await inspectionTaskApi.getMyTasks()
+    myTasks.value = response.data
   } catch (error: any) {
     showToast(error.message || '加载任务失败')
   }
@@ -386,9 +386,9 @@ const onScanSuccess = async (qrCode: string) => {
   stopScan()
   try {
     // 先获取设备信息拿到ID
-    const res = await equipmentApi.getByQRCode(qrCode)
-    if (res && res.id) {
-      await startInspection(qrCode, res.id)
+    const response = await equipmentApi.getByQRCode(qrCode)
+    if (response.data && response.data.id) {
+      await startInspection(qrCode, response.data.id)
     } else {
       await startInspection(qrCode)
     }
@@ -412,7 +412,7 @@ const startInspection = async (qrCode: string, equipmentId?: number) => {
       // GPS获取失败，继续
     }
 
-    const response: StartInspectionResponse = await inspectionTaskApi.start({
+    const apiResponse = await inspectionTaskApi.start({
       equipment_id: equipmentId || 0,
       qr_code: qrCode,
       latitude,
@@ -420,9 +420,9 @@ const startInspection = async (qrCode: string, equipmentId?: number) => {
       timestamp: Math.floor(Date.now() / 1000)
     })
 
-    taskId.value = response.task_id
-    equipment.value = response.equipment || null
-    inspectionItems.value = response.items || []
+    taskId.value = apiResponse.data.task_id
+    equipment.value = apiResponse.data.equipment || null
+    inspectionItems.value = apiResponse.data.items || []
 
     itemsResult.value = {}
     itemsRemark.value = {}
@@ -587,9 +587,9 @@ onMounted(async () => {
     } else {
       // 深度查找：如果今日任务列表中没找到（可能是从列表直接跳转的其他日期任务）
       try {
-        const fullTask = await inspectionTaskApi.getTask(id)
-        if (fullTask) {
-          await resumeTask(fullTask)
+        const response = await inspectionTaskApi.getTask(id)
+        if (response.data) {
+          await resumeTask(response.data)
         }
       } catch (error) {
         console.warn('获取任务详情失败:', error)

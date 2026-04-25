@@ -117,7 +117,8 @@ async function loadData() {
   loading.value = true
   try {
     const id = Number(route.params.id)
-    equipment.value = await equipmentApi.getById(id)
+    const response = await equipmentApi.getById(id)
+    equipment.value = response.data
   } catch (error) {
     ElMessage.error('获取设备详情失败')
     router.back()

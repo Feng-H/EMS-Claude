@@ -241,6 +241,37 @@ func (s *Store) InitMockData() {
 	}
 	s.Users[operatorUser.ID] = operatorUser
 
+	// 创建 3 个待审核申请
+	pendingApplications := []struct {
+		Username string
+		Name     string
+		Role     model.UserRole
+	}{
+		{"applicant1", "申请人 A", model.RoleOperator},
+		{"applicant2", "申请人 B", model.RoleMaintenance},
+		{"applicant3", "申请人 C", model.RoleEngineer},
+	}
+
+	for _, app := range pendingApplications {
+		pendingUser := &model.User{
+			BaseModel: model.BaseModel{
+				ID:        s.nextIDInternal(),
+				CreatedAt: now,
+				UpdatedAt: now,
+			},
+			Username:           app.Username,
+			PasswordHash:       string(hashedPassword),
+			Name:               app.Name,
+			Role:               app.Role,
+			Phone:              "13900139000",
+			IsActive:           false,
+			ApprovalStatus:     model.ApprovalStatusPending,
+			MustChangePassword: true,
+			FirstLogin:         true,
+		}
+		s.Users[pendingUser.ID] = pendingUser
+	}
+
 	// 创建设备类型
 	cncType := &model.EquipmentType{
 		BaseModel: model.BaseModel{
@@ -488,6 +519,231 @@ func (s *Store) InitMockData() {
 		CreatedBy:       engineerUser.ID,
 	}
 	s.KnowledgeArticles[article.ID] = article
+
+	// 生成历史数据用于统计展示（过去30天）
+	s.generateHistoricalData(30)
+}
+
+// generateHistoricalData 生成历史数据用于统计分析
+func (s *Store) generateHistoricalData(days int) {
+	// 获取操作员和维修工用户ID
+	var operatorID, workerID uint
+	for _, u := range s.Users {
+		if u.Role == model.RoleOperator && operatorID == 0 {
+			operatorID = u.ID
+		}
+		if u.Role == model.RoleMaintenance && workerID == 0 {
+			workerID = u.ID
+		}
+	}
+	if operatorID == 0 || workerID == 0 {
+		return
+	}
+
+	// 获取第一个保养计划ID
+	var planID uint
+	for id := range s.MaintenancePlans {
+		planID = id
+		break
+	}
+
+	// 获取所有设备ID
+	var equipmentIDs []uint
+	for id := range s.Equipment {
+		equipmentIDs = append(equipmentIDs, id)
+	}
+	if len(equipmentIDs) == 0 {
+		return
+	}
+
+	// 获取点检模板ID
+	var templateIDs []uint
+	for id := range s.InspectionTemplates {
+		templateIDs = append(templateIDs, id)
+	}
+	if len(templateIDs) == 0 {
+		return
+	}
+
+	// 获取点检项目ID
+	var itemIDs []uint
+	for id := range s.InspectionItems {
+		itemIDs = append(itemIDs, id)
+	}
+	if len(itemIDs) == 0 {
+		return
+	}
+
+	now := time.Now()
+
+	// 生成过去N天的数据
+	for day := 0; day < days; day++ {
+		date := now.AddDate(0, 0, -day)
+
+		// 每天生成点检任务和记录（约80%完成率）
+		dailyTaskCount := 8 + (day % 5)
+		for i := 0; i < dailyTaskCount; i++ {
+			equipmentID := equipmentIDs[i%len(equipmentIDs)]
+			templateID := templateIDs[0]
+
+			scheduledDate := date
+			var startedAt, completedAt *time.Time
+			status := model.InspectionCompleted
+
+			sat := scheduledDate.Add(8*time.Hour + time.Duration(i*10)*time.Minute)
+			cat := sat.Add(15*time.Minute + time.Duration(i%5)*time.Minute)
+			startedAt = &sat
+			completedAt = &cat
+
+			// 20%未完成
+			if day%5 == 0 && i >= dailyTaskCount-2 {
+				status = model.InspectionPending
+				startedAt = nil
+				completedAt = nil
+			}
+
+			task := &model.InspectionTask{
+				BaseModel: model.BaseModel{
+					ID:        s.nextIDInternal(),
+					CreatedAt: scheduledDate,
+					UpdatedAt: scheduledDate,
+				},
+				EquipmentID:    equipmentID,
+				TemplateID:     templateID,
+				AssignedTo:     operatorID,
+				ScheduledDate:  scheduledDate,
+				Status:         status,
+				StartedAt:      startedAt,
+				CompletedAt:    completedAt,
+			}
+			s.InspectionTasks[task.ID] = task
+
+			// 已完成的任务生成记录
+			if status == model.InspectionCompleted {
+				record := &model.InspectionRecord{
+					BaseModel: model.BaseModel{
+						ID:        s.nextIDInternal(),
+						CreatedAt: scheduledDate,
+						UpdatedAt: scheduledDate,
+					},
+					TaskID: task.ID,
+					ItemID: itemIDs[i%len(itemIDs)],
+					Result: "OK",
+					Remark:  "点检正常",
+				}
+				s.InspectionRecords[record.ID] = record
+			}
+		}
+
+		// 生成维修工单（约30%的天数有故障）
+		repairCount := 0
+		if day%3 != 0 {
+			repairCount = 1 + (day % 3)
+		}
+		for i := 0; i < repairCount; i++ {
+			equipmentID := equipmentIDs[i%len(equipmentIDs)]
+			reportedAt := date.Add(10*time.Hour + time.Duration(i*2)*time.Hour)
+			startedAt := reportedAt.Add(30 * time.Minute)
+			completedAt := startedAt.Add(time.Duration(2+i) * time.Hour)
+
+			// 计算停机时长（小时）
+			downtimeHours := completedAt.Sub(startedAt).Hours()
+
+			repairOrder := &model.RepairOrder{
+				BaseModel: model.BaseModel{
+					ID:        s.nextIDInternal(),
+					CreatedAt: reportedAt,
+					UpdatedAt: completedAt,
+				},
+				EquipmentID:       equipmentID,
+				FaultDescription:  "设备故障，需要维修",
+				ReporterID:        operatorID,
+				AssignedTo:        &workerID,
+				Status:            model.RepairAudited,
+				Priority:          int(day%3) + 1,
+				Solution:          "更换故障部件，恢复正常运行",
+				FaultCode:         fmt.Sprintf("FLT-%03d", day%10),
+				StartedAt:         &startedAt,
+				CompletedAt:       &completedAt,
+			}
+			s.RepairOrders[repairOrder.ID] = repairOrder
+
+			// 维修日志（在Content字段中记录停机时长）
+			repairLog := &model.RepairLog{
+				BaseModel: model.BaseModel{
+					ID:        s.nextIDInternal(),
+					CreatedAt: startedAt,
+					UpdatedAt: startedAt,
+				},
+				OrderID:  repairOrder.ID,
+				UserID:   workerID,
+				Action:   "开始维修",
+				Content:  fmt.Sprintf("停机时长: %.2f小时", downtimeHours),
+			}
+			s.RepairLogs[repairLog.ID] = repairLog
+		}
+
+		// 生成保养任务（约60%的天数有保养）
+		if day%5 != 0 && planID > 0 {
+			maintenanceCount := 2 + (day % 4)
+			for i := 0; i < maintenanceCount; i++ {
+				equipmentID := equipmentIDs[i%len(equipmentIDs)]
+				scheduledDate := date.Add(14 * time.Hour)
+
+				var startedAt, completedAt *time.Time
+				status := model.MaintenanceCompleted
+
+				sat := scheduledDate
+				cat := scheduledDate.Add(time.Duration(2+i%3) * time.Hour)
+				startedAt = &sat
+				completedAt = &cat
+
+				if day%7 == 0 && i == 0 {
+					status = model.MaintenancePending
+					startedAt = nil
+					completedAt = nil
+				}
+
+				task := &model.MaintenanceTask{
+					BaseModel: model.BaseModel{
+						ID:        s.nextIDInternal(),
+						CreatedAt: scheduledDate,
+						UpdatedAt: scheduledDate,
+					},
+					EquipmentID:    equipmentID,
+					PlanID:         planID,
+					ScheduledDate:  scheduledDate.Format("2006-01-02"),
+					AssignedTo:     workerID,
+					Status:         status,
+					StartedAt:      startedAt,
+					CompletedAt:    completedAt,
+				}
+				s.MaintenanceTasks[task.ID] = task
+
+				if status == model.MaintenanceCompleted {
+					// 获取保养项目ID
+					var maintenanceItemID uint
+					for id := range s.MaintenanceItems {
+						maintenanceItemID = id
+						break
+					}
+
+					record := &model.MaintenanceRecord{
+						BaseModel: model.BaseModel{
+							ID:        s.nextIDInternal(),
+							CreatedAt: scheduledDate,
+							UpdatedAt: scheduledDate,
+						},
+						TaskID:     task.ID,
+						ItemID:     maintenanceItemID,
+						Result:     "合格",
+						Remark:     "保养完成",
+					}
+					s.MaintenanceRecords[record.ID] = record
+				}
+			}
+		}
+	}
 }
 
 func getFirstEquipmentKey(m map[uint]*model.Equipment) uint {

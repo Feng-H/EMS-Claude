@@ -11,6 +11,21 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+resolve_compose_cmd() {
+    if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+        COMPOSE_CMD=(docker compose)
+        return
+    fi
+
+    if command -v docker-compose >/dev/null 2>&1; then
+        COMPOSE_CMD=(docker-compose)
+        return
+    fi
+
+    echo -e "${RED}错误: 未找到 Docker Compose${NC}"
+    exit 1
+}
+
 echo -e "${BLUE}=========================================${NC}"
 echo -e "${BLUE}  切换到开发环境${NC}"
 echo -e "${BLUE}=========================================${NC}"
@@ -19,7 +34,8 @@ echo ""
 # 停止生产环境
 echo -e "${YELLOW}[1/2] 停止生产环境...${NC}"
 cd "$(dirname "$0")"
-docker-compose -f deploy/docker-compose.yml down 2>/dev/null || true
+resolve_compose_cmd
+"${COMPOSE_CMD[@]}" stop backend frontend >/dev/null 2>&1 || true
 echo -e "${GREEN}✓ 生产环境已停止${NC}"
 
 # 启动开发环境

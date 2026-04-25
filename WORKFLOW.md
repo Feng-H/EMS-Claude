@@ -5,7 +5,7 @@
 | 环境 | 地址 | 说明 | 用途 |
 |------|------|------|------|
 | **开发环境** | http://localhost:5173 | Vite 开发服务器 | 日常开发、测试 |
-| **生产环境** | http://localhost | Nginx + Docker | 正式部署、演示 |
+| **Docker 环境** | http://127.0.0.1:3000 | Docker 前端容器（由宿主机 Nginx 反代） | VPS 部署、联调、演示 |
 
 ## 🚀 快速开始
 
@@ -19,6 +19,7 @@
 - ✅ 修改代码立即生效（热更新）
 - ✅ 支持调试和错误提示
 - ✅ 无需重新构建
+- ✅ 自动复用 Docker 中的 PostgreSQL / Redis 数据
 
 **适用场景**：
 - 日常开发
@@ -78,8 +79,8 @@
 # 确保所有修改已同步到生产环境
 ./sync-to-prod.sh
 
-# 访问 http://localhost (80端口)
-# 更正式的地址，适合演示
+# 访问 http://127.0.0.1:3000
+# 如在 VPS 上，可由宿主机 Nginx 反向代理到该端口
 ```
 
 ### 场景 3: 持续迭代
@@ -102,7 +103,7 @@
 ### ⚠️ 代码同步
 
 - **开发环境**：直接运行源代码，修改立即生效
-- **生产环境**：运行构建后的文件，**需要重新构建才能更新**
+- **Docker 环境**：运行构建后的文件，**需要重新构建才能更新**
 
 ### 🔄 什么时候需要同步？
 
@@ -140,7 +141,7 @@ lsof -i :8080
 
 # 强制停止所有服务
 ./stop-dev.sh
-docker-compose -f deploy/docker-compose.yml down
+docker compose stop backend frontend
 
 # 重新启动
 ./start-dev.sh
@@ -153,22 +154,23 @@ docker-compose -f deploy/docker-compose.yml down
 docker ps
 
 # 查看容器日志
-docker-compose -f deploy/docker-compose.yml logs -f
+docker compose logs -f
 
 # 重启生产环境
-docker-compose -f deploy/docker-compose.yml restart
+docker compose restart backend frontend
 ```
 
 ### 端口冲突
 
 ```bash
-# 80 端口被占用
-sudo lsof -i :80
-# 停止占用 80 端口的服务
+# 3000 或 9000 端口被占用
+sudo lsof -i :3000
+sudo lsof -i :9000
 
 # 或修改 docker-compose.yml 中的端口映射
 # ports:
-#   - "8080:80"  # 改用 8080 端口
+#   - "127.0.0.1:3100:80"    # 改用 3100 端口
+#   - "127.0.0.1:9100:8080"  # 改用 9100 端口
 ```
 
 ## 📚 更多文档
@@ -181,18 +183,18 @@ sudo lsof -i :80
 
 1. **开发时**：始终使用开发环境 (localhost:5173)
 2. **测试时**：使用开发环境，方便调试
-3. **演示时**：使用生产环境 (localhost)，更正式
+3. **演示时**：使用 Docker 环境 (127.0.0.1:3000) 或由宿主机 Nginx 代理后的域名
 4. **部署前**：先在开发环境充分测试
 5. **定期同步**：完成功能后及时同步到生产环境
 
 ## ❓ 常见问题
 
-**Q: 为什么开发环境是 5173 端口，生产环境是 80 端口？**
+**Q: 为什么开发环境是 5173 端口，Docker 环境是 3000 / 9000 端口？**
 
 A:
 - 5173 是 Vite 开发服务器的默认端口
-- 80 是 HTTP 协议的默认端口，更正式
-- 避免端口冲突，开发生产分离
+- 3000 / 9000 更适合由宿主机 Nginx 做反向代理
+- 避免和 VPS 上已有的 80 / 443 端口冲突
 
 **Q: 修改代码后，生产环境多久能更新？**
 
@@ -209,5 +211,5 @@ A: 不建议，因为：
 
 A:
 - 开发环境：访问 localhost:5173
-- 生产环境：访问 localhost (80端口)
+- Docker 环境：访问 127.0.0.1:3000
 - 或检查进程：`lsof -i :5173` / `docker ps`

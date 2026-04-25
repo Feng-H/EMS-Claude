@@ -6,11 +6,13 @@
       <div class="sidebar-header">
         <div class="logo-container">
           <div class="logo-icon">
-            <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M32 8L12 20L8 32L12 44L32 52L52 44L56 32L52 32L32 8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M8 32L16 36M56 32L48 36" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <circle cx="32" cy="28" r="4" fill="currentColor"/>
-              <circle cx="32" cy="44" r="4" fill="currentColor"/>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <!-- 外层工业六角框架 -->
+              <path d="M12 2l9 5v10l-9 5-9-5V7l9-5z" />
+              <!-- 核心齿轮 -->
+              <circle cx="12" cy="12" r="5" />
+              <!-- 智能运维脉冲线 (代表实时监测与诊断) -->
+              <path d="M9.5 12h1l1-2 1.5 4 1-2h1" stroke-width="1.2" />
             </svg>
           </div>
           <transition name="logo-text">
@@ -285,14 +287,13 @@
           </button>
 
           <!-- 通知 -->
-          <button class="header-icon-btn">
+          <button class="header-icon-btn" @click="handleNotificationClick" title="待处理申请">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
               <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
             </svg>
-            <span class="notification-badge">3</span>
+            <span v-if="pendingCount > 0" class="notification-badge">{{ pendingCount }}</span>
           </button>
-
           <!-- 用户信息 -->
           <div class="user-section">
             <div class="user-avatar">
@@ -343,6 +344,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
 import { ElMessageBox } from 'element-plus'
+import { userApi } from '@/api/user'
 
 const router = useRouter()
 const route = useRoute()
@@ -350,6 +352,7 @@ const authStore = useAuthStore()
 const themeStore = useThemeStore()
 
 const sidebarCollapsed = ref(false)
+const pendingCount = ref(0)
 const expandedGroups = ref({
   organization: true,
   inspection: true,
@@ -358,6 +361,7 @@ const expandedGroups = ref({
 })
 
 const canManageOrg = computed(() => authStore.hasRole('admin', 'engineer'))
+const isAdmin = computed(() => authStore.hasRole('admin'))
 
 const roleTextMap: Record<string, string> = {
   admin: '系统管理员',
@@ -388,6 +392,23 @@ function toggleSidebar() {
   sidebarCollapsed.value = !sidebarCollapsed.value
 }
 
+function handleNotificationClick() {
+  if (isAdmin.value) {
+    router.push('/organization/users')
+  }
+}
+
+async function fetchPendingCount() {
+  if (isAdmin.value) {
+    try {
+      const response = await userApi.getPendingApplications()
+      pendingCount.value = response.data.length
+    } catch (error) {
+      console.error('Failed to fetch pending applications count:', error)
+    }
+  }
+}
+
 async function handleLogout() {
   try {
     await ElMessageBox.confirm('确定要退出登录吗？', '提示', {
@@ -412,6 +433,7 @@ function handleResize() {
 onMounted(() => {
   handleResize()
   window.addEventListener('resize', handleResize)
+  fetchPendingCount()
 })
 
 onUnmounted(() => {

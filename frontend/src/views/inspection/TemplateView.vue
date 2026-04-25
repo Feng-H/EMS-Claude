@@ -198,8 +198,8 @@ const itemRules: FormRules = {
 const loadTemplates = async () => {
   loading.value = true
   try {
-    const data = await inspectionTemplateApi.getTemplates()
-    templates.value = data
+    const response = await inspectionTemplateApi.getTemplates()
+    templates.value = response.data
   } catch (error: any) {
     ElMessage.error(error.message || '加载模板列表失败')
   } finally {
@@ -210,8 +210,8 @@ const loadTemplates = async () => {
 // 加载设备类型
 const loadEquipmentTypes = async () => {
   try {
-    const data = await equipmentApi.getTypes()
-    equipmentTypes.value = data
+    const response = await equipmentApi.getTypes()
+    equipmentTypes.value = response.data
   } catch (error: any) {
     ElMessage.error(error.message || '加载设备类型失败')
   }
@@ -221,9 +221,9 @@ const loadEquipmentTypes = async () => {
 const selectTemplate = async (row: InspectionTemplate) => {
   itemsLoading.value = true
   try {
-    const data = await inspectionTemplateApi.getTemplate(row.id)
-    currentTemplate.value = data
-    templateItems.value = data.items || []
+    const response = await inspectionTemplateApi.getTemplate(row.id)
+    currentTemplate.value = response.data
+    templateItems.value = response.data.items || []
   } catch (error: any) {
     ElMessage.error(error.message || '加载模板详情失败')
   } finally {

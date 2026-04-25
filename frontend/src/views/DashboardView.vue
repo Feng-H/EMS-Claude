@@ -418,7 +418,8 @@ function updateTime() {
 
 async function loadStatistics() {
   try {
-    statistics.value = await equipmentApi.getStatistics()
+    const response = await equipmentApi.getStatistics()
+    statistics.value = response.data
   } catch (error) {
     ElMessage.error('获取设备统计数据失败')
   }
@@ -426,7 +427,8 @@ async function loadStatistics() {
 
 async function loadInspectionStats() {
   try {
-    inspectionStats.value = await inspectionTaskApi.getStatistics()
+    const response = await inspectionTaskApi.getStatistics()
+    inspectionStats.value = response.data
   } catch (error) {
     console.error('获取点检统计失败', error)
   }
@@ -435,9 +437,9 @@ async function loadInspectionStats() {
 async function loadMyStats() {
   myStats.value.loading = true
   try {
-    const data = await inspectionTaskApi.getMyStats()
+    const response = await inspectionTaskApi.getMyStats()
     myStats.value = {
-      ...data,
+      ...response.data,
       loading: false
     }
   } catch (error) {
@@ -448,8 +450,8 @@ async function loadMyStats() {
 
 async function loadPendingTasks() {
   try {
-    const data = await inspectionTaskApi.getMyTasks()
-    pendingTasks.value = data.filter(t => t.status === 'pending')
+    const response = await inspectionTaskApi.getMyTasks()
+    pendingTasks.value = response.data.filter(t => t.status === 'pending')
   } catch (error) {
     console.error('获取待办任务失败', error)
   }
