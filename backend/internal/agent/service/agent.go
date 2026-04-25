@@ -8,6 +8,7 @@ import (
 	"github.com/ems/backend/internal/agent/prompt"
 	"github.com/ems/backend/internal/agent/repository"
 	"github.com/ems/backend/internal/agent/tool"
+	"github.com/ems/backend/internal/model"
 	"github.com/ems/backend/pkg/config"
 	"github.com/ems/backend/pkg/database"
 	"github.com/ems/backend/pkg/llm"

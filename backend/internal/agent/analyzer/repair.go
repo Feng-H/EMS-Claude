@@ -1,10 +1,8 @@
 package analyzer
 
 import (
-	"fmt"
 	"github.com/ems/backend/internal/agent/dto"
 	"github.com/ems/backend/internal/agent/tool"
-	"github.com/ems/backend/internal/model"
 )
 
 type RepairAuditAnalyzer struct {

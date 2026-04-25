@@ -66,7 +66,7 @@
         <el-card shadow="never" class="history-card" v-if="sessions.length > 0">
           <template #header>
             <div class="panel-header">
-              <el-icon><History /></el-icon>
+              <el-icon><Timer /></el-icon>
               <span>最近分析</span>
             </div>
           </template>
@@ -145,8 +145,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { MagicStick, History, Opportunity, Document } from '@element-plus/icons-vue'
-import { equipmentApi, type EquipmentType, type Factory } from '@/api/equipment'
+import { MagicStick, Timer, Opportunity, Document } from '@element-plus/icons-vue'
+import { equipmentApi, orgApi, type EquipmentType, type Factory } from '@/api/equipment'
 import { agentApi, type AgentResponse } from '@/api/agent'
 import { ElMessage } from 'element-plus'
 
@@ -270,11 +270,13 @@ onMounted(async () => {
   try {
     const [typesRes, factoriesRes] = await Promise.all([
       equipmentApi.getTypes(),
-      equipmentApi.getFactories(),
+      orgApi.getFactories(),
       loadSessions()
     ])
-    equipmentTypes.value = typesRes.data
-    factories.value = factoriesRes.data
+    
+    // Handle both raw array and {items: [], total: N} formats
+    equipmentTypes.value = Array.isArray(typesRes.data) ? typesRes.data : (typesRes.data as any).items || []
+    factories.value = Array.isArray(factoriesRes.data) ? factoriesRes.data : (factoriesRes.data as any).items || []
   } catch (error) {
     console.error('Failed to load metadata:', error)
   }

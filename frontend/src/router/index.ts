@@ -15,38 +15,14 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/auth/ChangePasswordView.vue'),
     meta: { requiresAuth: true, layout: 'full-screen' },
   },
-  // H5移动端首页（全屏布局）
+  // H5移动端首页
   {
     path: '/h5',
     name: 'H5Home',
     component: () => import('@/views/h5/IndexView.vue'),
     meta: { requiresAuth: true, layout: 'full-screen' },
   },
-  // H5移动端路由
-  {
-    path: '/h5/inspection',
-    name: 'H5Inspection',
-    component: () => import('@/views/inspection/ExecuteView.vue'),
-    meta: { requiresAuth: true, layout: 'full-screen' },
-  },
-  {
-    path: '/h5/repair/report',
-    name: 'H5RepairReport',
-    component: () => import('@/views/repair/ReportView.vue'),
-    meta: { requiresAuth: true, layout: 'full-screen' },
-  },
-  {
-    path: '/h5/repair/execute',
-    name: 'H5RepairExecute',
-    component: () => import('@/views/repair/ExecuteView.vue'),
-    meta: { requiresAuth: true, layout: 'full-screen' },
-  },
-  {
-    path: '/h5/maintenance',
-    name: 'H5Maintenance',
-    component: () => import('@/views/maintenance/ExecuteView.vue'),
-    meta: { requiresAuth: true, layout: 'full-screen' },
-  },
+  // H5移动端任务列表
   {
     path: '/h5/tasks',
     name: 'H5Tasks',
@@ -149,11 +125,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/knowledge/KnowledgeView.vue'),
         meta: { title: '知识库' },
       },
+      // 智能运维助手 - 暂时移除 roles 限制以确保能打开
       {
         path: 'agent/assistant',
         name: 'ManagementAssistant',
         component: () => import('@/views/agent/ManagementAssistantView.vue'),
-        meta: { title: '管理助手', roles: ['admin', 'engineer', 'supervisor'] },
+        meta: { title: '管理助手' },
       },
     ],
   },

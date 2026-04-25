@@ -2,7 +2,6 @@ package prompt
 
 import (
 	"fmt"
-	"strings"
 )
 
 type PromptTool struct {

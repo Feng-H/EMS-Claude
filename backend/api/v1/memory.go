@@ -407,7 +407,7 @@ func GetMyTasksMemory(c *gin.Context) {
 			tasks = append(tasks, t)
 		}
 	}
-	c.JSON(200, gin.H{"items": tasks, "total": len(tasks)})
+	c.JSON(200, tasks)
 }
 
 // GetMyTaskStatistics 获取我的点检统计 (内存模式)
@@ -483,7 +483,7 @@ func GetMyRepairTasksMemory(c *gin.Context) {
 			}
 		}
 	}
-	c.JSON(200, gin.H{"items": tasks, "total": len(tasks)})
+	c.JSON(200, tasks)
 }
 
 // GetRepairStatistics 获取维修统计 (内存模式)
@@ -577,7 +577,7 @@ func GetMyMaintenanceTasksMemory(c *gin.Context) {
 			tasks = append(tasks, t)
 		}
 	}
-	c.JSON(200, gin.H{"items": tasks, "total": len(tasks)})
+	c.JSON(200, tasks)
 }
 
 // GetMaintenanceStatistics 获取保养统计 (内存模式)

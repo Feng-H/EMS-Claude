@@ -5,7 +5,6 @@ import (
 	"github.com/ems/backend/internal/agent/repository"
 	"github.com/ems/backend/internal/model"
 	"github.com/ems/backend/pkg/config"
-	"github.com/ems/backend/pkg/database"
 	"github.com/ems/backend/pkg/memory"
 	internalRepo "github.com/ems/backend/internal/repository"
 	"strings"

@@ -579,14 +579,24 @@ func (s *Store) InitMockData() {
 	// 为设备 2 (CNC-002) 记录极高频率的备件更换
 	targetEquip2 := s.Equipment[2]
 	if targetEquip2 != nil {
+		// 先创建一个维修单
+		auditOrder := &model.RepairOrder{
+			BaseModel: model.BaseModel{ID: s.nextIDInternal(), CreatedAt: now.AddDate(0, 0, -10)},
+			EquipmentID: targetEquip2.ID,
+			FaultDescription: "频繁停机检查",
+			ReporterID: operatorUser.ID,
+			Status: model.RepairClosed,
+		}
+		s.RepairOrders[auditOrder.ID] = auditOrder
+
 		for i := 0; i < 5; i++ {
 			date := now.AddDate(0, 0, -i*2)
 			cons := &model.SparePartConsumption{
 				BaseModel: model.BaseModel{ID: s.nextIDInternal(), CreatedAt: date},
-				EquipmentID: targetEquip2.ID,
 				SparePartID: 1, // 主轴轴承
+				OrderID: &auditOrder.ID,
 				Quantity: 2,
-				UsageType: "repair",
+				UserID: operatorUser.ID,
 			}
 			s.SparePartConsumption[cons.ID] = cons
 		}

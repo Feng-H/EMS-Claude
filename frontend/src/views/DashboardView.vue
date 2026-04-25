@@ -451,7 +451,11 @@ async function loadMyStats() {
 async function loadPendingTasks() {
   try {
     const response = await inspectionTaskApi.getMyTasks()
-    pendingTasks.value = response.data.filter(t => t.status === 'pending')
+    if (Array.isArray(response.data)) {
+      pendingTasks.value = response.data.filter(t => t.status === 'pending')
+    } else if (response.data && (response.data as any).items) {
+      pendingTasks.value = (response.data as any).items.filter((t: any) => t.status === 'pending')
+    }
   } catch (error) {
     console.error('获取待办任务失败', error)
   }

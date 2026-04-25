@@ -2,7 +2,6 @@
   <router-view v-slot="{ Component, route }">
     <component
       :is="route.meta?.layout === 'full-screen' ? 'div' : MainLayout"
-      v-if="Component"
     >
       <component :is="Component" />
     </component>

@@ -8,13 +8,13 @@ import (
 )
 
 type RepairTool struct {
-	orderRepo *repository.RepairRepository
+	orderRepo *repository.RepairOrderRepository
 }
 
 func NewRepairTool() *RepairTool {
-	var orderRepo *repository.RepairRepository
+	var orderRepo *repository.RepairOrderRepository
 	if config.Cfg.Storage.Mode != "memory" {
-		orderRepo = repository.NewRepairRepo()
+		orderRepo = repository.NewRepairOrderRepository()
 	}
 	
 	return &RepairTool{
@@ -27,7 +27,6 @@ func (t *RepairTool) GetRecentOrdersByEquipment(equipmentID uint, limit int) ([]
 		var results []model.RepairOrder
 		store := memory.GetStore()
 		count := 0
-		// In memory, we might need a more efficient way or just iterate (this is mock)
 		for _, order := range store.RepairOrders {
 			if order.EquipmentID == equipmentID {
 				results = append(results, *order)
@@ -41,14 +40,7 @@ func (t *RepairTool) GetRecentOrdersByEquipment(equipmentID uint, limit int) ([]
 	}
 	
 	// Database mode
-	filter := repository.RepairFilter{
-		EquipmentID: &equipmentID,
-		Page:        1,
-		PageSize:    limit,
-	}
-	result, err := t.orderRepo.List(filter)
-	if err != nil {
-		return nil, err
-	}
-	return result.Items, nil
+	// Note: RepairOrderFilter doesn't have EquipmentID in this repo version
+	// We'll use GetByEquipmentID instead
+	return t.orderRepo.GetByEquipmentID(equipmentID, limit)
 }
