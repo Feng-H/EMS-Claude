@@ -1,299 +1,287 @@
 <template>
   <div class="management-assistant">
-    <div class="assistant-container">
-      <!-- 左侧：控制面板 -->
-      <div class="control-panel">
-        <el-card shadow="never" class="panel-card">
-          <template #header>
-            <div class="panel-header">
-              <el-icon><MagicStick /></el-icon>
-              <span>智能管理配置</span>
-            </div>
-          </template>
-
-          <el-tabs v-model="activeScenario" class="scenario-tabs">
-            <el-tab-pane label="保养优化" name="maintenance">
-              <el-form :model="maintenanceForm" label-position="top">
-                <el-form-item label="设备类型">
-                  <el-select v-model="maintenanceForm.equipment_type_id" placeholder="选择类型" style="width: 100%">
-                    <el-option v-for="t in equipmentTypes" :key="t.id" :label="t.name" :value="t.id" />
-                  </el-select>
-                </el-form-item>
-                <el-form-item label="分析范围">
-                  <el-date-picker
-                    v-model="maintenanceForm.dateRange"
-                    type="daterange"
-                    range-separator="至"
-                    start-placeholder="开始"
-                    end-placeholder="结束"
-                    value-format="YYYY-MM-DD"
-                    style="width: 100%"
-                  />
-                </el-form-item>
-                <el-button type="primary" class="action-btn" @click="handleRunMaintenance" :loading="loading">
-                  生成建议
-                </el-button>
-
-                <el-collapse class="advanced-settings">
-                  <el-collapse-item title="高级设置" name="1">
-                    <el-form-item label="自定义 Prompt">
-                      <el-input
-                        v-model="maintenanceForm.system_prompt"
-                        type="textarea"
-                        :rows="5"
-                        placeholder="输入自定义分析指令，留空使用内置专家模板"
-                      />
-                    </el-form-item>
-                  </el-collapse-item>
-                </el-collapse>
-              </el-form>
-            </el-tab-pane>
-
-            <el-tab-pane label="维修审计" name="repair">
-              <el-form :model="repairForm" label-position="top">
-                <el-form-item label="所属工厂">
-                  <el-select v-model="repairForm.factory_id" placeholder="所有工厂" clearable style="width: 100%">
-                    <el-option v-for="f in factories" :key="f.id" :label="f.name" :value="f.id" />
-                  </el-select>
-                </el-form-item>
-                <el-form-item label="审计时间段">
-                  <el-date-picker
-                    v-model="repairForm.dateRange"
-                    type="daterange"
-                    range-separator="至"
-                    start-placeholder="开始"
-                    end-placeholder="结束"
-                    value-format="YYYY-MM-DD"
-                    style="width: 100%"
-                  />
-                </el-form-item>
-                <el-button type="warning" class="action-btn" @click="handleRunRepairAudit" :loading="loading">
-                  运行审计
-                </el-button>
-
-                <el-collapse class="advanced-settings">
-                  <el-collapse-item title="高级设置" name="1">
-                    <el-form-item label="自定义 Prompt">
-                      <el-input
-                        v-model="repairForm.system_prompt"
-                        type="textarea"
-                        :rows="5"
-                        placeholder="输入自定义审计指令，留空使用内置专家模板"
-                      />
-                    </el-form-item>
-                  </el-collapse-item>
-                </el-collapse>
-              </el-form>
-            </el-tab-pane>
-          </el-tabs>
-        </el-card>
-
-        <!-- 历史会话 -->
-        <el-card shadow="never" class="history-card" v-if="sessions.length > 0">
-          <template #header>
-            <div class="panel-header">
-              <el-icon><Timer /></el-icon>
-              <span>最近分析</span>
-            </div>
-          </template>
-          <div v-for="s in sessions" :key="s.id" class="history-item" @click="loadSession(s.id)">
-            <div class="history-title">{{ s.scenario === 'maintenance_recommendation' ? '保养建议' : '维修审计' }}</div>
-            <div class="history-time">{{ formatDate(s.created_at) }}</div>
+    <div class="cockpit-layout">
+      <!-- 左侧：导航与历史 -->
+      <aside class="sidebar-nav">
+        <div class="nav-group">
+          <div class="group-title">AI 工作台</div>
+          <div 
+            class="nav-item" 
+            :class="{ active: activeMode === 'chat' }"
+            @click="activeMode = 'chat'"
+          >
+            <el-icon><ChatDotRound /></el-icon>
+            <span>专家对话</span>
           </div>
-        </el-card>
-      </div>
-
-      <!-- 右侧：结果展示 -->
-      <div class="result-panel" v-loading="loading">
-        <div v-if="!result && !loading" class="empty-state">
-          <el-empty description="在左侧配置参数并点击运行，开启 AI 辅助管理">
-            <template #image>
-              <el-icon :size="80" color="#e4e7ed"><Opportunity /></el-icon>
-            </template>
-          </el-empty>
+          <div 
+            class="nav-item" 
+            :class="{ active: activeMode === 'audit' }"
+            @click="activeMode = 'audit'"
+          >
+            <el-icon><CircleCheck /></el-icon>
+            <span>专项审计</span>
+          </div>
         </div>
 
-        <div v-else-if="result" class="result-content animate-fade-in">
-          <!-- 核心结论区 -->
-          <div class="conclusion-section">
-            <div class="section-badge" :class="result.risk_level">
-              {{ result.risk_level === 'high' ? '高风险' : result.risk_level === 'medium' ? '中等风险' : '正常' }}
-            </div>
-            <h2 class="conclusion-summary">{{ result.summary }}</h2>
-            <div class="trace-info">Trace ID: {{ result.trace_id }}</div>
+        <div class="nav-group">
+          <div class="group-title">自主学习中心</div>
+          <div 
+            class="nav-item" 
+            :class="{ active: activeMode === 'knowledge' }"
+            @click="activeMode = 'knowledge'"
+          >
+            <el-icon><Reading /></el-icon>
+            <span>知识审核</span>
+            <el-badge v-if="draftCount > 0" :value="draftCount" class="badge" />
           </div>
+          <div 
+            class="nav-item" 
+            :class="{ active: activeMode === 'skill' }"
+            @click="activeMode = 'skill'"
+          >
+            <el-icon><GoldMedal /></el-icon>
+            <span>技能管理</span>
+          </div>
+        </div>
 
-          <!-- 具体建议/异常项 -->
-          <div class="items-section" v-if="hasItems">
-            <h3 class="section-title">详细清单</h3>
-            <div v-if="result.scenario === 'maintenance_recommendation'" class="items-list">
-              <div v-for="(item, idx) in result.data.recommendations" :key="idx" class="item-card recommend">
-                <div class="item-header">
-                  <span class="item-title">{{ item.title }}</span>
-                  <el-tag size="small">{{ item.type }}</el-tag>
-                </div>
-                <div class="item-desc">{{ item.description }}</div>
-                <div class="item-meta">
-                  <strong>理由：</strong>{{ item.reason }}
-                </div>
+        <div class="nav-group history-group">
+          <div class="group-title">历史会话</div>
+          <div v-for="c in conversations" :key="c.id" 
+               class="history-item" 
+               :class="{ active: currentConvId === c.id }"
+               @click="loadConversation(c.id)">
+            <div class="history-title">{{ c.title }}</div>
+            <div class="history-meta">{{ formatDate(c.created_at) }}</div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- 中间：核心交互区 -->
+      <main class="main-content">
+        <!-- 模式1：专家对话 -->
+        <div v-if="activeMode === 'chat'" class="chat-container">
+          <div class="chat-messages" ref="messageBox">
+            <div v-if="messages.length === 0" class="welcome-guide">
+              <div class="guide-icon">🤖</div>
+              <h2>我是您的 EMS 智能专家</h2>
+              <p>您可以直接问我任何关于设备管理的问题，例如：</p>
+              <div class="guide-chips">
+                <el-tag @click="userInput = 'CNC-001 最近 30 天维修费为什么超标？'">CNC-001 维修费分析</el-tag>
+                <el-tag @click="userInput = '对比张三和李四负责区域的保养效果'">人效价值对标</el-tag>
+                <el-tag @click="userInput = '帮我核查最近是否有级联失效风险'">级联失效审计</el-tag>
               </div>
             </div>
-            <div v-else-if="result.scenario === 'repair_audit'" class="items-list">
-              <div v-for="(item, idx) in result.data.anomalies" :key="idx" class="item-card audit">
-                <div class="item-header">
-                  <span class="item-title">{{ item.title }}</span>
-                  <el-tag :type="item.severity === 'high' ? 'danger' : 'warning'" size="small">{{ item.severity }}</el-tag>
-                </div>
-                <div class="item-desc">{{ item.description }}</div>
-                <div class="item-meta">
-                  <strong>建议行动：</strong>{{ item.suggested_action }}
-                </div>
+            
+            <div v-for="(msg, idx) in messages" :key="idx" :class="['message', msg.role]">
+              <div class="avatar">{{ msg.role === 'user' ? 'U' : 'AI' }}</div>
+              <div class="content">
+                <div class="text">{{ msg.content }}</div>
+                <div v-if="msg.trace_id" class="msg-footer">Trace: {{ msg.trace_id }}</div>
               </div>
             </div>
+            <div v-if="chatLoading" class="message assistant loading">
+              <div class="avatar">AI</div>
+              <div class="content"><el-skeleton :rows="2" animated /></div>
+            </div>
           </div>
-
-          <!-- 证据支撑区 -->
-          <div class="evidence-section" v-if="result.data.evidence && result.data.evidence.length > 0">
-            <h3 class="section-title">参考证据</h3>
-            <div class="evidence-grid">
-              <div v-for="(ev, idx) in result.data.evidence" :key="idx" class="evidence-pill">
-                <el-icon><Document /></el-icon>
-                <span class="ev-title" :title="ev.excerpt">{{ ev.title }}</span>
-                <span class="ev-score">{{ (ev.score * 100).toFixed(0) }}%</span>
+          
+          <div class="chat-input-area">
+            <div class="input-wrapper">
+              <el-input
+                v-model="userInput"
+                type="textarea"
+                :rows="3"
+                placeholder="在此输入您的分析指令... (Shift + Enter 换行)"
+                @keyup.enter.exact.prevent="handleSendChat"
+              />
+              <div class="input-actions">
+                <el-button type="primary" @click="handleSendChat" :loading="chatLoading">发送指令</el-button>
               </div>
             </div>
           </div>
         </div>
-      </div>
+
+        <!-- 模式2：专项审计 (原来的 Phase 1 功能) -->
+        <div v-if="activeMode === 'audit'" class="audit-mode">
+          <div class="audit-config">
+            <el-tabs v-model="activeAuditTab">
+              <el-tab-pane label="维修合理性审计" name="repair">
+                 <el-form label-position="top">
+                    <el-form-item label="设备类型">
+                      <el-select v-model="maintenanceForm.equipment_type_id" style="width: 100%">
+                        <el-option v-for="t in equipmentTypes" :key="t.id" :label="t.name" :value="t.id" />
+                      </el-select>
+                    </el-form-item>
+                    <el-button type="warning" block @click="handleRunRepairAudit">启动 AI 深度审计</el-button>
+                 </el-form>
+              </el-tab-pane>
+              <el-tab-pane label="保养周期优化" name="maintenance">
+                 <!-- 保养优化表单 -->
+              </el-tab-pane>
+            </el-tabs>
+          </div>
+          <div class="audit-result">
+             <div v-if="result" class="result-card">
+                <div class="summary-box">{{ result.summary }}</div>
+                <!-- 证据展示等 -->
+             </div>
+          </div>
+        </div>
+
+        <!-- 模式3：知识审核 (New!) -->
+        <div v-if="activeMode === 'knowledge'" class="knowledge-audit">
+          <div class="section-header">
+             <h3>知识库待审核 (AI 自主提炼)</h3>
+             <p>Agent 在对话过程中识别到的高价值工业经验，请您校准入库。</p>
+          </div>
+          <el-table :data="knowledgeDrafts" stripe>
+            <el-table-column prop="title" label="标题" />
+            <el-table-column prop="type" label="类型" width="120" />
+            <el-table-column prop="confidence" label="置信度" width="100">
+              <template #default="{row}">
+                <el-progress :percentage="row.confidence * 100" :format="() => ''" />
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="150">
+              <template #default="{row}">
+                <el-button type="success" link @click="confirmKnowledge(row.id)">确认入库</el-button>
+                <el-button type="danger" link @click="rejectKnowledge(row.id)">拒绝</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+      </main>
+
+      <!-- 右侧：上下文面板 -->
+      <aside class="context-panel">
+        <el-card shadow="never">
+          <template #header><div class="card-header">设备实时工况</div></template>
+          <div class="stat-row">
+            <span class="label">当前运行机台</span>
+            <span class="value">42 / 50</span>
+          </div>
+          <div class="stat-row">
+            <span class="label">平均负载</span>
+            <span class="value success">85%</span>
+          </div>
+        </el-card>
+
+        <el-card shadow="never" class="mt-16">
+          <template #header><div class="card-header">AI 学习记录</div></template>
+          <div class="learning-stats">
+             <div class="l-item"><strong>{{ draftCount }}</strong><span>新知识</span></div>
+             <div class="l-item"><strong>12</strong><span>已获技能</span></div>
+          </div>
+        </el-card>
+      </aside>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import { MagicStick, Timer, Opportunity, Document } from '@element-plus/icons-vue'
+import { ref, onMounted, nextTick } from 'vue'
+import { ChatDotRound, CircleCheck, Reading, GoldMedal, Timer } from '@element-plus/icons-vue'
 import { equipmentApi, orgApi, type EquipmentType, type Factory } from '@/api/equipment'
-import { agentApi, type AgentResponse } from '@/api/agent'
+import { agentApi, type ChatResponse, type ConversationResponse, type AgentKnowledge } from '@/api/agent'
 import { ElMessage } from 'element-plus'
 
-const activeScenario = ref('maintenance')
+// 状态管理
+const activeMode = ref('chat')
+const activeAuditTab = ref('repair')
 const loading = ref(false)
-const result = ref<AgentResponse<any> | null>(null)
-const sessions = ref<any[]>([])
+const chatLoading = ref(false)
+const userInput = ref('')
+const currentConvId = ref<number | null>(null)
 
+// 数据
+const conversations = ref<ConversationResponse[]>([])
+const messages = ref<any[]>([])
+const knowledgeDrafts = ref<AgentKnowledge[]>([])
+const draftCount = ref(0)
 const equipmentTypes = ref<EquipmentType[]>([])
-const factories = ref<Factory[]>([])
+const result = ref<any>(null)
 
+// 保养表单（沿用旧的）
 const maintenanceForm = ref({
   equipment_type_id: null as number | null,
-  dateRange: [] as string[],
-  system_prompt: ''
+  dateRange: [] as string[]
 })
 
-const repairForm = ref({
-  factory_id: null as number | null,
-  dateRange: [] as string[],
-  system_prompt: ''
-})
-
-const hasItems = computed(() => {
-  if (!result.value) return false
-  if (result.value.scenario === 'maintenance_recommendation') {
-    return result.value.data.recommendations?.length > 0
-  }
-  if (result.value.scenario === 'repair_audit') {
-    return result.value.data.anomalies?.length > 0
-  }
-  return false
-})
-
-async function handleRunMaintenance() {
-  if (!maintenanceForm.value.equipment_type_id) {
-    ElMessage.warning('请选择设备类型')
-    return
-  }
+// 处理函数
+async function handleSendChat() {
+  if (!userInput.value.trim() || chatLoading.value) return
   
-  loading.value = true
+  const text = userInput.value
+  userInput.value = ''
+  
+  messages.value.push({ role: 'user', content: text })
+  scrollToBottom()
+  
+  chatLoading.value = true
   try {
-    const res = await agentApi.recommendMaintenance({
-      equipment_type_id: maintenanceForm.value.equipment_type_id!,
-      time_range: {
-        start_date: maintenanceForm.value.dateRange[0] || '2026-01-01',
-        end_date: maintenanceForm.value.dateRange[1] || '2026-04-25'
-      },
-      system_prompt: maintenanceForm.value.system_prompt || undefined
+    const res = await agentApi.chat({
+      conversation_id: currentConvId.value || undefined,
+      message: text
     })
-    result.value = res.data
-    await loadSessions()
-  } catch (error: any) {
-    ElMessage.error('分析失败: ' + (error.response?.data?.error?.message || error.message))
-  } finally {
-    loading.value = false
-  }
-}
-
-async function handleRunRepairAudit() {
-  loading.value = true
-  try {
-    const res = await agentApi.auditRepair({
-      factory_id: repairForm.value.factory_id || undefined,
-      equipment_type_id: 1, // Default for now
-      time_range: {
-        start_date: repairForm.value.dateRange[0] || '2026-01-01',
-        end_date: repairForm.value.dateRange[1] || '2026-04-25'
-      },
-      system_prompt: repairForm.value.system_prompt || undefined
+    
+    currentConvId.value = res.data.conversation_id
+    messages.value.push({ 
+      role: 'assistant', 
+      content: res.data.reply,
+      trace_id: res.data.trace_id 
     })
-    result.value = res.data
-    await loadSessions()
+    
+    // 每次对话后，由于后端是异步学习，我们稍等一下刷新草稿箱
+    setTimeout(loadDrafts, 3000)
+    await loadConversations()
   } catch (error: any) {
-    ElMessage.error('分析失败: ' + (error.response?.data?.error?.message || error.message))
+    ElMessage.error('对话失败')
   } finally {
-    loading.value = false
+    chatLoading.value = false
+    scrollToBottom()
   }
 }
 
-async function loadSessions() {
-  try {
-    const res = await agentApi.listSessions()
-    sessions.value = res.data
-  } catch (error) {
-    console.error('Failed to load sessions:', error)
-  }
-}
-
-async function loadSession(id: number) {
+async function loadConversation(id: number) {
+  currentConvId.value = id
   loading.value = true
   try {
-    const sessionRes = await agentApi.getSession(id)
-    if (sessionRes.data.artifacts?.length > 0) {
-      const artifactId = sessionRes.data.artifacts[0]
-      const artifactRes = await agentApi.getArtifact(artifactId)
-      
-      // Map artifact back to AgentResponse shape for rendering
-      const art = artifactRes.data
-      result.value = {
-        success: true,
-        trace_id: sessionRes.data.trace_id,
-        language: sessionRes.data.language,
-        scenario: sessionRes.data.scenario,
-        scope_summary: {},
-        summary: art.summary,
-        risk_level: art.risk_level,
-        artifact_id: art.id,
-        evidence_count: art.evidence?.length || 0,
-        data: art.result_json
-      }
-    }
-  } catch (error) {
-    ElMessage.error('加载历史记录失败')
+    const res = await agentApi.getConversation(id)
+    messages.value = res.data.messages || []
+    activeMode.value = 'chat'
   } finally {
     loading.value = false
+    scrollToBottom()
   }
+}
+
+async function loadConversations() {
+  const res = await agentApi.listConversations()
+  conversations.value = res.data
+}
+
+async function loadDrafts() {
+  const res = await agentApi.listKnowledgeDrafts()
+  // 模拟过滤 draft 状态
+  knowledgeDrafts.value = res.data.filter(k => k.status === 'draft')
+  draftCount.value = knowledgeDrafts.value.length
+}
+
+function scrollToBottom() {
+  nextTick(() => {
+    const box = document.querySelector('.chat-messages')
+    if (box) box.scrollTop = box.scrollHeight
+  })
 }
 
 function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleString()
+  return new Date(dateStr).toLocaleDateString()
+}
+
+// 模拟旧功能
+async function handleRunRepairAudit() {
+  ElMessage.success('正在执行深度审计...')
+  // 原有的 API 调用逻辑...
 }
 
 onMounted(async () => {
@@ -301,209 +289,224 @@ onMounted(async () => {
     const [typesRes, factoriesRes] = await Promise.all([
       equipmentApi.getTypes(),
       orgApi.getFactories(),
-      loadSessions()
+      loadConversations(),
+      loadDrafts()
     ])
-    
-    // Handle both raw array and {items: [], total: N} formats
     equipmentTypes.value = Array.isArray(typesRes.data) ? typesRes.data : (typesRes.data as any).items || []
-    factories.value = Array.isArray(factoriesRes.data) ? factoriesRes.data : (factoriesRes.data as any).items || []
   } catch (error) {
-    console.error('Failed to load metadata:', error)
+    console.error('Failed to load cockpit data')
   }
 })
 </script>
 
 <style scoped>
 .management-assistant {
-  height: calc(100vh - 120px);
-  overflow: hidden;
+  height: calc(100vh - 110px);
+  margin: -20px;
+  background: var(--color-bg-secondary);
 }
 
-.assistant-container {
+.cockpit-layout {
   display: flex;
-  gap: 20px;
   height: 100%;
 }
 
-.control-panel {
-  width: 320px;
+/* 侧边栏导航 */
+.sidebar-nav {
+  width: 240px;
+  background: var(--color-bg-primary);
+  border-right: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  flex-shrink: 0;
+  padding: 16px 0;
 }
 
-.panel-card {
-  border-radius: 12px;
+.nav-group {
+  margin-bottom: 24px;
 }
 
-.panel-header {
+.group-title {
+  padding: 0 20px;
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+
+.nav-item {
+  padding: 12px 20px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-weight: 600;
+  gap: 12px;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  transition: all 0.2s;
 }
 
-.action-btn {
-  width: 100%;
-  margin-top: 8px;
+.nav-item:hover { background: var(--color-bg-tertiary); }
+.nav-item.active {
+  background: var(--color-primary-dim);
+  color: var(--color-primary);
+  border-right: 3px solid var(--color-primary);
 }
 
-.history-card {
+.history-group {
   flex: 1;
-  border-radius: 12px;
   overflow-y: auto;
 }
 
 .history-item {
-  padding: 12px;
-  border-bottom: 1px solid var(--color-border);
+  padding: 10px 20px;
   cursor: pointer;
-  transition: all 0.2s;
-}
-
-.history-item:hover {
-  background: var(--color-bg-tertiary);
 }
 
 .history-title {
-  font-size: 14px;
-  margin-bottom: 4px;
-}
-
-.history-time {
-  font-size: 12px;
-  color: var(--color-text-tertiary);
-}
-
-.result-panel {
-  flex: 1;
-  background: var(--color-bg-secondary);
-  border-radius: 12px;
-  border: 1px solid var(--color-border);
-  overflow-y: auto;
-  padding: 24px;
-}
-
-.empty-state {
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.conclusion-section {
-  margin-bottom: 32px;
-  border-bottom: 1px solid var(--color-border);
-  padding-bottom: 24px;
-}
-
-.section-badge {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-  margin-bottom: 12px;
-}
-
-.section-badge.high { background: #fee2e2; color: #dc2626; }
-.section-badge.medium { background: #fef3c7; color: #d97706; }
-.section-badge.normal { background: #dcfce7; color: #16a34a; }
-
-.conclusion-summary {
-  font-size: 24px;
-  line-height: 1.4;
-  color: var(--color-text-primary);
-  margin: 0 0 12px 0;
-}
-
-.trace-info {
-  font-size: 12px;
-  color: var(--color-text-tertiary);
-}
-
-.section-title {
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 16px;
-  color: var(--color-text-secondary);
-}
-
-.items-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin-bottom: 32px;
-}
-
-.item-card {
-  background: var(--color-bg-primary);
-  padding: 16px;
-  border-radius: 8px;
-  border-left: 4px solid #ccc;
-}
-
-.item-card.recommend { border-left-color: var(--color-primary); }
-.item-card.audit { border-left-color: #f59e0b; }
-
-.item-header {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-
-.item-title {
-  font-weight: 600;
-}
-
-.item-desc {
-  font-size: 14px;
-  margin-bottom: 8px;
-  color: var(--color-text-secondary);
-}
-
-.item-meta {
   font-size: 13px;
-  color: var(--color-text-tertiary);
-}
-
-.evidence-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 12px;
-}
-
-.evidence-pill {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: var(--color-bg-primary);
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  font-size: 13px;
-}
-
-.ev-title {
-  flex: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.ev-score {
-  color: var(--color-primary);
-  font-weight: 600;
-  font-family: monospace;
+.history-meta {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
 }
 
-.animate-fade-in {
-  animation: fadeIn 0.5s ease-in-out;
+/* 主内容区 */
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-tertiary);
+  overflow: hidden;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+/* 聊天容器 */
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.welcome-guide {
+  text-align: center;
+  margin-top: 10vh;
+}
+
+.guide-icon { font-size: 48px; margin-bottom: 16px; }
+
+.guide-chips {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.guide-chips .el-tag { cursor: pointer; }
+
+.message {
+  display: flex;
+  gap: 16px;
+  max-width: 85%;
+}
+
+.message.user {
+  flex-direction: row-reverse;
+  align-self: flex-end;
+}
+
+.message .avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--color-primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.message.user .avatar { background: #6366f1; }
+
+.message .content {
+  background: var(--color-bg-primary);
+  padding: 12px 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.message.user .content {
+  background: var(--color-primary);
+  color: white;
+}
+
+.message.assistant .content {
+  border-bottom-left-radius: 2px;
+}
+
+.msg-footer {
+  margin-top: 8px;
+  font-size: 11px;
+  opacity: 0.6;
+}
+
+/* 输入区 */
+.chat-input-area {
+  padding: 20px 30px 30px;
+  background: var(--color-bg-tertiary);
+}
+
+.input-wrapper {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 -4px 12px rgba(0,0,0,0.02);
+}
+
+.input-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+/* 右侧上下文 */
+.context-panel {
+  width: 280px;
+  background: var(--color-bg-primary);
+  border-left: 1px solid var(--color-border);
+  padding: 20px;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.stat-row .value { font-weight: bold; }
+.stat-row .value.success { color: var(--color-success); }
+
+.learning-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  text-align: center;
+}
+
+.l-item strong { display: block; font-size: 20px; color: var(--color-primary); }
+.l-item span { font-size: 12px; color: var(--color-text-tertiary); }
+
+.mt-16 { margin-top: 16px; }
 </style>

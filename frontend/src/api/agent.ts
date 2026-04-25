@@ -5,6 +5,39 @@ export interface TimeRange {
   end_date: string
 }
 
+export interface ChatRequest {
+  conversation_id?: number
+  message: string
+  context?: any
+  system_prompt?: string
+}
+
+export interface ChatResponse {
+  conversation_id: number
+  reply: string
+  trace_id: string
+  artifact_id?: number
+  suggested_actions?: string[]
+}
+
+export interface ConversationResponse {
+  id: number
+  title: string
+  status: string
+  created_at: string
+  updated_at: string
+}
+
+export interface AgentKnowledge {
+  id: string
+  title: string
+  type: string
+  summary: string
+  confidence: number
+  status: string
+  created_at: string
+}
+
 export interface MaintenanceRecommendRequest {
   factory_id?: number
   workshop_id?: number
@@ -26,35 +59,6 @@ export interface RepairAuditRequest {
   system_prompt?: string
 }
 
-export interface EvidenceItem {
-  evidence_type: string
-  source_table: string
-  source_id: number
-  title: string
-  excerpt: string
-  score: number
-}
-
-export interface RecommendationItem {
-  type: string
-  target: string
-  target_id: number
-  title: string
-  description: string
-  reason: string
-  impact: string
-}
-
-export interface AnomalyItem {
-  anomaly_type: string
-  severity: string
-  target_type: string
-  target_id: number
-  title: string
-  description: string
-  suggested_action: string
-}
-
 export interface AgentResponse<T> {
   success: boolean
   trace_id: string
@@ -69,12 +73,31 @@ export interface AgentResponse<T> {
 }
 
 export const agentApi = {
+  // 对话
+  chat: (data: ChatRequest) => 
+    request.post<ChatResponse>('/agent/chat', data),
+  
+  listConversations: () => 
+    request.get<ConversationResponse[]>('/agent/conversations'),
+    
+  getConversation: (id: number) => 
+    request.get<any>(`/agent/conversations/${id}`),
+
+  // 专项审计
   recommendMaintenance: (data: MaintenanceRecommendRequest) => 
     request.post<AgentResponse<any>>('/agent/maintenance/recommend', data),
     
   auditRepair: (data: RepairAuditRequest) => 
     request.post<AgentResponse<any>>('/agent/audit/repair', data),
     
+  // 知识与技能
+  listSkills: (status?: string) => 
+    request.get<any[]>('/agent/skills', { params: { status } }),
+
+  listKnowledgeDrafts: () => 
+    request.get<AgentKnowledge[]>('/knowledge'), // 复用知识库接口但过滤状态
+    
+  // 历史记录
   listSessions: () => 
     request.get<any[]>('/agent/sessions'),
     

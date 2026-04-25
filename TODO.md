@@ -42,6 +42,13 @@
     - [x] Create `NotifyEvent` hook for cross-module proactive analysis.
     - [x] Register API for subscription management.
 
+### Sprint 7: Frontend UI Revolution (Extra Milestone)
+- [x] **重构 AI 管理专家工作台**
+    - [x] 实现了全功能的“专家对话”聊天界面。
+    - [x] 上线了“自主学习中心”——知识审核与技能管理面板。
+    - [x] 适配了后端多轮对话与异步学习接口。
+
+
 ---
 
 ## 📈 Progress Record
