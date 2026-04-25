@@ -13,6 +13,7 @@ export interface MaintenanceRecommendRequest {
   time_range: TimeRange
   question?: string
   language?: string
+  system_prompt?: string
 }
 
 export interface RepairAuditRequest {
@@ -22,6 +23,7 @@ export interface RepairAuditRequest {
   time_range: TimeRange
   anomaly_types?: string[]
   language?: string
+  system_prompt?: string
 }
 
 export interface EvidenceItem {

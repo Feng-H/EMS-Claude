@@ -192,3 +192,190 @@ func (r *MemoryAgentRepository) ListSessionsByUserID(userID uint, limit int) ([]
 	}
 	return results, nil
 }
+
+// =====================================================
+// Phase 2: Conversations & Messages
+// =====================================================
+
+func (r *MemoryAgentRepository) CreateConversation(conv *model.AgentConversation) error {
+	conv.ID = r.store.NextID()
+	conv.CreatedAt = time.Now()
+	conv.UpdatedAt = time.Now()
+	r.store.AgentConversations[conv.ID] = conv
+	return nil
+}
+
+func (r *MemoryAgentRepository) GetConversationByID(id uint) (*model.AgentConversation, error) {
+	conv, ok := r.store.AgentConversations[id]
+	if !ok {
+		return nil, fmt.Errorf("conversation not found")
+	}
+	return conv, nil
+}
+
+func (r *MemoryAgentRepository) ListConversationsByUserID(userID uint, limit int) ([]model.AgentConversation, error) {
+	var results []model.AgentConversation
+	count := 0
+	for _, c := range r.store.AgentConversations {
+		if count >= limit {
+			break
+		}
+		if c.UserID == userID {
+			results = append(results, *c)
+			count++
+		}
+	}
+	return results, nil
+}
+
+func (r *MemoryAgentRepository) CreateMessage(msg *model.AgentMessage) error {
+	msg.ID = r.store.NextID()
+	msg.CreatedAt = time.Now()
+	r.store.AgentMessages[msg.ID] = msg
+	
+	// Add to conversation's message slice if exists
+	if conv, ok := r.store.AgentConversations[msg.ConversationID]; ok {
+		conv.Messages = append(conv.Messages, *msg)
+		conv.UpdatedAt = time.Now()
+	}
+	return nil
+}
+
+func (r *MemoryAgentRepository) GetMessagesByConversationID(convID uint) ([]model.AgentMessage, error) {
+	var results []model.AgentMessage
+	for _, m := range r.store.AgentMessages {
+		if m.ConversationID == convID {
+			results = append(results, *m)
+		}
+	}
+	return results, nil
+}
+
+func (r *MemoryAgentRepository) CreateKnowledge(k *model.AgentKnowledge) error {
+	if k.ID == "" {
+		k.ID = fmt.Sprintf("k_%d", r.store.NextID())
+	}
+	k.CreatedAt = time.Now()
+	r.store.AgentKnowledges[k.ID] = k
+	return nil
+}
+
+// =====================================================
+// Phase 2: Skills
+// =====================================================
+
+func (r *MemoryAgentRepository) CreateSkill(skill *model.AgentSkill) error {
+	skill.ID = r.store.NextID()
+	skill.CreatedAt = time.Now()
+	skill.UpdatedAt = time.Now()
+	r.store.AgentSkills[skill.ID] = skill
+	return nil
+}
+
+func (r *MemoryAgentRepository) GetSkillByID(id uint) *model.AgentSkill {
+	return r.store.AgentSkills[id]
+}
+
+func (r *MemoryAgentRepository) UpdateSkill(skill *model.AgentSkill) error {
+	skill.UpdatedAt = time.Now()
+	r.store.AgentSkills[skill.ID] = skill
+	return nil
+}
+
+func (r *MemoryAgentRepository) ListSkills(status string, limit int) ([]model.AgentSkill, error) {
+	var results []model.AgentSkill
+	count := 0
+	for _, s := range r.store.AgentSkills {
+		if count >= limit {
+			break
+		}
+		if status == "" || s.Status == status {
+			results = append(results, *s)
+			count++
+		}
+	}
+	return results, nil
+}
+
+func (r *MemoryAgentRepository) MatchSkills(intent string, limit int) ([]model.AgentSkill, error) {
+	var results []model.AgentSkill
+	count := 0
+	for _, s := range r.store.AgentSkills {
+		if count >= limit {
+			break
+		}
+		if s.Status == "active" && (strings.Contains(s.Name, intent) || strings.Contains(s.ApplicableScenarios, intent)) {
+			results = append(results, *s)
+			count++
+		}
+	}
+	return results, nil
+}
+
+// =====================================================
+// Phase 2: Experience Repositories
+// =====================================================
+
+func (r *MemoryAgentRepository) CreateExperience(exp *model.AgentExperience) error {
+	exp.ID = r.store.NextID()
+	exp.CreatedAt = time.Now()
+	r.store.AgentExperiences[exp.ID] = exp
+	return nil
+}
+
+func (r *MemoryAgentRepository) ListActiveExperiences(userID uint) ([]model.AgentExperience, error) {
+	var results []model.AgentExperience
+	for _, e := range r.store.AgentExperiences {
+		if e.UserID == userID && e.Status == "active" && e.Weight > 0.1 {
+			results = append(results, *e)
+		}
+	}
+	return results, nil
+}
+
+func (r *MemoryAgentRepository) UpdateExperience(exp *model.AgentExperience) error {
+	r.store.AgentExperiences[exp.ID] = exp
+	return nil
+}
+
+func (r *MemoryAgentRepository) ApplyDecayToExperiences() error {
+	for _, e := range r.store.AgentExperiences {
+		if e.Status == "active" {
+			e.Weight = e.Weight * (1.0 - e.DecayRate)
+		}
+	}
+	return nil
+}
+
+// =====================================================
+// Phase 2: Push Subscription Repositories
+// =====================================================
+
+func (r *MemoryAgentRepository) CreatePushSubscription(sub *model.AgentPushSubscription) error {
+	if sub.ID == 0 {
+		sub.ID = r.store.NextID()
+		sub.CreatedAt = time.Now()
+	}
+	sub.UpdatedAt = time.Now()
+	r.store.AgentPushSubscriptions[sub.ID] = sub
+	return nil
+}
+
+func (r *MemoryAgentRepository) GetPushSubscription(userID uint, pushType string) (*model.AgentPushSubscription, error) {
+	for _, s := range r.store.AgentPushSubscriptions {
+		if s.UserID == userID && s.PushType == pushType {
+			return s, nil
+		}
+	}
+	return nil, fmt.Errorf("subscription not found")
+}
+
+func (r *MemoryAgentRepository) ListPushSubscriptions(userID uint) ([]model.AgentPushSubscription, error) {
+	var results []model.AgentPushSubscription
+	for _, s := range r.store.AgentPushSubscriptions {
+		if s.UserID == userID {
+			results = append(results, *s)
+		}
+	}
+	return results, nil
+}

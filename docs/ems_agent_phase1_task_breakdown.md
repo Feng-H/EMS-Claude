@@ -6,6 +6,7 @@ This document breaks the phase-one EMS agent design into implementable work item
 
 It supports the following design documents:
 
+- [ems_agent_prd.md](/Users/apple/claudecode/EMS-Claude/docs/ems_agent_prd.md)
 - [ems_agent_design.md](/Users/apple/claudecode/EMS-Claude/ems_agent_design.md)
 - [ems_agent_schema_design.md](/Users/apple/claudecode/EMS-Claude/docs/ems_agent_schema_design.md)
 - [ems_agent_api_design.md](/Users/apple/claudecode/EMS-Claude/docs/ems_agent_api_design.md)
@@ -417,6 +418,7 @@ Postpone if needed:
 
 This task breakdown supports:
 
+- [ems_agent_prd.md](/Users/apple/claudecode/EMS-Claude/docs/ems_agent_prd.md)
 - [ems_agent_design.md](/Users/apple/claudecode/EMS-Claude/ems_agent_design.md)
 - [ems_agent_schema_design.md](/Users/apple/claudecode/EMS-Claude/docs/ems_agent_schema_design.md)
 - [ems_agent_api_design.md](/Users/apple/claudecode/EMS-Claude/docs/ems_agent_api_design.md)

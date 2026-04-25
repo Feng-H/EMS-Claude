@@ -1,66 +1,65 @@
-# EMS Agent Phase 1 Progress
+# EMS Agent Phase 2 Progress
 
-## 📋 TODO List
+> Phase 1 (Data Retrieval & Fixed Rules Analysis) has been successfully completed and deployed.
+> This document tracks the implementation of Phase 2 (Intelligent Loop & Memory Base) based on `ems_agent_prd.md`.
 
-### Sprint 1: Backend Foundation, Schema & Security
-- [x] **Milestone A: Agent foundation**
-    - [x] Create `backend/internal/agent/` module structure (controller, service, repository, policy, prompt, tool).
-    - [x] Define common request context and response DTOs.
-    - [x] Implement trace ID generation.
-    - [x] Register routes under `/api/v1/agent`.
-    - [x] Implement base session and artifact persistence flow.
-- [x] **Milestone B: Schema and persistence**
-    - [x] Add migrations for `equipment_manual_documents` and `equipment_manual_chunks`.
-    - [x] Add migration for `repair_cost_details`.
-    - [x] Add migration for `equipment_runtime_snapshots`.
-    - [x] Add migration for `agent_sessions`, `agent_artifacts`, and `agent_evidence_links`.
-    - [x] Implement repository methods for the new tables (supporting both DB and Memory modes).
-- [x] **Milestone F: Permission boundary enforcement**
-    - [x] Derive organization scope from auth context.
-    - [x] Inject `user_id`, `factory_id`, and role into service requests.
-    - [x] Validate equipment and work order IDs against scope.
-    - [x] Block cross-factory queries centrally (via `PolicyService`).
+## 📋 Phase 2 TODO List
 
-### Sprint 2: Logic & Knowledge
-- [x] **Milestone C: Retrieval and knowledge integration**
-    - [x] Implement `RetrievalTool` supporting knowledge articles and manual chunks.
-    - [x] Add search support for `equipment_manual_chunks` and `knowledge_articles`.
-    - [x] Implement `search_manual_knowledge` tool (integrated in `RetrievalTool`).
-- [x] **Milestone D: Analyzer implementation**
-    - [x] Implement maintenance recommendation analyzer (basic rule-based).
-    - [x] Implement repair audit analyzer (repeat-failure detection).
-    - [x] Implement supporting tools (`MaintenanceTool`, `RepairTool`).
-- [x] **Milestone E: LLM summarization & Localization**
-    - [x] Create `llm` package with OpenAI-compatible client.
-    - [x] Create `PromptTool` with Chinese templates for recommendations and audits.
-    - [x] Integrated LLM summarization into `AgentService`.
+### Sprint 4: Memory Base & Core Chat Flow
+- [x] **Milestone J: Data Foundation for Phase 2**
+    - [x] Create GORM models for 6 core tables: `AgentSkill`, `AgentKnowledge`, `AgentExperience`, `AgentConversation`, `AgentMessage`, `AgentPushSubscription`.
+    - [x] Add the models to `AutoMigrate` and `memory` store logic.
+- [x] **Milestone K: Conversational Engine**
+    - [x] Implement `AgentConversation` and `AgentMessage` repository and service.
+    - [x] Build `/api/v1/agent/chat` endpoint to handle multi-turn conversational input.
+    - [x] Implement context-aware prompting with history (latest 10 messages).
+- [x] **Milestone L: Draft Knowledge Extraction**
+    - [x] Implement `ReflectAndExtractKnowledge` background task logic.
+    - [x] Create reflection prompt to structure insights into JSON.
+    - [x] Automatically generate `AgentKnowledge` in `draft` status after conversations.
 
-### Sprint 3: UI & Rollout
-- [x] **Milestone G: Frontend management assistant**
-    - [x] Add `ManagementAssistantView.vue` and route.
-    - [x] Implement filters and scenario tabs (Maintenance optimization, Repair audit).
-    - [x] Render results (conclusion, evidence, risk, items) with professional industrial styling.
-- [x] **Milestone H: Testing and demo readiness**
-    - [x] Implement backend session and artifact persistence logic.
-    - [x] Add mock data for representative agent scenarios (repeat failures, cost deviation).
-    - [x] Support historical analysis loading in frontend.
-- [x] **Milestone I: Observability and rollout**
-    - [x] Implement `AgentUsage` model to track tokens and response time.
-    - [x] Integrated usage logging into all agent scenarios.
+### Sprint 5: Skill System
+- [x] **Milestone M: Skill Modeling & Storage**
+    - [x] Implement CRUD for `AgentSkill` in repository and service.
+    - [x] Build API endpoints for skill management.
+    - [x] Support JSONB storage for analytical steps and applicable scenarios.
+- [x] **Milestone N: Skill Dispatcher**
+    - [x] Implement intent-to-skill matching in `Chat` flow.
+    - [x] Build `ExecuteSkill` engine to run sequential tool calls from skill steps.
+    - [x] Integrate tool evidence synthesis with LLM for final response generation.
+- [x] **Milestone O: Skill Reflection (Self-Improvement)**
+    - [x] Create skill extraction prompt to distill analytical paths from chat history.
+    - [x] Implement asynchronous `asyncExtractSkill` logic.
+    - [x] Integrated dual-learning loop (Knowledge + Skills) in `ReflectAndLearn`.
+
+### Sprint 6: Experience Calibration & Proactive Push
+- [x] **Milestone P: Experience Decay & Calibration**
+    - [x] Implement CRUD for `AgentExperience` and decay formula in repository.
+    - [x] Inject user-specific active experiences into chat and skill execution prompts.
+    - [x] Integrate experience collection into `ReflectAndLearn` cycle.
+- [x] **Milestone Q: Proactive Notification Engine**
+    - [x] Implement push subscription repository and service for engineers.
+    - [x] Create `NotifyEvent` hook for cross-module proactive analysis.
+    - [x] Register API for subscription management.
 
 ---
 
 ## 📈 Progress Record
 
-### 2026-04-25
-- 🚀 Initialized `TODO.md` based on `ems_agent_design.md` and supporting documents.
-- 🔍 Reviewed project architecture and confirmed the plan for Sprint 1.
-- ✅ **Milestone A completed**: Scaffolded backend agent module structure, DTOs, trace utility, controller, and service. Registered routes in `main.go`.
-- ✅ **Milestone B completed**: Defined agent models (GORM) and implemented repositories for both database and memory modes. Updated `AutoMigrate` in `main.go` and `Store` in `pkg/memory`.
-- ✅ **Milestone F completed**: Implemented `PolicyService` for organization scope derivation and validation. Injected authorized context into agent service requests.
-- ✅ **Milestone C completed**: Implemented `RetrievalTool` and `MaintenanceTool` for data gathering from knowledge base and maintenance plans.
-- ✅ **Milestone D completed**: Implemented `MaintenanceAnalyzer` and `RepairAuditAnalyzer` with deterministic logic. Integrated analyzers and supporting tools into `AgentService`.
-- ✅ **Milestone E completed**: Implemented `llm` package and `PromptTool`. Integrated LLM summarization into the agent workflow for Chinese-first professional outputs.
-- ✅ **Milestone G completed**: Built the PC Management Assistant frontend with dual-pane layout, supporting Maintenance Recommendation and Repair Audit scenarios.
-- ✅ **Milestone H completed**: Implemented full persistence flow for Agent sessions and artifacts. Added "story-driven" mock data for realistic demos of repeat-failure and cost-deviation auditing.
-- ✅ **Milestone I completed**: Implemented `AgentUsage` tracking to monitor LLM performance and cost. Phase 1 is now feature-complete and ready for production-like verification.
+### Phase 1 (Completed)
+- ✅ Scaffolded backend structure, DTOs, Trace ID, and Controllers.
+- ✅ Developed Rule-based Analyzers (Maintenance & Repair) with strict permission scopes.
+- ✅ Integrated LLM client and Prompt Engine for industrial-grade Chinese summaries.
+- ✅ Built Management Assistant Vue UI and full backend persistence.
+- ✅ Created realistic mock data stories (e.g., CNC-001 Spindle issue) to simulate real-world value.
+
+### Phase 2 (In Progress)
+- 🚀 **2026-04-25**: Initiated Phase 2 (Intelligent Loop). Refactored `TODO.md` to reflect Sprint 4-6 goals.
+- ✅ **Milestone J completed**: Established Phase 2 GORM models for Skills, Knowledge, Experience, Conversations, Messages, and Subscriptions. Integrated with AutoMigrate and memory store.
+- ✅ **Milestone K completed**: Implemented full multi-turn conversational engine with history management and repository support.
+- ✅ **Milestone L completed**: Implemented self-reflection logic to automatically extract structured knowledge drafts from chat history.
+- ✅ **Milestone M completed**: Established Skill Store with full CRUD support and JSONB-based execution step definitions.
+- ✅ **Milestone N completed**: Implemented Skill Dispatcher and Execution Engine to orchestrate multi-step tool calls based on user intent.
+- ✅ **Milestone O completed**: Implemented self-improvement logic to automatically extract reusable skills (analytical paths) from successful conversations.
+- ✅ **Milestone P completed**: Implemented user experience (preference) store with decay mechanism. Integrated personalized memory into the conversational prompt.
+- ✅ **Milestone Q completed**: Established Proactive Notification framework with subscription management and event hooks for autonomous analysis. Phase 2 Backend is now feature-complete.

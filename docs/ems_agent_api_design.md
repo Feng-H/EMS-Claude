@@ -6,6 +6,7 @@ This document defines the phase-one API design for the EMS management assistant 
 
 It is a supporting document for the main design:
 
+- [ems_agent_prd.md](/Users/apple/claudecode/EMS-Claude/docs/ems_agent_prd.md)
 - [ems_agent_design.md](/Users/apple/claudecode/EMS-Claude/ems_agent_design.md)
 
 This API design focuses on:
@@ -436,4 +437,5 @@ Suggested optional field:
 
 This document supports:
 
+- [ems_agent_prd.md](/Users/apple/claudecode/EMS-Claude/docs/ems_agent_prd.md)
 - [ems_agent_design.md](/Users/apple/claudecode/EMS-Claude/ems_agent_design.md)

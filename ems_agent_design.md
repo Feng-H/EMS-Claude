@@ -2,8 +2,12 @@
 
 Related supporting documents:
 
+- [EMS Agent PRD](/Users/apple/claudecode/EMS-Claude/docs/ems_agent_prd.md)
+- [EMS Agent Roadmap](/Users/apple/claudecode/EMS-Claude/docs/ems_agent_roadmap.md)
 - [Agent Schema Design](/Users/apple/claudecode/EMS-Claude/docs/ems_agent_schema_design.md)
+- [Agent Phase 2 Schema Extension](/Users/apple/claudecode/EMS-Claude/docs/ems_agent_phase2_schema_extension.md)
 - [Agent API Design](/Users/apple/claudecode/EMS-Claude/docs/ems_agent_api_design.md)
+- [Agent Phase 2 API Extension](/Users/apple/claudecode/EMS-Claude/docs/ems_agent_phase2_api_design.md)
 - [Agent Phase 1 Task Breakdown](/Users/apple/claudecode/EMS-Claude/docs/ems_agent_phase1_task_breakdown.md)
 
 ## 1. Background
@@ -706,6 +710,10 @@ This keeps the agent useful, controllable, and aligned with EMS's strong workflo
 
 For concrete implementation details, use these supporting documents together with this main design:
 
+- [EMS Agent PRD](/Users/apple/claudecode/EMS-Claude/docs/ems_agent_prd.md)
+- [EMS Agent Roadmap](/Users/apple/claudecode/EMS-Claude/docs/ems_agent_roadmap.md)
 - [Agent Schema Design](/Users/apple/claudecode/EMS-Claude/docs/ems_agent_schema_design.md)
+- [Agent Phase 2 Schema Extension](/Users/apple/claudecode/EMS-Claude/docs/ems_agent_phase2_schema_extension.md)
 - [Agent API Design](/Users/apple/claudecode/EMS-Claude/docs/ems_agent_api_design.md)
+- [Agent Phase 2 API Extension](/Users/apple/claudecode/EMS-Claude/docs/ems_agent_phase2_api_design.md)
 - [Agent Phase 1 Task Breakdown](/Users/apple/claudecode/EMS-Claude/docs/ems_agent_phase1_task_breakdown.md)

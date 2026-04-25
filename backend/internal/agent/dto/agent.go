@@ -87,6 +87,7 @@ type MaintenanceRecommendRequest struct {
 	TimeRange       TimeRange `json:"time_range"`
 	Question        string    `json:"question"`
 	Language        string    `json:"language"`
+	SystemPrompt    string    `json:"system_prompt"`
 }
 
 type MaintenanceRecommendData struct {
@@ -107,6 +108,7 @@ type RepairAuditRequest struct {
 	TimeRange       TimeRange `json:"time_range"`
 	AnomalyTypes    []string  `json:"anomaly_types"`
 	Language        string    `json:"language"`
+	SystemPrompt    string    `json:"system_prompt"`
 }
 
 type RepairAuditData struct {
@@ -125,6 +127,7 @@ type MaintenanceAuditRequest struct {
 	TimeRange       TimeRange `json:"time_range"`
 	Focus           []string  `json:"focus"`
 	Language        string    `json:"language"`
+	SystemPrompt    string    `json:"system_prompt"`
 }
 
 type MaintenanceAuditData struct {
@@ -144,6 +147,7 @@ type AnalyzeRequest struct {
 	Question   string    `json:"question"`
 	TimeRange  TimeRange `json:"time_range"`
 	Language   string    `json:"language"`
+	SystemPrompt string    `json:"system_prompt"`
 }
 
 type AnalyzeData struct {
@@ -183,4 +187,74 @@ type AgentArtifactResponse struct {
 	CreatedAt      time.Time      `json:"created_at"`
 	Evidence       []EvidenceItem `json:"evidence,omitempty"`
 	RelatedSession interface{}    `json:"related_session,omitempty"`
+}
+
+// =====================================================
+// Phase 2: Chat & Conversation DTOs
+// =====================================================
+
+type ChatRequest struct {
+	ConversationID uint   `json:"conversation_id"` // 可选，不传则创建新会话
+	Message        string `json:"message" binding:"required"`
+	Context        any    `json:"context"`          // 补充上下文（如当前页面、选中的设备等）
+	SystemPrompt   string `json:"system_prompt"`   // 自定义系统提示词
+}
+
+type ChatResponse struct {
+	ConversationID uint           `json:"conversation_id"`
+	Reply          string         `json:"reply"`
+	TraceID        string         `json:"trace_id"`
+	ArtifactID     uint           `json:"artifact_id,omitempty"`
+	SuggestedActions []string     `json:"suggested_actions,omitempty"`
+}
+
+type ConversationResponse struct {
+	ID        uint           `json:"id"`
+	Title     string         `json:"title"`
+	Status    string         `json:"status"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	Messages  []MessageItem  `json:"messages,omitempty"`
+}
+
+type MessageItem struct {
+	ID        uint      `json:"id"`
+	Role      string    `json:"role"`
+	Content   string    `json:"content"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// =====================================================
+// Phase 2: Skill DTOs
+// =====================================================
+
+type CreateSkillRequest struct {
+	Name                string   `json:"name" binding:"required"`
+	Description         string   `json:"description"`
+	ApplicableTo        []string `json:"applicable_to"`
+	ApplicableScenarios []string `json:"applicable_scenarios"`
+	Steps               []any    `json:"steps" binding:"required"`
+}
+
+type UpdateSkillRequest struct {
+	Name                string   `json:"name"`
+	Description         string   `json:"description"`
+	ApplicableTo        []string `json:"applicable_to"`
+	ApplicableScenarios []string `json:"applicable_scenarios"`
+	Steps               []any    `json:"steps"`
+	Status              string   `json:"status"`
+}
+
+type SkillResponse struct {
+	ID                  uint      `json:"id"`
+	Name                string    `json:"name"`
+	Description         string    `json:"description"`
+	ApplicableTo        []string  `json:"applicable_to"`
+	ApplicableScenarios []string  `json:"applicable_scenarios"`
+	Steps               []any     `json:"steps"`
+	Version             int       `json:"version"`
+	Status              string    `json:"status"`
+	UsageCount          int       `json:"usage_count"`
+	SuccessRate         float64   `json:"success_rate"`
+	CreatedAt           time.Time `json:"created_at"`
 }

@@ -122,6 +122,12 @@ func runDatabaseMode() {
 		&model.AgentArtifact{},
 		&model.AgentEvidenceLink{},
 		&model.AgentUsage{},
+		&model.AgentSkill{},
+		&model.AgentKnowledge{},
+		&model.AgentExperience{},
+		&model.AgentConversation{},
+		&model.AgentMessage{},
+		&model.AgentPushSubscription{},
 	); err != nil {
 		log.Fatalf("Failed to migrate database: %v", err)
 	}
@@ -174,12 +180,12 @@ func setupMemoryRoutes(router *gin.Engine) {
 		// Auth routes (public)
 		auth := api.Group("/auth")
 		{
-			auth.POST("/login", v1.LoginMemory)
+			auth.POST("/login", v1.Login)
 			auth.POST("/logout", v1.LogoutMemory)
-			auth.POST("/refresh", v1.RefreshTokenMemory)
-			auth.POST("/change-password", middleware.AuthMiddleware(), v1.ChangePasswordMemory)
-			auth.POST("/apply", v1.ApplyAccountMemory)
-			auth.GET("/me", middleware.AuthMiddleware(), v1.GetCurrentUserMemory)
+			auth.POST("/refresh", v1.RefreshToken)
+			auth.POST("/change-password", middleware.AuthMiddleware(), v1.ChangePassword)
+			auth.POST("/apply", v1.ApplyForAccount)
+			auth.GET("/me", middleware.AuthMiddleware(), v1.GetCurrentUser)
 		}
 
 		// Protected routes
@@ -346,6 +352,14 @@ func setupMemoryRoutes(router *gin.Engine) {
 				agent.POST("/audit/repair", agentCtrl.AuditRepair)
 				agent.POST("/audit/maintenance", agentCtrl.AuditMaintenance)
 				agent.POST("/analyze", agentCtrl.Analyze)
+				agent.POST("/chat", agentCtrl.Chat)
+				agent.GET("/conversations", agentCtrl.ListConversations)
+				agent.GET("/conversations/:id", agentCtrl.GetConversation)
+				agent.GET("/skills", agentCtrl.ListSkills)
+				agent.POST("/skills", agentCtrl.CreateSkill)
+				agent.GET("/skills/:id", agentCtrl.GetSkill)
+				agent.PUT("/skills/:id", agentCtrl.UpdateSkill)
+				agent.POST("/subscribe", agentCtrl.Subscribe)
 				agent.GET("/sessions", agentCtrl.ListSessions)
 				agent.GET("/sessions/:id", agentCtrl.GetSession)
 				agent.GET("/artifacts/:id", agentCtrl.GetArtifact)
@@ -531,6 +545,14 @@ func setupDatabaseRoutes(router *gin.Engine) {
 				agent.POST("/audit/repair", agentCtrl.AuditRepair)
 				agent.POST("/audit/maintenance", agentCtrl.AuditMaintenance)
 				agent.POST("/analyze", agentCtrl.Analyze)
+				agent.POST("/chat", agentCtrl.Chat)
+				agent.GET("/conversations", agentCtrl.ListConversations)
+				agent.GET("/conversations/:id", agentCtrl.GetConversation)
+				agent.GET("/skills", agentCtrl.ListSkills)
+				agent.POST("/skills", agentCtrl.CreateSkill)
+				agent.GET("/skills/:id", agentCtrl.GetSkill)
+				agent.PUT("/skills/:id", agentCtrl.UpdateSkill)
+				agent.POST("/subscribe", agentCtrl.Subscribe)
 				agent.GET("/sessions", agentCtrl.ListSessions)
 				agent.GET("/sessions/:id", agentCtrl.GetSession)
 				agent.GET("/artifacts/:id", agentCtrl.GetArtifact)

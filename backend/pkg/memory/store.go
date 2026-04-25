@@ -2,6 +2,7 @@ package memory
 
 import (
 	"fmt"
+	"math/rand"
 	"sync"
 	"time"
 
@@ -36,14 +37,14 @@ type Store struct {
 	RepairLogs   map[uint]*model.RepairLog
 
 	// 保养
-	MaintenancePlans    map[uint]*model.MaintenancePlan
-	MaintenanceItems    map[uint]*model.MaintenancePlanItem
-	MaintenanceTasks    map[uint]*model.MaintenanceTask
-	MaintenanceRecords  map[uint]*model.MaintenanceRecord
+	MaintenancePlans   map[uint]*model.MaintenancePlan
+	MaintenanceItems   map[uint]*model.MaintenancePlanItem
+	MaintenanceTasks   map[uint]*model.MaintenanceTask
+	MaintenanceRecords map[uint]*model.MaintenanceRecord
 
 	// 备件
-	SpareParts          map[uint]*model.SparePart
-	SparePartInventory  map[uint]*model.SparePartInventory
+	SpareParts           map[uint]*model.SparePart
+	SparePartInventory   map[uint]*model.SparePartInventory
 	SparePartConsumption map[uint]*model.SparePartConsumption
 
 	// 知识库
@@ -59,6 +60,14 @@ type Store struct {
 	AgentEvidenceLinks map[uint]*model.AgentEvidenceLink
 	AgentUsage         map[uint]*model.AgentUsage
 
+	// Agent Phase 2 相关
+	AgentSkills           map[uint]*model.AgentSkill
+	AgentKnowledges       map[string]*model.AgentKnowledge
+	AgentExperiences      map[uint]*model.AgentExperience
+	AgentConversations    map[uint]*model.AgentConversation
+	AgentMessages         map[uint]*model.AgentMessage
+	AgentPushSubscriptions map[uint]*model.AgentPushSubscription
+
 	// ID 计数器
 	nextID uint
 }
@@ -68,16 +77,16 @@ var (
 	once     sync.Once
 )
 
-// GetStore 获取存储实例
+// GetStore 获取 Store 单例
 func GetStore() *Store {
 	once.Do(func() {
 		instance = &Store{
-			Bases:       make(map[uint]*model.Base),
-			Factories:   make(map[uint]*model.Factory),
-			Workshops:   make(map[uint]*model.Workshop),
-			Users:       make(map[uint]*model.User),
-			EquipmentTypes: make(map[uint]*model.EquipmentType),
-			Equipment:   make(map[uint]*model.Equipment),
+			Bases:               make(map[uint]*model.Base),
+			Factories:           make(map[uint]*model.Factory),
+			Workshops:           make(map[uint]*model.Workshop),
+			Users:               make(map[uint]*model.User),
+			EquipmentTypes:      make(map[uint]*model.EquipmentType),
+			Equipment:           make(map[uint]*model.Equipment),
 			InspectionTemplates: make(map[uint]*model.InspectionTemplate),
 			InspectionItems:     make(map[uint]*model.InspectionItem),
 			InspectionTasks:     make(map[uint]*model.InspectionTask),
@@ -88,8 +97,8 @@ func GetStore() *Store {
 			MaintenanceItems:    make(map[uint]*model.MaintenancePlanItem),
 			MaintenanceTasks:    make(map[uint]*model.MaintenanceTask),
 			MaintenanceRecords:  make(map[uint]*model.MaintenanceRecord),
-			SpareParts:          make(map[uint]*model.SparePart),
-			SparePartInventory:  make(map[uint]*model.SparePartInventory),
+			SpareParts:           make(map[uint]*model.SparePart),
+			SparePartInventory:   make(map[uint]*model.SparePartInventory),
 			SparePartConsumption: make(map[uint]*model.SparePartConsumption),
 			KnowledgeArticles:   make(map[uint]*model.KnowledgeArticle),
 			ManualDocuments:    make(map[uint]*model.ManualDocument),
@@ -100,13 +109,19 @@ func GetStore() *Store {
 			AgentArtifacts:     make(map[uint]*model.AgentArtifact),
 			AgentEvidenceLinks: make(map[uint]*model.AgentEvidenceLink),
 			AgentUsage:         make(map[uint]*model.AgentUsage),
+			AgentSkills:           make(map[uint]*model.AgentSkill),
+			AgentKnowledges:       make(map[string]*model.AgentKnowledge),
+			AgentExperiences:      make(map[uint]*model.AgentExperience),
+			AgentConversations:    make(map[uint]*model.AgentConversation),
+			AgentMessages:         make(map[uint]*model.AgentMessage),
+			AgentPushSubscriptions: make(map[uint]*model.AgentPushSubscription),
 			nextID:              1,
 		}
 	})
 	return instance
 }
 
-// nextIDInternal 生成下一个ID (内部使用，调用者需持有锁)
+// NextID 生成下一个ID (内部私有方法，调用者应已持有锁)
 func (s *Store) nextIDInternal() uint {
 	id := s.nextID
 	s.nextID++
@@ -122,744 +137,196 @@ func (s *Store) NextID() uint {
 	return id
 }
 
-// InitMockData 初始化模拟数据
+// InitMockData 初始化模拟数据 (工业世界模拟器版本)
 func (s *Store) InitMockData() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	now := time.Now()
 	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("admin123"), bcrypt.DefaultCost)
+	fmt.Printf("DEBUG: Admin password hash generated: %s\n", string(hashedPassword))
+	r := rand.New(rand.NewSource(now.UnixNano()))
 
-	// 创建基地
-	base1 := &model.Base{
-		BaseModel: model.BaseModel{
-			ID:        s.nextIDInternal(),
-			CreatedAt: now,
-			UpdatedAt: now,
-		},
-		Code: "BASE-HD",
-		Name: "华东基地",
-	}
-	s.Bases[base1.ID] = base1
+	// 1. 基础架构
+	base := &model.Base{BaseModel: model.BaseModel{ID: s.nextIDInternal(), CreatedAt: now}, Code: "BASE-HQ", Name: "集团总部基地"}
+	s.Bases[base.ID] = base
+	factory := &model.Factory{BaseModel: model.BaseModel{ID: s.nextIDInternal(), CreatedAt: now}, BaseID: base.ID, Code: "FAC-01", Name: "数字化示范工厂"}
+	s.Factories[factory.ID] = factory
+	workshop := &model.Workshop{BaseModel: model.BaseModel{ID: s.nextIDInternal(), CreatedAt: now}, FactoryID: factory.ID, Code: "WS-01", Name: "精益加工车间"}
+	s.Workshops[workshop.ID] = workshop
 
-	// 创建工厂
-	factory1 := &model.Factory{
-		BaseModel: model.BaseModel{
-			ID:        s.nextIDInternal(),
-			CreatedAt: now,
-			UpdatedAt: now,
-		},
-		BaseID: base1.ID,
-		Code:   "FACTORY-01",
-		Name:   "第一工厂",
-	}
-	s.Factories[factory1.ID] = factory1
-
-	// 创建车间
-	workshop1 := &model.Workshop{
-		BaseModel: model.BaseModel{
-			ID:        s.nextIDInternal(),
-			CreatedAt: now,
-			UpdatedAt: now,
-		},
-		FactoryID: factory1.ID,
-		Code:      "WORKSHOP-JJ",
-		Name:      "机加工车间",
-	}
-	s.Workshops[workshop1.ID] = workshop1
-
-	workshop2 := &model.Workshop{
-		BaseModel: model.BaseModel{
-			ID:        s.nextIDInternal(),
-			CreatedAt: now,
-			UpdatedAt: now,
-		},
-		FactoryID: factory1.ID,
-		Code:      "WORKSHOP-HJ",
-		Name:      "焊接车间",
-	}
-	s.Workshops[workshop2.ID] = workshop2
-
-	// 创建管理员用户
-	adminUser := &model.User{
-		BaseModel: model.BaseModel{
-			ID:        s.nextIDInternal(),
-			CreatedAt: now,
-			UpdatedAt: now,
-		},
-		Username:           "admin",
-		PasswordHash:       string(hashedPassword),
-		Name:               "系统管理员",
-		Role:               model.RoleAdmin,
-		Phone:              "13800138000",
-		IsActive:           true,
-		ApprovalStatus:     model.ApprovalStatusApproved,
-		MustChangePassword: false,
-		FirstLogin:         false,
-	}
-	s.Users[adminUser.ID] = adminUser
-
-	// 创建工程师用户
-	engineerUser := &model.User{
-		BaseModel: model.BaseModel{
-			ID:        s.nextIDInternal(),
-			CreatedAt: now,
-			UpdatedAt: now,
-		},
-		Username:           "engineer",
-		PasswordHash:       string(hashedPassword),
-		Name:               "设备工程师",
-		Role:               model.RoleEngineer,
-		Phone:              "13800138001",
-		FactoryID:          &factory1.ID,
-		IsActive:           true,
-		ApprovalStatus:     model.ApprovalStatusApproved,
-		MustChangePassword: false,
-		FirstLogin:         false,
-	}
-	s.Users[engineerUser.ID] = engineerUser
-
-	// 创建维修工
-	workerUser := &model.User{
-		BaseModel: model.BaseModel{
-			ID:        s.nextIDInternal(),
-			CreatedAt: now,
-			UpdatedAt: now,
-		},
-		Username:           "worker",
-		PasswordHash:       string(hashedPassword),
-		Name:               "维修工张三",
-		Role:               model.RoleMaintenance,
-		Phone:              "13800138002",
-		FactoryID:          &factory1.ID,
-		IsActive:           true,
-		ApprovalStatus:     model.ApprovalStatusApproved,
-		MustChangePassword: false,
-		FirstLogin:         false,
-	}
-	s.Users[workerUser.ID] = workerUser
-
-	// 创建操作员
-	operatorUser := &model.User{
-		BaseModel: model.BaseModel{
-			ID:        s.nextIDInternal(),
-			CreatedAt: now,
-			UpdatedAt: now,
-		},
-		Username:           "operator",
-		PasswordHash:       string(hashedPassword),
-		Name:               "操作员李四",
-		Role:               model.RoleOperator,
-		Phone:              "13800138003",
-		FactoryID:          &factory1.ID,
-		IsActive:           true,
-		ApprovalStatus:     model.ApprovalStatusApproved,
-		MustChangePassword: false,
-		FirstLogin:         false,
-	}
-	s.Users[operatorUser.ID] = operatorUser
-
-	// 创建 3 个待审核申请
-	pendingApplications := []struct {
-		Username string
-		Name     string
-		Role     model.UserRole
-	}{
-		{"applicant1", "申请人 A", model.RoleOperator},
-		{"applicant2", "申请人 B", model.RoleMaintenance},
-		{"applicant3", "申请人 C", model.RoleEngineer},
-	}
-
-	for _, app := range pendingApplications {
-		pendingUser := &model.User{
-			BaseModel: model.BaseModel{
-				ID:        s.nextIDInternal(),
-				CreatedAt: now,
-				UpdatedAt: now,
-			},
-			Username:           app.Username,
-			PasswordHash:       string(hashedPassword),
-			Name:               app.Name,
-			Role:               app.Role,
-			Phone:              "13900139000",
-			IsActive:           false,
-			ApprovalStatus:     model.ApprovalStatusPending,
-			MustChangePassword: true,
-			FirstLogin:         true,
-		}
-		s.Users[pendingUser.ID] = pendingUser
-	}
-
-	// 创建设备类型
-	cncType := &model.EquipmentType{
-		BaseModel: model.BaseModel{
-			ID:        s.nextIDInternal(),
-			CreatedAt: now,
-			UpdatedAt: now,
-		},
-		Name:     "数控机床",
-		Category: "机加工设备",
-	}
-	s.EquipmentTypes[cncType.ID] = cncType
-
-	welderType := &model.EquipmentType{
-		BaseModel: model.BaseModel{
-			ID:        s.nextIDInternal(),
-			CreatedAt: now,
-			UpdatedAt: now,
-		},
-		Name:     "焊接机器人",
-		Category: "焊接设备",
-	}
-	s.EquipmentTypes[welderType.ID] = welderType
-
-	// 创建设备
-	for i := 1; i <= 10; i++ {
-		equipment := &model.Equipment{
-			BaseModel: model.BaseModel{
-				ID:        s.nextIDInternal(),
-				CreatedAt: now,
-				UpdatedAt: now,
-			},
-			Code:       fmt.Sprintf("EQ-JJ-%03d", i),
-			Name:       fmt.Sprintf("数控机床-%d", i),
-			TypeID:     cncType.ID,
-			WorkshopID: workshop1.ID,
-			QRCode:     fmt.Sprintf("QR-EQ-JJ-%03d", i),
-			Spec:       "型号:CK6150, 功率:15kW",
-			Status:     "running",
-		}
-		purchaseDate := now.AddDate(-2, 0, 0)
-		equipment.PurchaseDate = &purchaseDate
-		s.Equipment[equipment.ID] = equipment
-	}
-
-	for i := 1; i <= 5; i++ {
-		equipment := &model.Equipment{
-			BaseModel: model.BaseModel{
-				ID:        s.nextIDInternal(),
-				CreatedAt: now,
-				UpdatedAt: now,
-			},
-			Code:       fmt.Sprintf("EQ-HJ-%03d", i),
-			Name:       fmt.Sprintf("焊接机器人-%d", i),
-			TypeID:     welderType.ID,
-			WorkshopID: workshop2.ID,
-			QRCode:     fmt.Sprintf("QR-EQ-HJ-%03d", i),
-			Spec:       "型号:ABB-IRB, 功率:8kW",
-			Status:     "running",
-		}
-		purchaseDate := now.AddDate(-1, 0, 0)
-		equipment.PurchaseDate = &purchaseDate
-		s.Equipment[equipment.ID] = equipment
-	}
-
-	// 创建点检模板
-	dailyTemplate := &model.InspectionTemplate{
-		BaseModel: model.BaseModel{
-			ID:        s.nextIDInternal(),
-			CreatedAt: now,
-			UpdatedAt: now,
-		},
-		Name:            "数控机床日常点检",
-		EquipmentTypeID: cncType.ID,
-	}
-	s.InspectionTemplates[dailyTemplate.ID] = dailyTemplate
-
-	// 创建点检项目
-	items := []string{"检查液压油位", "检查冷却液液位", "检查主轴运转", "检查安全防护装置", "清洁设备表面"}
-	for _, item := range items {
-		inspectionItem := &model.InspectionItem{
-			BaseModel: model.BaseModel{
-				ID:        s.nextIDInternal(),
-				CreatedAt: now,
-				UpdatedAt: now,
-			},
-			TemplateID: dailyTemplate.ID,
-			Name:       item,
-			Method:     "目视检查",
-			Criteria:   "正常/无异常",
-		}
-		s.InspectionItems[inspectionItem.ID] = inspectionItem
-	}
-
-	// 创建一些模拟的点检任务和记录
-	for i := 1; i <= 5; i++ {
-		scheduledDate := now.AddDate(0, 0, -i)
-		task := &model.InspectionTask{
-			BaseModel: model.BaseModel{
-				ID:        s.nextIDInternal(),
-				CreatedAt: scheduledDate,
-				UpdatedAt: scheduledDate,
-			},
-			EquipmentID:    getFirstEquipmentKey(s.Equipment),
-			TemplateID:     dailyTemplate.ID,
-			AssignedTo:     operatorUser.ID,
-			ScheduledDate:  scheduledDate,
-			Status:         model.InspectionCompleted,
-		}
-		startedAt := scheduledDate.Add(10 * time.Minute)
-		completedAt := scheduledDate.Add(25 * time.Minute)
-		task.StartedAt = &startedAt
-		task.CompletedAt = &completedAt
-		s.InspectionTasks[task.ID] = task
-
-		// 对应的完成记录
-		record := &model.InspectionRecord{
-			BaseModel: model.BaseModel{
-				ID:        s.nextIDInternal(),
-				CreatedAt: scheduledDate,
-				UpdatedAt: scheduledDate,
-			},
-			TaskID: task.ID,
-			ItemID: getFirstItemKey(s.InspectionItems),
-			Result: "OK",
-			Remark: "点检正常",
-		}
-		s.InspectionRecords[record.ID] = record
-	}
-
-	// 创建维修工单
-	reportedAt := now.AddDate(0, 0, -2)
-	startedAt := reportedAt.Add(30 * time.Minute)
-	completedAt := reportedAt.Add(4 * time.Hour)
-
-	repairOrder := &model.RepairOrder{
-		BaseModel: model.BaseModel{
-			ID:        s.nextIDInternal(),
-			CreatedAt: reportedAt,
-			UpdatedAt: completedAt,
-		},
-		EquipmentID:       getFirstEquipmentKey(s.Equipment),
-		FaultDescription:  "主轴异响，需检查轴承",
-		ReporterID:        operatorUser.ID,
-		AssignedTo:        &workerUser.ID,
-		Status:            model.RepairAudited,
-		Priority:          1,
-		Solution:          "更换主轴轴承，调整预紧力",
-		FaultCode:         "FLT-SPINDLE-001",
-		StartedAt:         &startedAt,
-		CompletedAt:       &completedAt,
-	}
-	s.RepairOrders[repairOrder.ID] = repairOrder
-
-	// 创建保养计划
-	plan := &model.MaintenancePlan{
-		BaseModel: model.BaseModel{
-			ID:        s.nextIDInternal(),
-			CreatedAt: now,
-			UpdatedAt: now,
-		},
-		Name:            "数控机床月度保养",
-		EquipmentTypeID: cncType.ID,
-		Level:           2,
-		CycleDays:       30,
-		FlexibleDays:    3,
-		WorkHours:       4.0,
-	}
-	s.MaintenancePlans[plan.ID] = plan
-
-	// 创建保养项目
-	planItems := []string{"更换液压油", "检查导轨润滑", "检查电气系统连接", "清洁冷却系统", "检查防护装置"}
-	for _, item := range planItems {
-		planItem := &model.MaintenancePlanItem{
-			BaseModel: model.BaseModel{
-				ID:        s.nextIDInternal(),
-				CreatedAt: now,
-				UpdatedAt: now,
-			},
-			PlanID: plan.ID,
-			Name:   item,
-			Method: "按操作规程执行",
-			Criteria: "功能正常，无异常",
-		}
-		s.MaintenanceItems[planItem.ID] = planItem
-	}
-
-	// 创建备件
-	spareParts := []*model.SparePart{
-		{
-			BaseModel: model.BaseModel{
-				ID:        s.nextIDInternal(),
-				CreatedAt: now,
-				UpdatedAt: now,
-			},
-			Code:         "SP-001",
-			Name:         "主轴轴承",
-			Specification: "NSK 6208",
-			Unit:         "个",
-			SafetyStock:  20,
-		},
-		{
-			BaseModel: model.BaseModel{
-				ID:        s.nextIDInternal(),
-				CreatedAt: now,
-				UpdatedAt: now,
-			},
-			Code:         "SP-002",
-			Name:         "液压油",
-			Specification: "ISO VG 46",
-			Unit:         "升",
-			SafetyStock:  50,
-		},
-	}
-	for _, part := range spareParts {
-		s.SpareParts[part.ID] = part
-
-		// 库存
-		inventory := &model.SparePartInventory{
-			BaseModel: model.BaseModel{
-				ID:        s.nextIDInternal(),
-				CreatedAt: now,
-				UpdatedAt: now,
-			},
-			SparePartID: part.ID,
-			FactoryID:   factory1.ID,
-			Quantity:    100,
-		}
-		s.SparePartInventory[inventory.ID] = inventory
-	}
-
-	// 创建知识库文章
-	article := &model.KnowledgeArticle{
-		BaseModel: model.BaseModel{
-			ID:        s.nextIDInternal(),
-			CreatedAt: now,
-			UpdatedAt: now,
-		},
-		Title:           "主轴异响处理方法",
-		EquipmentTypeID: &cncType.ID,
-		FaultPhenomenon: "主轴运转时出现异常响声",
-		CauseAnalysis:   "轴承润滑不良或轴承损坏",
-		Solution:        "1. 检查润滑系统\n2. 清洁轴承座\n3. 必要时更换轴承\n4. 调整预紧力",
-		SourceType:      "repair",
-		Tags:            []string{"主轴", "轴承", "异响"},
-		CreatedBy:       engineerUser.ID,
-	}
-	s.KnowledgeArticles[article.ID] = article
-
-	// 生成历史数据用于统计展示（过去30天）
-	s.generateHistoricalData(30)
-
-	// ============ Agent 特殊场景 Mock 数据 (用于演示审计逻辑) ============
+	// 2. 核心人物
+	admin := &model.User{BaseModel: model.BaseModel{ID: s.nextIDInternal()}, Username: "admin", PasswordHash: string(hashedPassword), Name: "系统管理员", Role: model.RoleAdmin, IsActive: true, ApprovalStatus: model.ApprovalStatusApproved}
+	s.Users[admin.ID] = admin
 	
-	// 场景 1: 短期重复故障 (Repeat Failure)
-	// 设备 1 (CNC-001) 在保养后立即发生两次相同故障
-	targetEquip := s.Equipment[1]
-	if targetEquip != nil {
-		failDate1 := now.AddDate(0, 0, -1)
-		failDate2 := now.AddDate(0, 0, -2)
+	workerLi := &model.User{BaseModel: model.BaseModel{ID: s.nextIDInternal()}, Username: "maintenance", PasswordHash: string(hashedPassword), Name: "预防型-李四", Role: model.RoleMaintenance, FactoryID: &factory.ID, IsActive: true, ApprovalStatus: model.ApprovalStatusApproved}
+	s.Users[workerLi.ID] = workerLi
+	
+	workerZhang := &model.User{BaseModel: model.BaseModel{ID: s.nextIDInternal()}, Username: "zhang_hero", PasswordHash: string(hashedPassword), Name: "救火队员-张三", Role: model.RoleMaintenance, FactoryID: &factory.ID, IsActive: true, ApprovalStatus: model.ApprovalStatusApproved}
+	s.Users[workerZhang.ID] = workerZhang
+
+	operator := &model.User{BaseModel: model.BaseModel{ID: s.nextIDInternal()}, Username: "operator", PasswordHash: string(hashedPassword), Name: "操作员小王", Role: model.RoleOperator, FactoryID: &factory.ID, IsActive: true, ApprovalStatus: model.ApprovalStatusApproved}
+	s.Users[operator.ID] = operator
+
+	// 3. 设备与备件
+	cncType := &model.EquipmentType{BaseModel: model.BaseModel{ID: s.nextIDInternal()}, Name: "高精度数控机床", Category: "加工设备"}
+	s.EquipmentTypes[cncType.ID] = cncType
+	
+	equipA := &model.Equipment{BaseModel: model.BaseModel{ID: s.nextIDInternal()}, Code: "CNC-001", Name: "李四负责-A区机床", TypeID: cncType.ID, WorkshopID: workshop.ID, Status: "running", QRCode: "QR-A"}
+	s.Equipment[equipA.ID] = equipA
+	
+	equipB := &model.Equipment{BaseModel: model.BaseModel{ID: s.nextIDInternal()}, Code: "CNC-002", Name: "张三负责-B区机床", TypeID: cncType.ID, WorkshopID: workshop.ID, Status: "stopped", QRCode: "QR-B"}
+	s.Equipment[equipB.ID] = equipB
+
+	agingEquip := &model.Equipment{BaseModel: model.BaseModel{ID: s.nextIDInternal()}, Code: "PRESS-05", Name: "12年老旧冲床", TypeID: cncType.ID, WorkshopID: workshop.ID, Status: "maintenance", QRCode: "QR-OLD"}
+	s.Equipment[agingEquip.ID] = agingEquip
+
+	pumpPart := &model.SparePart{BaseModel: model.BaseModel{ID: s.nextIDInternal()}, Code: "PUMP-01", Name: "高压柱塞泵", Unit: "台", SafetyStock: 2}
+	s.SpareParts[pumpPart.ID] = pumpPart
+	cheapFilter := &model.SparePart{BaseModel: model.BaseModel{ID: s.nextIDInternal()}, Code: "FLT-CHEAP", Name: "普通滤芯(降本件)", Unit: "个", SafetyStock: 100}
+	s.SpareParts[cheapFilter.ID] = cheapFilter
+
+	// 4. 知识库专家系统
+	kb := &model.KnowledgeArticle{
+		BaseModel: model.BaseModel{ID: s.nextIDInternal(), CreatedAt: now.AddDate(0, -5, 0)},
+		Title: "关于精密机床液压系统级联失效的风险预警",
+		EquipmentTypeID: &cncType.ID,
+		FaultPhenomenon: "油压不稳，高压泵频繁异响并烧蚀。",
+		CauseAnalysis: "根本原因在于使用了低过滤精度的非原厂滤芯。在长期超负荷运行时，廉价滤芯易产生微米级金属屑透过，直接导致价值数万元的高压泵在2周内报废。",
+		Solution: "必须使用过滤精度<5微米的增强型滤芯。一旦泵损，必须同步化验油质并更换全套密封件。",
+		CreatedBy: admin.ID,
+	}
+	s.KnowledgeArticles[kb.ID] = kb
+
+	// 5. 开启 180 天模拟循环 (半年数据)
+	for i := 180; i >= 0; i-- {
+		date := now.AddDate(0, 0, -i)
 		
-		// 故障 1
-		order1 := &model.RepairOrder{
-			BaseModel: model.BaseModel{ID: s.nextIDInternal(), CreatedAt: failDate2, UpdatedAt: failDate2},
-			EquipmentID: targetEquip.ID,
-			FaultDescription: "主轴异响 (首次发现)",
-			ReporterID: operatorUser.ID,
-			Status: model.RepairAudited,
-			Solution: "简单润滑",
-			StartedAt: &failDate2,
-			CompletedAt: &failDate2,
+		// --- 场景 A: 李四的预防性模式 ---
+		if i % 30 == 0 { // 严格月保
+			s.simulateDetailedMaintenance(equipA.ID, workerLi.ID, date, 5.0 + r.Float64())
 		}
-		s.RepairOrders[order1.ID] = order1
-		
-		// 故障 2 (发生在 24 小时内，相同描述)
-		order2 := &model.RepairOrder{
-			BaseModel: model.BaseModel{ID: s.nextIDInternal(), CreatedAt: failDate1, UpdatedAt: failDate1},
-			EquipmentID: targetEquip.ID,
-			FaultDescription: "主轴异响 (再次出现)",
-			ReporterID: operatorUser.ID,
-			Status: model.RepairPending,
-			Priority: 1,
-			StartedAt: &failDate1,
-			CompletedAt: &failDate1,
+		// 故障概率极低，且随着保养深度的积累递减
+		if r.Float64() < 0.02 { 
+			s.simulateRealisticRepair(equipA.ID, workerLi.ID, date, 800+r.Float64()*400, "传感器误报/微调")
 		}
-		s.RepairOrders[order2.ID] = order2
-	}
 
-	// 场景 2: 备件消耗异常 (Cost Deviation)
-	// 为设备 2 (CNC-002) 记录极高频率的备件更换
-	targetEquip2 := s.Equipment[2]
-	if targetEquip2 != nil {
-		// 先创建一个维修单
-		auditOrder := &model.RepairOrder{
-			BaseModel: model.BaseModel{ID: s.nextIDInternal(), CreatedAt: now.AddDate(0, 0, -10)},
-			EquipmentID: targetEquip2.ID,
-			FaultDescription: "频繁停机检查",
-			ReporterID: operatorUser.ID,
-			Status: model.RepairClosed,
-		}
-		s.RepairOrders[auditOrder.ID] = auditOrder
-
-		for i := 0; i < 5; i++ {
-			date := now.AddDate(0, 0, -i*2)
-			cons := &model.SparePartConsumption{
-				BaseModel: model.BaseModel{ID: s.nextIDInternal(), CreatedAt: date},
-				SparePartID: 1, // 主轴轴承
-				OrderID: &auditOrder.ID,
-				Quantity: 2,
-				UserID: operatorUser.ID,
+		// --- 场景 B: 张三的救火模式 ---
+		if i % 30 == 0 {
+			if i % 60 == 0 { // 经常跳过保养或草草了事
+				s.simulateDetailedMaintenance(equipB.ID, workerZhang.ID, date, 1.2 + r.Float64()*0.5)
 			}
-			s.SparePartConsumption[cons.ID] = cons
+		}
+		// 故障概率逐渐升高，最终爆发大事故
+		prob := 0.05 + (1.0 - float64(i)/180.0)*0.3 
+		if r.Float64() < prob {
+			cost := 1500.0 + r.Float64()*1000.0
+			desc := "一般液压报警"
+			if i < 30 { // 最近一个月爆发级联失效
+				cost = 45000.0 + r.Float64()*10000.0
+				desc = "高压泵抱死毁坏"
+			}
+			s.simulateRealisticRepair(equipB.ID, workerZhang.ID, date, cost, desc)
+		}
+
+		// --- 场景 C: PRESS-05 资产老化轨迹 ---
+		if i % 20 == 0 {
+			// 故障修复时间逐渐拉长，体现配件难寻
+			repairTime := 2.0 + (1.0 - float64(i)/180.0)*12.0 
+			cost := 4000.0 * (1.2 + (1.0 - float64(i)/180.0)*5.0)
+			s.simulateAgingRepair(agingEquip.ID, workerLi.ID, date, cost, repairTime)
+		}
+
+		// 生成高负载运行快照 (揭示压力)
+		s.RuntimeSnapshots[s.nextIDInternal()] = &model.EquipmentRuntimeSnapshot{
+			EquipmentID: equipB.ID, SnapshotDate: date.Format("2006-01-02"),
+			RuntimeHours: 22.5, LoadRate: 1.12, // 长期 112% 负荷
 		}
 	}
 }
 
-// generateHistoricalData 生成历史数据用于统计分析
-func (s *Store) generateHistoricalData(days int) {
-	// 获取操作员和维修工用户ID
-	var operatorID, workerID uint
-	for _, u := range s.Users {
-		if u.Role == model.RoleOperator && operatorID == 0 {
-			operatorID = u.ID
-		}
-		if u.Role == model.RoleMaintenance && workerID == 0 {
-			workerID = u.ID
-		}
+func (s *Store) simulateDetailedMaintenance(equipID, workerID uint, date time.Time, hours float64) {
+	t := &model.MaintenanceTask{
+		BaseModel: model.BaseModel{ID: s.nextIDInternal(), CreatedAt: date},
+		EquipmentID: equipID, AssignedTo: workerID, Status: model.MaintenanceCompleted,
+		ScheduledDate: date.Format("2006-01-02"), ActualHours: hours,
+		Remark: "已执行深度检查和油质分析",
 	}
-	if operatorID == 0 || workerID == 0 {
-		return
+	s.MaintenanceTasks[t.ID] = t
+}
+
+func (s *Store) simulateRealisticRepair(equipID, workerID uint, date time.Time, totalCost float64, desc string) {
+	order := &model.RepairOrder{
+		BaseModel: model.BaseModel{ID: s.nextIDInternal(), CreatedAt: date},
+		EquipmentID: equipID, FaultDescription: desc, Status: model.RepairAudited,
+		Solution: "现场紧急处置", StartedAt: &date, CompletedAt: &date,
 	}
-
-	// 获取第一个保养计划ID
-	var planID uint
-	for id := range s.MaintenancePlans {
-		planID = id
-		break
-	}
-
-	// 获取所有设备ID
-	var equipmentIDs []uint
-	for id := range s.Equipment {
-		equipmentIDs = append(equipmentIDs, id)
-	}
-	if len(equipmentIDs) == 0 {
-		return
-	}
-
-	// 获取点检模板ID
-	var templateIDs []uint
-	for id := range s.InspectionTemplates {
-		templateIDs = append(templateIDs, id)
-	}
-	if len(templateIDs) == 0 {
-		return
-	}
-
-	// 获取点检项目ID
-	var itemIDs []uint
-	for id := range s.InspectionItems {
-		itemIDs = append(itemIDs, id)
-	}
-	if len(itemIDs) == 0 {
-		return
-	}
-
-	now := time.Now()
-
-	// 生成过去N天的数据
-	for day := 0; day < days; day++ {
-		date := now.AddDate(0, 0, -day)
-
-		// 每天生成点检任务和记录（约80%完成率）
-		dailyTaskCount := 8 + (day % 5)
-		for i := 0; i < dailyTaskCount; i++ {
-			equipmentID := equipmentIDs[i%len(equipmentIDs)]
-			templateID := templateIDs[0]
-
-			scheduledDate := date
-			var startedAt, completedAt *time.Time
-			status := model.InspectionCompleted
-
-			sat := scheduledDate.Add(8*time.Hour + time.Duration(i*10)*time.Minute)
-			cat := sat.Add(15*time.Minute + time.Duration(i%5)*time.Minute)
-			startedAt = &sat
-			completedAt = &cat
-
-			// 20%未完成
-			if day%5 == 0 && i >= dailyTaskCount-2 {
-				status = model.InspectionPending
-				startedAt = nil
-				completedAt = nil
-			}
-
-			task := &model.InspectionTask{
-				BaseModel: model.BaseModel{
-					ID:        s.nextIDInternal(),
-					CreatedAt: scheduledDate,
-					UpdatedAt: scheduledDate,
-				},
-				EquipmentID:    equipmentID,
-				TemplateID:     templateID,
-				AssignedTo:     operatorID,
-				ScheduledDate:  scheduledDate,
-				Status:         status,
-				StartedAt:      startedAt,
-				CompletedAt:    completedAt,
-			}
-			s.InspectionTasks[task.ID] = task
-
-			// 已完成的任务生成记录
-			if status == model.InspectionCompleted {
-				record := &model.InspectionRecord{
-					BaseModel: model.BaseModel{
-						ID:        s.nextIDInternal(),
-						CreatedAt: scheduledDate,
-						UpdatedAt: scheduledDate,
-					},
-					TaskID: task.ID,
-					ItemID: itemIDs[i%len(itemIDs)],
-					Result: "OK",
-					Remark:  "点检正常",
-				}
-				s.InspectionRecords[record.ID] = record
-			}
-		}
-
-		// 生成维修工单（约30%的天数有故障）
-		repairCount := 0
-		if day%3 != 0 {
-			repairCount = 1 + (day % 3)
-		}
-		for i := 0; i < repairCount; i++ {
-			equipmentID := equipmentIDs[i%len(equipmentIDs)]
-			reportedAt := date.Add(10*time.Hour + time.Duration(i*2)*time.Hour)
-			startedAt := reportedAt.Add(30 * time.Minute)
-			completedAt := startedAt.Add(time.Duration(2+i) * time.Hour)
-
-			// 计算停机时长（小时）
-			downtimeHours := completedAt.Sub(startedAt).Hours()
-
-			repairOrder := &model.RepairOrder{
-				BaseModel: model.BaseModel{
-					ID:        s.nextIDInternal(),
-					CreatedAt: reportedAt,
-					UpdatedAt: completedAt,
-				},
-				EquipmentID:       equipmentID,
-				FaultDescription:  "设备故障，需要维修",
-				ReporterID:        operatorID,
-				AssignedTo:        &workerID,
-				Status:            model.RepairAudited,
-				Priority:          int(day%3) + 1,
-				Solution:          "更换故障部件，恢复正常运行",
-				FaultCode:         fmt.Sprintf("FLT-%03d", day%10),
-				StartedAt:         &startedAt,
-				CompletedAt:       &completedAt,
-			}
-			s.RepairOrders[repairOrder.ID] = repairOrder
-
-			// 维修日志（在Content字段中记录停机时长）
-			repairLog := &model.RepairLog{
-				BaseModel: model.BaseModel{
-					ID:        s.nextIDInternal(),
-					CreatedAt: startedAt,
-					UpdatedAt: startedAt,
-				},
-				OrderID:  repairOrder.ID,
-				UserID:   workerID,
-				Action:   "开始维修",
-				Content:  fmt.Sprintf("停机时长: %.2f小时", downtimeHours),
-			}
-			s.RepairLogs[repairLog.ID] = repairLog
-		}
-
-		// 生成保养任务（约60%的天数有保养）
-		if day%5 != 0 && planID > 0 {
-			maintenanceCount := 2 + (day % 4)
-			for i := 0; i < maintenanceCount; i++ {
-				equipmentID := equipmentIDs[i%len(equipmentIDs)]
-				scheduledDate := date.Add(14 * time.Hour)
-
-				var startedAt, completedAt *time.Time
-				status := model.MaintenanceCompleted
-
-				sat := scheduledDate
-				cat := scheduledDate.Add(time.Duration(2+i%3) * time.Hour)
-				startedAt = &sat
-				completedAt = &cat
-
-				if day%7 == 0 && i == 0 {
-					status = model.MaintenancePending
-					startedAt = nil
-					completedAt = nil
-				}
-
-				task := &model.MaintenanceTask{
-					BaseModel: model.BaseModel{
-						ID:        s.nextIDInternal(),
-						CreatedAt: scheduledDate,
-						UpdatedAt: scheduledDate,
-					},
-					EquipmentID:    equipmentID,
-					PlanID:         planID,
-					ScheduledDate:  scheduledDate.Format("2006-01-02"),
-					AssignedTo:     workerID,
-					Status:         status,
-					StartedAt:      startedAt,
-					CompletedAt:    completedAt,
-				}
-				s.MaintenanceTasks[task.ID] = task
-
-				if status == model.MaintenanceCompleted {
-					// 获取保养项目ID
-					var maintenanceItemID uint
-					for id := range s.MaintenanceItems {
-						maintenanceItemID = id
-						break
-					}
-
-					record := &model.MaintenanceRecord{
-						BaseModel: model.BaseModel{
-							ID:        s.nextIDInternal(),
-							CreatedAt: scheduledDate,
-							UpdatedAt: scheduledDate,
-						},
-						TaskID:     task.ID,
-						ItemID:     maintenanceItemID,
-						Result:     "合格",
-						Remark:     "保养完成",
-					}
-					s.MaintenanceRecords[record.ID] = record
-				}
-			}
-		}
+	s.RepairOrders[order.ID] = order
+	s.RepairCostDetails[s.nextIDInternal()] = &model.RepairCostDetail{
+		OrderID: order.ID, SparePartCost: totalCost * 0.85, LaborCost: totalCost * 0.15,
 	}
 }
 
-func getFirstEquipmentKey(m map[uint]*model.Equipment) uint {
-	for k := range m {
-		return k
+func (s *Store) simulateAgingRepair(equipID, workerID uint, date time.Time, cost, hours float64) {
+	order := &model.RepairOrder{
+		BaseModel: model.BaseModel{ID: s.nextIDInternal(), CreatedAt: date},
+		EquipmentID: equipID, FaultDescription: "老化性失效/配件停产", Status: model.RepairAudited,
+		StartedAt: &date, CompletedAt: &date,
 	}
-	return 1
-}
-
-func getFirstItemKey(m map[uint]*model.InspectionItem) uint {
-	for k := range m {
-		return k
+	s.RepairOrders[order.ID] = order
+	s.RepairCostDetails[s.nextIDInternal()] = &model.RepairCostDetail{
+		OrderID: order.ID, SparePartCost: cost, LaborCost: 200 * hours,
 	}
-	return 1
+	// 在日志中记录超长的修复时间
+	s.RepairLogs[s.nextIDInternal()] = &model.RepairLog{
+		OrderID: order.ID, UserID: workerID, Action: "维修完成",
+		Content: fmt.Sprintf("修复工时: %.1f小时", hours),
+	}
 }
 
-// Close 关闭存储（内存模式无需操作）
-func (s *Store) Close() error {
-	return nil
-}
+// ... (此处省略原有的辅助方法，如 AddUser, FindUser 等，保持不变) ...
 
-// AddRepairOrder 添加维修工单
 func (s *Store) AddRepairOrder(order *model.RepairOrder) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.RepairOrders[order.ID] = order
 }
 
-// ============ Organization 辅助方法 ============
-
 func (s *Store) AddBase(id uint, base *model.Base) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.Bases[id] = base
 }
+
+func (s *Store) AddFactory(id uint, factory *model.Factory) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.Factories[id] = factory
+}
+
+func (s *Store) AddWorkshop(id uint, workshop *model.Workshop) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.Workshops[id] = workshop
+}
+
+func (s *Store) AddUser(id uint, user *model.User) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.Users[id] = user
+}
+
+func (s *Store) FindUser(id uint) *model.User {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.Users[id]
+}
+
+func (s *Store) NextIDInternal() uint {
+	return s.nextIDInternal()
+}
+
+// ============ Organization 辅助方法 ============
 
 func (s *Store) UpdateBase(id uint, fn func(*model.Base)) bool {
 	s.mu.Lock()
@@ -881,12 +348,6 @@ func (s *Store) DeleteBase(id uint) bool {
 	return false
 }
 
-func (s *Store) AddFactory(id uint, factory *model.Factory) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.Factories[id] = factory
-}
-
 func (s *Store) UpdateFactory(id uint, fn func(*model.Factory)) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -905,12 +366,6 @@ func (s *Store) DeleteFactory(id uint) bool {
 		return true
 	}
 	return false
-}
-
-func (s *Store) AddWorkshop(id uint, workshop *model.Workshop) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.Workshops[id] = workshop
 }
 
 func (s *Store) UpdateWorkshop(id uint, fn func(*model.Workshop)) bool {
@@ -1193,14 +648,8 @@ func (s *Store) DeleteKnowledgeArticle(id uint) bool {
 	return false
 }
 
-// AddUser 添加用户
-func (s *Store) AddUser(id uint, user *model.User) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.Users[id] = user
-}
+// ============ User 辅助方法 ============
 
-// UpdateUser 更新用户（回调函数持有锁）
 func (s *Store) UpdateUser(id uint, fn func(*model.User)) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -1211,7 +660,6 @@ func (s *Store) UpdateUser(id uint, fn func(*model.User)) bool {
 	return false
 }
 
-// GetUsers 获取所有用户
 func (s *Store) GetUsers() []*model.User {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -1222,7 +670,6 @@ func (s *Store) GetUsers() []*model.User {
 	return users
 }
 
-// FindUserByUsername 根据用户名查找用户
 func (s *Store) FindUserByUsername(username string) *model.User {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -1234,9 +681,6 @@ func (s *Store) FindUserByUsername(username string) *model.User {
 	return nil
 }
 
-// FindUser 根据ID查找用户
-func (s *Store) FindUser(id uint) *model.User {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.Users[id]
+func (s *Store) Close() error {
+	return nil
 }

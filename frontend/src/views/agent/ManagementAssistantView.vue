@@ -33,6 +33,19 @@
                 <el-button type="primary" class="action-btn" @click="handleRunMaintenance" :loading="loading">
                   生成建议
                 </el-button>
+
+                <el-collapse class="advanced-settings">
+                  <el-collapse-item title="高级设置" name="1">
+                    <el-form-item label="自定义 Prompt">
+                      <el-input
+                        v-model="maintenanceForm.system_prompt"
+                        type="textarea"
+                        :rows="5"
+                        placeholder="输入自定义分析指令，留空使用内置专家模板"
+                      />
+                    </el-form-item>
+                  </el-collapse-item>
+                </el-collapse>
               </el-form>
             </el-tab-pane>
 
@@ -57,6 +70,19 @@
                 <el-button type="warning" class="action-btn" @click="handleRunRepairAudit" :loading="loading">
                   运行审计
                 </el-button>
+
+                <el-collapse class="advanced-settings">
+                  <el-collapse-item title="高级设置" name="1">
+                    <el-form-item label="自定义 Prompt">
+                      <el-input
+                        v-model="repairForm.system_prompt"
+                        type="textarea"
+                        :rows="5"
+                        placeholder="输入自定义审计指令，留空使用内置专家模板"
+                      />
+                    </el-form-item>
+                  </el-collapse-item>
+                </el-collapse>
               </el-form>
             </el-tab-pane>
           </el-tabs>
@@ -160,12 +186,14 @@ const factories = ref<Factory[]>([])
 
 const maintenanceForm = ref({
   equipment_type_id: null as number | null,
-  dateRange: [] as string[]
+  dateRange: [] as string[],
+  system_prompt: ''
 })
 
 const repairForm = ref({
   factory_id: null as number | null,
-  dateRange: [] as string[]
+  dateRange: [] as string[],
+  system_prompt: ''
 })
 
 const hasItems = computed(() => {
@@ -192,7 +220,8 @@ async function handleRunMaintenance() {
       time_range: {
         start_date: maintenanceForm.value.dateRange[0] || '2026-01-01',
         end_date: maintenanceForm.value.dateRange[1] || '2026-04-25'
-      }
+      },
+      system_prompt: maintenanceForm.value.system_prompt || undefined
     })
     result.value = res.data
     await loadSessions()
@@ -212,7 +241,8 @@ async function handleRunRepairAudit() {
       time_range: {
         start_date: repairForm.value.dateRange[0] || '2026-01-01',
         end_date: repairForm.value.dateRange[1] || '2026-04-25'
-      }
+      },
+      system_prompt: repairForm.value.system_prompt || undefined
     })
     result.value = res.data
     await loadSessions()
