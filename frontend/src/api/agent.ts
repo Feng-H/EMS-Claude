@@ -73,6 +73,9 @@ export const agentApi = {
   auditRepair: (data: RepairAuditRequest) => 
     request.post<AgentResponse<any>>('/agent/audit/repair', data),
     
+  listSessions: () => 
+    request.get<any[]>('/agent/sessions'),
+    
   getSession: (id: number) => 
     request.get<any>(`/agent/sessions/${id}`),
     

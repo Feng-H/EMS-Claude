@@ -1,6 +1,7 @@
 package service
 
 import (
+	"encoding/json"
 	"github.com/ems/backend/internal/agent/analyzer"
 	"github.com/ems/backend/internal/agent/dto"
 	"github.com/ems/backend/internal/agent/policy"
@@ -101,6 +102,44 @@ func (s *AgentService) RecommendMaintenance(userID uint, role string, req *dto.M
 		summary = analysisResult.Recommendations[0].Description + "。" + analysisResult.Recommendations[0].Reason
 	}
 
+	// 5. Persist session and artifact
+	inputSnap, _ := json.Marshal(req)
+	resultJSON, _ := json.Marshal(analysisResult)
+	
+	session := &model.AgentSession{
+		UserID:        userID,
+		Scenario:      "maintenance_recommendation",
+		FactoryID:     &targetFactoryID,
+		Language:      agentCtx.Language,
+		InputSnapshot: string(inputSnap),
+		TraceID:       traceID,
+		Status:        "completed",
+	}
+	_ = s.repo.CreateSession(session)
+
+	artifact := &model.AgentArtifact{
+		SessionID:    session.ID,
+		ArtifactType: "recommendation",
+		Title:        "设备保养优化建议",
+		Summary:      summary,
+		ResultJSON:   string(resultJSON),
+		RiskLevel:    "medium",
+	}
+	_ = s.repo.CreateArtifact(artifact)
+
+	// Add evidence links
+	for _, ev := range analysisResult.Evidence {
+		link := model.AgentEvidenceLink{
+			ArtifactID:   artifact.ID,
+			EvidenceType: ev.EvidenceType,
+			SourceTable:  ev.SourceTable,
+			SourceID:     ev.SourceID,
+			Excerpt:      ev.Excerpt,
+			Score:        ev.Score,
+		}
+		_ = s.repo.CreateEvidenceLinks([]model.AgentEvidenceLink{link})
+	}
+
 	return &dto.AgentResponseEnvelope{
 		Success:  true,
 		TraceID:  traceID,
@@ -111,6 +150,7 @@ func (s *AgentService) RecommendMaintenance(userID uint, role string, req *dto.M
 		},
 		Summary:       summary,
 		RiskLevel:     "medium",
+		ArtifactID:    artifact.ID,
 		EvidenceCount: len(analysisResult.Evidence),
 		Data:          analysisResult,
 	}, nil
@@ -158,6 +198,44 @@ func (s *AgentService) AuditRepair(userID uint, role string, req *dto.RepairAudi
 		}
 	}
 
+	// 5. Persist session and artifact
+	inputSnap, _ := json.Marshal(req)
+	resultJSON, _ := json.Marshal(analysisResult)
+
+	session := &model.AgentSession{
+		UserID:        userID,
+		Scenario:      "repair_audit",
+		FactoryID:     &targetFactoryID,
+		Language:      agentCtx.Language,
+		InputSnapshot: string(inputSnap),
+		TraceID:       traceID,
+		Status:        "completed",
+	}
+	_ = s.repo.CreateSession(session)
+
+	artifact := &model.AgentArtifact{
+		SessionID:    session.ID,
+		ArtifactType: "audit_report",
+		Title:        "设备维修审计报告",
+		Summary:      summary,
+		ResultJSON:   string(resultJSON),
+		RiskLevel:    "high",
+	}
+	_ = s.repo.CreateArtifact(artifact)
+
+	// Add evidence links
+	for _, ev := range analysisResult.Evidence {
+		link := model.AgentEvidenceLink{
+			ArtifactID:   artifact.ID,
+			EvidenceType: ev.EvidenceType,
+			SourceTable:  ev.SourceTable,
+			SourceID:     ev.SourceID,
+			Excerpt:      ev.Excerpt,
+			Score:        ev.Score,
+		}
+		_ = s.repo.CreateEvidenceLinks([]model.AgentEvidenceLink{link})
+	}
+
 	return &dto.AgentResponseEnvelope{
 		Success:  true,
 		TraceID:  traceID,
@@ -168,6 +246,7 @@ func (s *AgentService) AuditRepair(userID uint, role string, req *dto.RepairAudi
 		},
 		Summary:       summary,
 		RiskLevel:     "high",
+		ArtifactID:    artifact.ID,
 		EvidenceCount: len(analysisResult.Evidence),
 		Data:          analysisResult,
 	}, nil
@@ -199,12 +278,83 @@ func (s *AgentService) Analyze(userID uint, role string, req *dto.AnalyzeRequest
 	}, nil
 }
 
+func (s *AgentService) ListSessions(userID uint, limit int) ([]dto.AgentSessionResponse, error) {
+	sessions, err := s.repo.ListSessionsByUserID(userID, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	results := make([]dto.AgentSessionResponse, len(sessions))
+	for i, s := range sessions {
+		results[i] = dto.AgentSessionResponse{
+			ID:         s.ID,
+			UserID:     s.UserID,
+			Scenario:   s.Scenario,
+			Language:   s.Language,
+			Status:     s.Status,
+			TraceID:    s.TraceID,
+			CreatedAt:  s.CreatedAt,
+		}
+		if s.FactoryID != nil {
+			results[i].FactoryID = *s.FactoryID
+		}
+	}
+	return results, nil
+}
+
 func (s *AgentService) GetSession(id uint) (*dto.AgentSessionResponse, error) {
-	// TODO: Implement logic
-	return &dto.AgentSessionResponse{ID: id}, nil
+	session, err := s.repo.GetSessionByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	res := &dto.AgentSessionResponse{
+		ID:         session.ID,
+		UserID:     session.UserID,
+		Scenario:   session.Scenario,
+		Language:   session.Language,
+		Status:     session.Status,
+		TraceID:    session.TraceID,
+		CreatedAt:  session.CreatedAt,
+	}
+	if session.FactoryID != nil {
+		res.FactoryID = *session.FactoryID
+	}
+	
+	for _, a := range session.Artifacts {
+		res.Artifacts = append(res.Artifacts, a.ID)
+	}
+
+	return res, nil
 }
 
 func (s *AgentService) GetArtifact(id uint) (*dto.AgentArtifactResponse, error) {
-	// TODO: Implement logic
-	return &dto.AgentArtifactResponse{ID: id}, nil
+	artifact, err := s.repo.GetArtifactByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	res := &dto.AgentArtifactResponse{
+		ID:           artifact.ID,
+		SessionID:    artifact.SessionID,
+		ArtifactType: artifact.ArtifactType,
+		Title:        artifact.Title,
+		Summary:      artifact.Summary,
+		RiskLevel:    artifact.RiskLevel,
+		CreatedAt:    artifact.CreatedAt,
+	}
+
+	_ = json.Unmarshal([]byte(artifact.ResultJSON), &res.ResultJSON)
+
+	for _, ev := range artifact.EvidenceLinks {
+		res.Evidence = append(res.Evidence, dto.EvidenceItem{
+			EvidenceType: ev.EvidenceType,
+			SourceTable:  ev.SourceTable,
+			SourceID:     ev.SourceID,
+			Excerpt:      ev.Excerpt,
+			Score:        ev.Score,
+		})
+	}
+
+	return res, nil
 }

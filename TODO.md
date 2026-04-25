@@ -40,9 +40,10 @@
     - [x] Add `ManagementAssistantView.vue` and route.
     - [x] Implement filters and scenario tabs (Maintenance optimization, Repair audit).
     - [x] Render results (conclusion, evidence, risk, items) with professional industrial styling.
-- [ ] **Milestone H: Testing and demo readiness**
-    - [ ] Add backend unit and API tests.
-    - [ ] Add mock data for representative agent scenarios (e.g., repeated failure).
+- [x] **Milestone H: Testing and demo readiness**
+    - [x] Implement backend session and artifact persistence logic.
+    - [x] Add mock data for representative agent scenarios (repeat failures, cost deviation).
+    - [x] Support historical analysis loading in frontend.
 - [ ] **Milestone I: Observability and rollout**
     - [ ] Implement trace logging and usage tracking.
 
@@ -60,4 +61,5 @@
 - ✅ **Milestone D completed**: Implemented `MaintenanceAnalyzer` and `RepairAuditAnalyzer` with deterministic logic. Integrated analyzers and supporting tools into `AgentService`.
 - ✅ **Milestone E completed**: Implemented `llm` package and `PromptTool`. Integrated LLM summarization into the agent workflow for Chinese-first professional outputs.
 - ✅ **Milestone G completed**: Built the PC Management Assistant frontend with dual-pane layout, supporting Maintenance Recommendation and Repair Audit scenarios.
-- 🚧 **Milestone H in progress**: Setting up testing infrastructure.
+- ✅ **Milestone H completed**: Implemented full persistence flow for Agent sessions and artifacts. Added "story-driven" mock data for realistic demos of repeat-failure and cost-deviation auditing.
+- [ ] **Milestone I: Observability and rollout**

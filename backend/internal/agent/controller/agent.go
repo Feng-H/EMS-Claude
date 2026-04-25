@@ -170,6 +170,22 @@ func (ctrl *AgentController) Analyze(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
+// ListSessions returns user's recent agent sessions
+// @Summary List agent sessions
+// @Tags agent
+// @Router /agent/sessions [get]
+func (ctrl *AgentController) ListSessions(c *gin.Context) {
+	userID, _ := middleware.GetUserID(c)
+	
+	result, err := ctrl.agentService.ListSessions(userID, 10)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
 // GetSession returns session metadata
 // @Summary Get agent session
 // @Tags agent

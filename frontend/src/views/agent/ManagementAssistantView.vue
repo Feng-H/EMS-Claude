@@ -185,7 +185,7 @@ async function handleRunMaintenance() {
     return
   }
   
-  loading.ref = true
+  loading.value = true
   try {
     const res = await agentApi.recommendMaintenance({
       equipment_type_id: maintenanceForm.value.equipment_type_id!,
@@ -195,6 +195,7 @@ async function handleRunMaintenance() {
       }
     })
     result.value = res.data
+    await loadSessions()
   } catch (error: any) {
     ElMessage.error('分析失败: ' + (error.response?.data?.error?.message || error.message))
   } finally {
@@ -214,6 +215,7 @@ async function handleRunRepairAudit() {
       }
     })
     result.value = res.data
+    await loadSessions()
   } catch (error: any) {
     ElMessage.error('分析失败: ' + (error.response?.data?.error?.message || error.message))
   } finally {
@@ -221,8 +223,43 @@ async function handleRunRepairAudit() {
   }
 }
 
+async function loadSessions() {
+  try {
+    const res = await agentApi.listSessions()
+    sessions.value = res.data
+  } catch (error) {
+    console.error('Failed to load sessions:', error)
+  }
+}
+
 async function loadSession(id: number) {
-  // Mock session loading
+  loading.value = true
+  try {
+    const sessionRes = await agentApi.getSession(id)
+    if (sessionRes.data.artifacts?.length > 0) {
+      const artifactId = sessionRes.data.artifacts[0]
+      const artifactRes = await agentApi.getArtifact(artifactId)
+      
+      // Map artifact back to AgentResponse shape for rendering
+      const art = artifactRes.data
+      result.value = {
+        success: true,
+        trace_id: sessionRes.data.trace_id,
+        language: sessionRes.data.language,
+        scenario: sessionRes.data.scenario,
+        scope_summary: {},
+        summary: art.summary,
+        risk_level: art.risk_level,
+        artifact_id: art.id,
+        evidence_count: art.evidence?.length || 0,
+        data: art.result_json
+      }
+    }
+  } catch (error) {
+    ElMessage.error('加载历史记录失败')
+  } finally {
+    loading.value = false
+  }
 }
 
 function formatDate(dateStr: string) {
@@ -233,7 +270,8 @@ onMounted(async () => {
   try {
     const [typesRes, factoriesRes] = await Promise.all([
       equipmentApi.getTypes(),
-      equipmentApi.getFactories()
+      equipmentApi.getFactories(),
+      loadSessions()
     ])
     equipmentTypes.value = typesRes.data
     factories.value = factoriesRes.data

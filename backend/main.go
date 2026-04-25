@@ -345,6 +345,7 @@ func setupMemoryRoutes(router *gin.Engine) {
 				agent.POST("/audit/repair", agentCtrl.AuditRepair)
 				agent.POST("/audit/maintenance", agentCtrl.AuditMaintenance)
 				agent.POST("/analyze", agentCtrl.Analyze)
+				agent.GET("/sessions", agentCtrl.ListSessions)
 				agent.GET("/sessions/:id", agentCtrl.GetSession)
 				agent.GET("/artifacts/:id", agentCtrl.GetArtifact)
 			}
@@ -529,6 +530,7 @@ func setupDatabaseRoutes(router *gin.Engine) {
 				agent.POST("/audit/repair", agentCtrl.AuditRepair)
 				agent.POST("/audit/maintenance", agentCtrl.AuditMaintenance)
 				agent.POST("/analyze", agentCtrl.Analyze)
+				agent.GET("/sessions", agentCtrl.ListSessions)
 				agent.GET("/sessions/:id", agentCtrl.GetSession)
 				agent.GET("/artifacts/:id", agentCtrl.GetArtifact)
 			}

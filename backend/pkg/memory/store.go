@@ -538,6 +538,59 @@ func (s *Store) InitMockData() {
 
 	// 生成历史数据用于统计展示（过去30天）
 	s.generateHistoricalData(30)
+
+	// ============ Agent 特殊场景 Mock 数据 (用于演示审计逻辑) ============
+	
+	// 场景 1: 短期重复故障 (Repeat Failure)
+	// 设备 1 (CNC-001) 在保养后立即发生两次相同故障
+	targetEquip := s.Equipment[1]
+	if targetEquip != nil {
+		failDate1 := now.AddDate(0, 0, -1)
+		failDate2 := now.AddDate(0, 0, -2)
+		
+		// 故障 1
+		order1 := &model.RepairOrder{
+			BaseModel: model.BaseModel{ID: s.nextIDInternal(), CreatedAt: failDate2, UpdatedAt: failDate2},
+			EquipmentID: targetEquip.ID,
+			FaultDescription: "主轴异响 (首次发现)",
+			ReporterID: operatorUser.ID,
+			Status: model.RepairAudited,
+			Solution: "简单润滑",
+			StartedAt: &failDate2,
+			CompletedAt: &failDate2,
+		}
+		s.RepairOrders[order1.ID] = order1
+		
+		// 故障 2 (发生在 24 小时内，相同描述)
+		order2 := &model.RepairOrder{
+			BaseModel: model.BaseModel{ID: s.nextIDInternal(), CreatedAt: failDate1, UpdatedAt: failDate1},
+			EquipmentID: targetEquip.ID,
+			FaultDescription: "主轴异响 (再次出现)",
+			ReporterID: operatorUser.ID,
+			Status: model.RepairPending,
+			Priority: 1,
+			StartedAt: &failDate1,
+			CompletedAt: &failDate1,
+		}
+		s.RepairOrders[order2.ID] = order2
+	}
+
+	// 场景 2: 备件消耗异常 (Cost Deviation)
+	// 为设备 2 (CNC-002) 记录极高频率的备件更换
+	targetEquip2 := s.Equipment[2]
+	if targetEquip2 != nil {
+		for i := 0; i < 5; i++ {
+			date := now.AddDate(0, 0, -i*2)
+			cons := &model.SparePartConsumption{
+				BaseModel: model.BaseModel{ID: s.nextIDInternal(), CreatedAt: date},
+				EquipmentID: targetEquip2.ID,
+				SparePartID: 1, // 主轴轴承
+				Quantity: 2,
+				UsageType: "repair",
+			}
+			s.SparePartConsumption[cons.ID] = cons
+		}
+	}
 }
 
 // generateHistoricalData 生成历史数据用于统计分析
