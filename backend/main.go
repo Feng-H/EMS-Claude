@@ -147,6 +147,11 @@ func runDatabaseMode() {
 	v1.InitAnalytics()
 	v1.InitKnowledge()
 
+	// 补种演示数据 (Milestone: Data Parity)
+	if err := repository.SeedDatabase(database.GetDB()); err != nil {
+		log.Printf("Warning: Seeding failed: %v", err)
+	}
+
 	// Setup Gin
 	gin.SetMode(config.Cfg.Server.Mode)
 	router := gin.Default()
