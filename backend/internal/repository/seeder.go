@@ -123,3 +123,7 @@ func SeedDatabase(db *gorm.DB) error {
 	log.Println("✅ Comprehensive Seeding Complete. Login with admin/admin123 now!")
 	return nil
 }
+
+func timePtr(t time.Time) *time.Time {
+	return &t
+}
