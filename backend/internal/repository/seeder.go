@@ -9,18 +9,8 @@ import (
 	"gorm.io/gorm"
 )
 
-// SeedDatabase 全模块演示数据补全逻辑 (动态哈希加固版)
+// SeedDatabase 全模块演示数据补全逻辑 (强制对齐版)
 func SeedDatabase(db *gorm.DB) error {
-	// 1. 检查核心管理员是否存在
-	var adminUser model.User
-	err := db.Where("username = ?", "admin").First(&adminUser).Error
-	
-	if err == nil {
-		log.Println("Admin user already exists, skipping seeding.")
-		return nil
-	}
-
-	log.Println("🚀 Database seems empty or missing core users. Starting seeding...")
 	now := time.Now()
 	
 	// 动态生成哈希，确保 100% 匹配
@@ -31,23 +21,39 @@ func SeedDatabase(db *gorm.DB) error {
 	}
 	hp := string(hashedBytes)
 
-	// 2. Organization
-	base := model.Base{Code: "BASE-HQ", Name: "集团总部基地"}
-	db.Create(&base)
-	fac := model.Factory{BaseID: base.ID, Code: "FAC-SZ", Name: "苏州智能工厂"}
-	db.Create(&fac)
-	ws1 := model.Workshop{FactoryID: fac.ID, Code: "WS-MCH", Name: "精密机加车间"}
-	ws2 := model.Workshop{FactoryID: fac.ID, Code: "WS-ASM", Name: "全自动装配车间"}
-	db.Create([]*model.Workshop{&ws1, &ws2})
+	// 1. 检查核心管理员
+	var adminUser model.User
+	err = db.Where("username = ?", "admin").First(&adminUser).Error
+	
+	if err == nil {
+		// 如果 admin 已存在，强制重置密码和状态，确保能登入
+		log.Println("Admin exists, force-resetting password and status to admin123...")
+		db.Model(&adminUser).Updates(map[string]interface{}{
+			"password_hash":   hp,
+			"is_active":       true,
+			"approval_status": model.ApprovalStatusApproved,
+		})
+	} else {
+		// 如果不存在，创建它
+		log.Println("🚀 Seeding admin and other core users...")
+		adminUser = model.User{Username: "admin", PasswordHash: hp, Name: "系统管理员", Role: model.RoleAdmin, IsActive: true, ApprovalStatus: model.ApprovalStatusApproved}
+		db.Create(&adminUser)
+		
+		liSi := model.User{Username: "maint_li", PasswordHash: hp, Name: "预防型-李四", Role: model.RoleMaintenance, FactoryID: nil, IsActive: true, ApprovalStatus: model.ApprovalStatusApproved}
+		zs := model.User{Username: "maint_zhang", PasswordHash: hp, Name: "救火型-张三", Role: model.RoleMaintenance, FactoryID: nil, IsActive: true, ApprovalStatus: model.ApprovalStatusApproved}
+		op := model.User{Username: "operator", PasswordHash: hp, Name: "操作员小王", Role: model.RoleOperator, FactoryID: nil, IsActive: true, ApprovalStatus: model.ApprovalStatusApproved}
+		db.Create([]*model.User{&liSi, &zs, &op})
+	}
 
-	// 3. Users
-	admin := model.User{Username: "admin", PasswordHash: hp, Name: "系统管理员", Role: model.RoleAdmin, IsActive: true, ApprovalStatus: model.ApprovalStatusApproved}
-	liSi := model.User{Username: "maint_li", PasswordHash: hp, Name: "预防型-李四", Role: model.RoleMaintenance, FactoryID: &fac.ID, IsActive: true, ApprovalStatus: model.ApprovalStatusApproved}
-	zs := model.User{Username: "maint_zhang", PasswordHash: hp, Name: "救火型-张三", Role: model.RoleMaintenance, FactoryID: &fac.ID, IsActive: true, ApprovalStatus: model.ApprovalStatusApproved}
-	op := model.User{Username: "operator", PasswordHash: hp, Name: "操作员小王", Role: model.RoleOperator, FactoryID: &fac.ID, IsActive: true, ApprovalStatus: model.ApprovalStatusApproved}
-	db.Create([]*model.User{&admin, &liSi, &zs, &op})
+	// 2. 检查是否有业务数据，如果没有则继续补全
+	var equipCount int64
+	db.Model(&model.Equipment{}).Count(&equipCount)
+	if equipCount > 0 {
+		log.Println("Business data already exists, skipping full seeding.")
+		return nil
+	}
 
-	// 4. Equipment Types & Templates
+	log.Println("🚀 Starting full business data seeding...")
 	cncType := model.EquipmentType{Name: "高精度数控机床", Category: "加工设备"}
 	pressType := model.EquipmentType{Name: "全自动冲床", Category: "成型设备"}
 	robotType := model.EquipmentType{Name: "工业机器人", Category: "智能装备"}
