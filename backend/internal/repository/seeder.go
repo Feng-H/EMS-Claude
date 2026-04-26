@@ -122,3 +122,7 @@ func SeedDatabase(db *gorm.DB) error {
 	log.Println("✅ Comprehensive Seeding Complete. The system is now alive!")
 	return nil
 }
+
+func timePtr(t time.Time) *time.Time {
+	return &t
+}

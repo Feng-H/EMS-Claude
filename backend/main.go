@@ -14,7 +14,9 @@ import (
 	agentController "github.com/ems/backend/internal/agent/controller"
 	"github.com/ems/backend/internal/middleware"
 	"github.com/ems/backend/internal/model"
+	"github.com/ems/backend/internal/repository"
 	"github.com/ems/backend/pkg/config"
+
 	"github.com/ems/backend/pkg/database"
 	"github.com/ems/backend/pkg/redis"
 	"github.com/gin-gonic/gin"
