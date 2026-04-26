@@ -5,23 +5,33 @@ import (
 	"time"
 
 	"github.com/ems/backend/internal/model"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
-// SeedDatabase 全模块演示数据补全逻辑
+// SeedDatabase 全模块演示数据补全逻辑 (动态哈希加固版)
 func SeedDatabase(db *gorm.DB) error {
-	var count int64
-	db.Model(&model.User{}).Count(&count)
-	if count > 0 {
-		log.Println("Database already has data, skipping seeding.")
+	// 1. 检查核心管理员是否存在
+	var adminUser model.User
+	err := db.Where("username = ?", "admin").First(&adminUser).Error
+	
+	if err == nil {
+		log.Println("Admin user already exists, skipping seeding.")
 		return nil
 	}
 
-	log.Println("🚀 Starting Comprehensive Database Seeding (Phase 3 Full Edition)...")
+	log.Println("🚀 Database seems empty or missing core users. Starting seeding...")
 	now := time.Now()
-	hp := "$2a$10$LwwSxuZWIbYwWaN5zCsD2uXAcZZC9cxMn.g2T.hGuatnKm4UP1Zq6" // admin123
+	
+	// 动态生成哈希，确保 100% 匹配
+	cost := bcrypt.DefaultCost
+	hashedBytes, err := bcrypt.GenerateFromPassword([]byte("admin123"), cost)
+	if err != nil {
+		return err
+	}
+	hp := string(hashedBytes)
 
-	// 1. Organization
+	// 2. Organization
 	base := model.Base{Code: "BASE-HQ", Name: "集团总部基地"}
 	db.Create(&base)
 	fac := model.Factory{BaseID: base.ID, Code: "FAC-SZ", Name: "苏州智能工厂"}
@@ -30,14 +40,14 @@ func SeedDatabase(db *gorm.DB) error {
 	ws2 := model.Workshop{FactoryID: fac.ID, Code: "WS-ASM", Name: "全自动装配车间"}
 	db.Create([]*model.Workshop{&ws1, &ws2})
 
-	// 2. Users
+	// 3. Users
 	admin := model.User{Username: "admin", PasswordHash: hp, Name: "系统管理员", Role: model.RoleAdmin, IsActive: true, ApprovalStatus: model.ApprovalStatusApproved}
 	liSi := model.User{Username: "maint_li", PasswordHash: hp, Name: "预防型-李四", Role: model.RoleMaintenance, FactoryID: &fac.ID, IsActive: true, ApprovalStatus: model.ApprovalStatusApproved}
 	zs := model.User{Username: "maint_zhang", PasswordHash: hp, Name: "救火型-张三", Role: model.RoleMaintenance, FactoryID: &fac.ID, IsActive: true, ApprovalStatus: model.ApprovalStatusApproved}
 	op := model.User{Username: "operator", PasswordHash: hp, Name: "操作员小王", Role: model.RoleOperator, FactoryID: &fac.ID, IsActive: true, ApprovalStatus: model.ApprovalStatusApproved}
 	db.Create([]*model.User{&admin, &liSi, &zs, &op})
 
-	// 3. Equipment Types & Templates
+	// 4. Equipment Types & Templates
 	cncType := model.EquipmentType{Name: "高精度数控机床", Category: "加工设备"}
 	pressType := model.EquipmentType{Name: "全自动冲床", Category: "成型设备"}
 	robotType := model.EquipmentType{Name: "工业机器人", Category: "智能装备"}
@@ -50,7 +60,7 @@ func SeedDatabase(db *gorm.DB) error {
 		{TemplateID: insTemp.ID, Name: "主轴温度", Method: "手感/红外", Criteria: "无烫感", SequenceOrder: 2},
 	})
 
-	// 4. Equipment
+	// 5. Equipment
 	e1 := model.Equipment{
 		Code: "CNC-001", Name: "李四维护-A区机床", TypeID: cncType.ID, WorkshopID: ws1.ID, QRCode: "QR_A",
 		PurchasePrice: 280000.0, PurchaseDate: timePtr(now.AddDate(-3, 0, 0)), ServiceLifeYears: 8, ScrapValue: 28000.0, HourlyLoss: 150.0, Status: "running", DedicatedMaintenanceID: &liSi.ID,
@@ -69,7 +79,7 @@ func SeedDatabase(db *gorm.DB) error {
 	}
 	db.Create([]*model.Equipment{&e1, &e2, &eP, &eR})
 
-	// 5. Spare Parts & Inventory
+	// 6. Spare Parts
 	pump := model.SparePart{Code: "PUMP-01", Name: "高压柱塞泵", FactoryID: &fac.ID, Specification: "Rexroth A10V", Unit: "台", SafetyStock: 2}
 	filter := model.SparePart{Code: "FLT-CHEAP", Name: "普通滤芯(降本件)", FactoryID: &fac.ID, Unit: "个", SafetyStock: 50}
 	oil := model.SparePart{Code: "OIL-HM46", Name: "液压油", FactoryID: &fac.ID, Unit: "桶", SafetyStock: 100}
@@ -80,7 +90,7 @@ func SeedDatabase(db *gorm.DB) error {
 		{SparePartID: oil.ID, FactoryID: fac.ID, Quantity: 250},
 	})
 
-	// 6. 180 Days of Maintenance (Li Si vs Zhang San)
+	// 7. 180 Days of Maintenance
 	mPlan := model.MaintenancePlan{Name: "CNC二级保养", EquipmentTypeID: cncType.ID, CycleDays: 30, Level: 2, WorkHours: 4.0}
 	db.Create(&mPlan)
 	for i := 1; i <= 6; i++ {
@@ -89,7 +99,7 @@ func SeedDatabase(db *gorm.DB) error {
 		db.Create(&model.MaintenanceTask{PlanID: mPlan.ID, EquipmentID: e2.ID, AssignedTo: zs.ID, Status: "completed", CompletedAt: &date, ActualHours: 0.2, ScheduledDate: date.Format("2006-01-02")})
 	}
 
-	// 7. Repairs & Cost (The 5.5W Incident)
+	// 8. Repairs (The 5.5W Incident)
 	failDate := now.AddDate(0, 0, -10)
 	order := model.RepairOrder{
 		EquipmentID: e2.ID, Status: model.RepairClosed, Priority: 1, AssignedTo: &zs.ID, ReporterID: op.ID,
@@ -97,17 +107,8 @@ func SeedDatabase(db *gorm.DB) error {
 	}
 	db.Create(&order)
 	db.Create(&model.RepairCostDetail{OrderID: order.ID, SparePartCost: 52000.0, LaborCost: 3000.0})
-	db.Create(&model.SparePartConsumption{SparePartID: pump.ID, OrderID: &order.ID, Quantity: 1, UserID: zs.ID})
 
-	// 8. 7 Days of Inspection Records (To show daily activity)
-	for i := 0; i < 7; i++ {
-		date := now.AddDate(0, 0, -i)
-		task := model.InspectionTask{EquipmentID: e1.ID, TemplateID: insTemp.ID, AssignedTo: op.ID, ScheduledDate: date, Status: "completed", CompletedAt: timePtr(date.Add(10 * time.Minute))}
-		db.Create(&task)
-		db.Create(&model.InspectionRecord{TaskID: task.ID, ItemID: 1, Result: "OK"})
-	}
-
-	// 9. Agent Brain (Knowledge, Skills, Experience)
+	// 9. Agent Brain
 	db.Create(&model.AgentSkill{
 		Name: "级联失效审计", Description: "分析连锁损失风险", Status: "active",
 		Steps: `[{"step": 1, "tool": "get_cost_analysis"}, {"step": 2, "tool": "get_maintenance_compliance"}]`,
@@ -119,10 +120,6 @@ func SeedDatabase(db *gorm.DB) error {
 		Title: "Rexroth泵早期损坏特征", EquipmentTypeID: &cncType.ID, FaultPhenomenon: "压力异常波动", CauseAnalysis: "滤芯堵塞导致空化", Solution: "更换原厂滤芯", CreatedBy: admin.ID, SourceType: "expert_summary",
 	})
 
-	log.Println("✅ Comprehensive Seeding Complete. The system is now alive!")
+	log.Println("✅ Comprehensive Seeding Complete. Login with admin/admin123 now!")
 	return nil
-}
-
-func timePtr(t time.Time) *time.Time {
-	return &t
 }
