@@ -9,7 +9,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// SeedDatabase 全模块演示数据补全逻辑 (强制对齐版)
+// SeedDatabase 全模块演示数据补全逻辑 (结构修复版)
 func SeedDatabase(db *gorm.DB) error {
 	now := time.Now()
 	
@@ -21,31 +21,47 @@ func SeedDatabase(db *gorm.DB) error {
 	}
 	hp := string(hashedBytes)
 
-	// 1. 检查核心管理员
-	var adminUser model.User
-	err = db.Where("username = ?", "admin").First(&adminUser).Error
+	// --- 第一部分：组织架构与用户 (强制对齐) ---
 	
-	if err == nil {
-		// 如果 admin 已存在，强制重置密码和状态，确保能登入
-		log.Println("Admin exists, force-resetting password and status to admin123...")
-		db.Model(&adminUser).Updates(map[string]interface{}{
+	// 1. Organization
+	var base model.Base
+	db.Where("code = ?", "BASE-HQ").FirstOrCreate(&base, model.Base{Code: "BASE-HQ", Name: "集团总部基地"})
+	
+	var fac model.Factory
+	db.Where("code = ?", "FAC-SZ").FirstOrCreate(&fac, model.Factory{BaseID: base.ID, Code: "FAC-SZ", Name: "苏州智能工厂"})
+	
+	var ws1 model.Workshop
+	db.Where("code = ?", "WS-MCH").FirstOrCreate(&ws1, model.Workshop{FactoryID: fac.ID, Code: "WS-MCH", Name: "精密机加车间"})
+	
+	var ws2 model.Workshop
+	db.Where("code = ?", "WS-ASM").FirstOrCreate(&ws2, model.Workshop{FactoryID: fac.ID, Code: "WS-ASM", Name: "全自动装配车间"})
+
+	// 2. Users (强制重置 admin)
+	var admin model.User
+	if err := db.Where("username = ?", "admin").First(&admin).Error; err == nil {
+		log.Println("Admin exists, force-resetting password to admin123...")
+		db.Model(&admin).Updates(map[string]interface{}{
 			"password_hash":   hp,
 			"is_active":       true,
 			"approval_status": model.ApprovalStatusApproved,
 		})
 	} else {
-		// 如果不存在，创建它
-		log.Println("🚀 Seeding admin and other core users...")
-		adminUser = model.User{Username: "admin", PasswordHash: hp, Name: "系统管理员", Role: model.RoleAdmin, IsActive: true, ApprovalStatus: model.ApprovalStatusApproved}
-		db.Create(&adminUser)
-		
-		liSi := model.User{Username: "maint_li", PasswordHash: hp, Name: "预防型-李四", Role: model.RoleMaintenance, FactoryID: nil, IsActive: true, ApprovalStatus: model.ApprovalStatusApproved}
-		zs := model.User{Username: "maint_zhang", PasswordHash: hp, Name: "救火型-张三", Role: model.RoleMaintenance, FactoryID: nil, IsActive: true, ApprovalStatus: model.ApprovalStatusApproved}
-		op := model.User{Username: "operator", PasswordHash: hp, Name: "操作员小王", Role: model.RoleOperator, FactoryID: nil, IsActive: true, ApprovalStatus: model.ApprovalStatusApproved}
-		db.Create([]*model.User{&liSi, &zs, &op})
+		admin = model.User{Username: "admin", PasswordHash: hp, Name: "系统管理员", Role: model.RoleAdmin, IsActive: true, ApprovalStatus: model.ApprovalStatusApproved}
+		db.Create(&admin)
 	}
 
-	// 2. 检查是否有业务数据，如果没有则继续补全
+	// 其他核心用户
+	var liSi model.User
+	db.Where("username = ?", "maint_li").FirstOrCreate(&liSi, model.User{Username: "maint_li", PasswordHash: hp, Name: "预防型-李四", Role: model.RoleMaintenance, FactoryID: &fac.ID, IsActive: true, ApprovalStatus: model.ApprovalStatusApproved})
+	
+	var zs model.User
+	db.Where("username = ?", "maint_zhang").FirstOrCreate(&zs, model.User{Username: "maint_zhang", PasswordHash: hp, Name: "救火型-张三", Role: model.RoleMaintenance, FactoryID: &fac.ID, IsActive: true, ApprovalStatus: model.ApprovalStatusApproved})
+	
+	var op model.User
+	db.Where("username = ?", "operator").FirstOrCreate(&op, model.User{Username: "operator", PasswordHash: hp, Name: "操作员小王", Role: model.RoleOperator, FactoryID: &fac.ID, IsActive: true, ApprovalStatus: model.ApprovalStatusApproved})
+
+	// --- 第二部分：业务数据补全 (如果设备表为空) ---
+	
 	var equipCount int64
 	db.Model(&model.Equipment{}).Count(&equipCount)
 	if equipCount > 0 {
@@ -54,6 +70,8 @@ func SeedDatabase(db *gorm.DB) error {
 	}
 
 	log.Println("🚀 Starting full business data seeding...")
+
+	// 3. Equipment Types & Templates
 	cncType := model.EquipmentType{Name: "高精度数控机床", Category: "加工设备"}
 	pressType := model.EquipmentType{Name: "全自动冲床", Category: "成型设备"}
 	robotType := model.EquipmentType{Name: "工业机器人", Category: "智能装备"}
@@ -66,7 +84,7 @@ func SeedDatabase(db *gorm.DB) error {
 		{TemplateID: insTemp.ID, Name: "主轴温度", Method: "手感/红外", Criteria: "无烫感", SequenceOrder: 2},
 	})
 
-	// 5. Equipment
+	// 4. Equipment
 	e1 := model.Equipment{
 		Code: "CNC-001", Name: "李四维护-A区机床", TypeID: cncType.ID, WorkshopID: ws1.ID, QRCode: "QR_A",
 		PurchasePrice: 280000.0, PurchaseDate: timePtr(now.AddDate(-3, 0, 0)), ServiceLifeYears: 8, ScrapValue: 28000.0, HourlyLoss: 150.0, Status: "running", DedicatedMaintenanceID: &liSi.ID,
@@ -85,7 +103,7 @@ func SeedDatabase(db *gorm.DB) error {
 	}
 	db.Create([]*model.Equipment{&e1, &e2, &eP, &eR})
 
-	// 6. Spare Parts
+	// 5. Spare Parts & Inventory
 	pump := model.SparePart{Code: "PUMP-01", Name: "高压柱塞泵", FactoryID: &fac.ID, Specification: "Rexroth A10V", Unit: "台", SafetyStock: 2}
 	filter := model.SparePart{Code: "FLT-CHEAP", Name: "普通滤芯(降本件)", FactoryID: &fac.ID, Unit: "个", SafetyStock: 50}
 	oil := model.SparePart{Code: "OIL-HM46", Name: "液压油", FactoryID: &fac.ID, Unit: "桶", SafetyStock: 100}
@@ -96,7 +114,7 @@ func SeedDatabase(db *gorm.DB) error {
 		{SparePartID: oil.ID, FactoryID: fac.ID, Quantity: 250},
 	})
 
-	// 7. 180 Days of Maintenance
+	// 6. 180 Days of Maintenance
 	mPlan := model.MaintenancePlan{Name: "CNC二级保养", EquipmentTypeID: cncType.ID, CycleDays: 30, Level: 2, WorkHours: 4.0}
 	db.Create(&mPlan)
 	for i := 1; i <= 6; i++ {
@@ -105,7 +123,7 @@ func SeedDatabase(db *gorm.DB) error {
 		db.Create(&model.MaintenanceTask{PlanID: mPlan.ID, EquipmentID: e2.ID, AssignedTo: zs.ID, Status: "completed", CompletedAt: &date, ActualHours: 0.2, ScheduledDate: date.Format("2006-01-02")})
 	}
 
-	// 8. Repairs (The 5.5W Incident)
+	// 7. Repairs & Cost (The 5.5W Incident)
 	failDate := now.AddDate(0, 0, -10)
 	order := model.RepairOrder{
 		EquipmentID: e2.ID, Status: model.RepairClosed, Priority: 1, AssignedTo: &zs.ID, ReporterID: op.ID,
@@ -113,6 +131,15 @@ func SeedDatabase(db *gorm.DB) error {
 	}
 	db.Create(&order)
 	db.Create(&model.RepairCostDetail{OrderID: order.ID, SparePartCost: 52000.0, LaborCost: 3000.0})
+	db.Create(&model.SparePartConsumption{SparePartID: pump.ID, OrderID: &order.ID, Quantity: 1, UserID: zs.ID})
+
+	// 8. 7 Days of Inspection Records
+	for i := 0; i < 7; i++ {
+		date := now.AddDate(0, 0, -i)
+		task := model.InspectionTask{EquipmentID: e1.ID, TemplateID: insTemp.ID, AssignedTo: op.ID, ScheduledDate: date, Status: "completed", CompletedAt: timePtr(date.Add(10 * time.Minute))}
+		db.Create(&task)
+		db.Create(&model.InspectionRecord{TaskID: task.ID, ItemID: 1, Result: "OK"})
+	}
 
 	// 9. Agent Brain
 	db.Create(&model.AgentSkill{
