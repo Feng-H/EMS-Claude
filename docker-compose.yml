@@ -45,6 +45,8 @@ services:
       dockerfile: Dockerfile
     container_name: ems-backend
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       EMS_SERVER_MODE: release
       EMS_STORAGE_MODE: database
