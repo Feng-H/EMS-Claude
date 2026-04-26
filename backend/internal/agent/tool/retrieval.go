@@ -37,6 +37,11 @@ func (t *RetrievalTool) GetEquipmentProfile(id uint) (map[string]interface{}, er
 		
 		res := map[string]interface{}{
 			"id": e.ID, "code": e.Code, "name": e.Name, "status": e.Status,
+			"purchase_price": e.PurchasePrice,
+			"purchase_date": e.PurchaseDate,
+			"service_life_years": e.ServiceLifeYears,
+			"scrap_value": e.ScrapValue,
+			"hourly_loss": e.HourlyLoss,
 		}
 		if et, ok := store.EquipmentTypes[e.TypeID]; ok {
 			res["type_name"] = et.Name

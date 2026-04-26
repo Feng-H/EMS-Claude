@@ -118,7 +118,7 @@
           <el-input v-model="formData.username" :disabled="isEdit" placeholder="请输入用户名" />
         </el-form-item>
         <el-form-item label="密码" prop="password" v-if="!isEdit">
-          <el-input v-model="formData.password" type="password" placeholder="默认密码：password123" show-password />
+          <el-input v-model="formData.password" type="password" placeholder="默认密码：admin123" show-password />
         </el-form-item>
         <el-form-item label="姓名" prop="name">
           <el-input v-model="formData.name" placeholder="请输入姓名" />
@@ -255,7 +255,7 @@ function openCreateDialog() {
   currentUser.value = null
   Object.assign(formData, {
     username: '',
-    password: 'password123',
+    password: 'admin123',
     name: '',
     role: '',
     phone: '',

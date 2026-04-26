@@ -167,6 +167,17 @@ func (ctrl *AgentController) AuditKnowledge(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Knowledge audit complete"})
 }
 
+// ListKnowledges returns all agent-generated knowledge
+func (ctrl *AgentController) ListKnowledges(c *gin.Context) {
+	status := c.Query("status")
+	result, err := ctrl.agentService.ListKnowledges(status)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}
+
 // =====================================================
 // Phase 2: Chat & Conversation Endpoints
 // =====================================================

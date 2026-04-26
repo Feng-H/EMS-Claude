@@ -237,7 +237,7 @@
             </div>
             <div v-if="isLoginMode" class="test-account">
               <span>账号: <strong>admin</strong></span>
-              <span>密码: <strong>password123</strong></span>
+              <span>密码: <strong>admin123</strong></span>
             </div>
             <div v-else class="test-account">
               <span>提交后需要等待管理员审核</span>
@@ -379,7 +379,7 @@ onMounted(() => {
   // 预填充测试账号（开发环境）
   if (import.meta.env.DEV) {
     loginForm.username = 'admin'
-    loginForm.password = 'password123'
+    loginForm.password = 'admin123'
   }
 })
 </script>

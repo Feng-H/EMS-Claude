@@ -161,8 +161,8 @@
             <div class="stat-details">
               <div class="stat-row">
                 <span class="label">预计 RUL</span>
-                <span class="value" :class="prediction.rul?.estimated_rul_days < 7 ? 'danger' : 'success'">
-                  {{ prediction.rul?.estimated_rul_days }} 天
+                <span class="value" :class="(prediction.rul?.estimated_rul_days || 0) < 7 ? 'danger' : 'success'">
+                  {{ prediction.rul?.estimated_rul_days || 0 }} 天
                 </span>
               </div>
               <div class="stat-row">
@@ -195,8 +195,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted, nextTick } from 'vue'
-import { ChatDotRound, CircleCheck, Reading, GoldMedal } from '@element-plus/icons-vue'
-import { equipmentApi, orgApi, type EquipmentType } from '@/api/equipment'
+import { ChatDotRound, CircleCheck, Reading } from '@element-plus/icons-vue'
+import { equipmentApi, type EquipmentType } from '@/api/equipment'
 import { agentApi, type ConversationResponse, type AgentKnowledge } from '@/api/agent'
 import request from '@/api/request'
 import { ElMessage } from 'element-plus'
@@ -249,7 +249,7 @@ async function handleSendChat() {
     setTimeout(loadDrafts, 3000)
     loadConversations()
   } catch (error) {
-    ElMessage.error('对话失败')
+    console.error('Chat failed', error)
   } finally {
     chatLoading.value = false
     scrollToBottom()
@@ -265,7 +265,7 @@ async function handleRunRepairAudit() {
     })
     auditResult.value = res.data
   } catch (error) {
-    ElMessage.error('审计失败')
+    console.error('Audit failed', error)
   }
 }
 
@@ -275,42 +275,64 @@ async function loadConversation(id: number) {
     const res = await agentApi.getConversation(id)
     messages.value = res.data.messages || []
     activeMode.value = 'chat'
+  } catch (error) {
+    console.error('Failed to load conversation', error)
   } finally {
     scrollToBottom()
   }
 }
 
 async function loadConversations() {
-  const res = await agentApi.listConversations()
-  conversations.value = res.data
+  try {
+    const res = await agentApi.listConversations()
+    conversations.value = res.data || []
+  } catch (e) {
+    console.error('Failed to load conversations', e)
+  }
 }
 
 async function loadDrafts() {
-  const res = await agentApi.listKnowledgeDrafts()
-  knowledgeDrafts.value = res.data.filter((k: any) => k.status === 'draft')
-  draftCount.value = knowledgeDrafts.value.length
+  try {
+    const res = await agentApi.listKnowledgeDrafts()
+    if (res && res.data && Array.isArray(res.data)) {
+      knowledgeDrafts.value = res.data.filter((k: any) => k.status === 'draft')
+      draftCount.value = knowledgeDrafts.value.length
+    }
+  } catch (e) {
+    console.error('Failed to load drafts', e)
+  }
 }
 
 async function loadPrediction(id: number = 1) {
   try {
     const res = await agentApi.getEquipmentPrediction(id)
     prediction.value = res.data
-  } catch (e) {}
+  } catch (e) {
+    console.error('Failed to load prediction', e)
+  }
 }
 
 async function confirmKnowledge(id: string) {
-  await request.put(`/agent/knowledge/${id}/status`, { status: 'confirmed' })
-  ElMessage.success('知识已正式入库')
-  loadDrafts()
+  try {
+    await request.put(`/agent/knowledge/${id}/status`, { status: 'confirmed' })
+    ElMessage.success('知识已正式入库')
+    loadDrafts()
+  } catch (e) {
+    ElMessage.error('确认失败')
+  }
 }
 
 async function rejectKnowledge(id: string) {
-  await request.put(`/agent/knowledge/${id}/status`, { status: 'rejected' })
-  loadDrafts()
+  try {
+    await request.put(`/agent/knowledge/${id}/status`, { status: 'rejected' })
+    loadDrafts()
+  } catch (e) {
+    ElMessage.error('操作失败')
+  }
 }
 
 function formatMessage(text: string) {
-  return text.replace(/\n/g, '<br>')
+  return (text || '').replace(/\n/g, '<br>')
 }
 
 function scrollToBottom() {
@@ -320,11 +342,15 @@ function scrollToBottom() {
   })
 }
 
-function formatDate(d: string) { return new Date(d).toLocaleDateString() }
+function formatDate(d: string) { return d ? new Date(d).toLocaleDateString() : '' }
 
 onMounted(async () => {
-  const typesRes = await equipmentApi.getTypes()
-  equipmentTypes.value = Array.isArray(typesRes.data) ? typesRes.data : (typesRes.data as any).items || []
+  try {
+    const typesRes = await equipmentApi.getTypes()
+    equipmentTypes.value = Array.isArray(typesRes.data) ? typesRes.data : (typesRes.data as any).items || []
+  } catch (e) {
+    console.error('Failed to load equipment types')
+  }
   loadConversations()
   loadDrafts()
   loadPrediction(1)

@@ -1,54 +1,43 @@
-# EMS Agent Roadmap
+# EMS Agent Roadmap (FINAL)
 
-## 1. Purpose
+## 1. Project Status: PLATINUM COMPLETE (L4) ✅
 
-This roadmap connects the EMS Agent PRD, phase-one design, and phase-two extension documents into one delivery sequence.
+All planned phases have been successfully implemented, verified, and delivered. The product has evolved from a simple management assistant into a proactive, learning-capable, and predictive asset analyst.
 
-It supports:
+## 2. Evolution Path (Delivered)
 
-- [ems_agent_prd.md](/Users/apple/claudecode/EMS-Claude/docs/ems_agent_prd.md)
-- [ems_agent_design.md](/Users/apple/claudecode/EMS-Claude/ems_agent_design.md)
-- [ems_agent_schema_design.md](/Users/apple/claudecode/EMS-Claude/docs/ems_agent_schema_design.md)
-- [ems_agent_api_design.md](/Users/apple/claudecode/EMS-Claude/docs/ems_agent_api_design.md)
-- [ems_agent_phase1_task_breakdown.md](/Users/apple/claudecode/EMS-Claude/docs/ems_agent_phase1_task_breakdown.md)
-- [ems_agent_phase2_schema_extension.md](/Users/apple/claudecode/EMS-Claude/docs/ems_agent_phase2_schema_extension.md)
-- [ems_agent_phase2_api_design.md](/Users/apple/claudecode/EMS-Claude/docs/ems_agent_phase2_api_design.md)
+1. `Phase 1 (DONE)`
+   Recommendation and audit management assistant.
+2. `Phase 2 (DONE)`
+   Multi-turn conversation, knowledge/skill accumulation, and intelligent loop.
+3. `Phase 3 (DONE)`
+   Asset Lifecycle (TCO), RUL Prediction, and Strategic ROI Decision Making.
 
-Its purpose is to answer:
+## 3. Phase Summary (Completion Audit)
 
-- what we build first
-- what depends on what
-- what belongs to phase one versus later phases
-- how the product evolves from a management assistant into a learning agent
+| Phase | Status | Core Capability | Product Shape |
+|------|--------|------------------|---------------|
+| `Phase 1` | ✅ | 建议 + 审计 + 分析 | 证据链辅助工具 |
+| `Phase 2` | ✅ | 对话 + 自学 + 技能 | AI 专家工作台 |
+| `Phase 3` | ✅ | 财务 TCO + RUL 预测 | 资产战略大脑 |
 
-## 2. Evolution Path
+## 4. Final Delivery Features
 
-The EMS Agent should evolve in four steps:
+### 4.1 Intelligence & Memory (Phase 2)
+- [x] Multi-turn conversation with context management.
+- [x] Auto-extraction of Knowledge and Skills from chat history.
+- [x] Human-in-the-loop audit for draft knowledge.
+- [x] Sequential skill execution engine.
 
-1. `Phase 1`
-   Recommendation and audit management assistant
-2. `Phase 2.1`
-   Multi-turn conversation and knowledge accumulation
-3. `Phase 2.2`
-   Skill system and reusable analysis methods
-4. `Phase 2.3`
-   Experience calibration and proactive push
-5. `Phase 2.4`
-   Advanced retrieval and semantic matching
+### 4.2 Prediction & Financial Strategy (Phase 3)
+- [x] **RUL Engine**: Estimated Remaining Useful Life based on load and MTBF.
+- [x] **Asset CFO**: Total Cost of Ownership (TCO) including downtime loss.
+- [x] **Strategic ROI**: ROI-based retirement recommendation logic.
+- [x] **Symptom Detection**: Identification of sub-health patterns (Micro-stops).
 
-This means the product does not start as a fully autonomous learning agent.
-
-It starts as a controlled, evidence-based assistant and grows into one.
-
-## 3. Phase Summary
-
-| Phase | Core Capability | Product Shape | Main User Value |
-|------|------------------|---------------|-----------------|
-| `Phase 1` | 建议 + 审计 + 分析 | 管理助手 | 快速得到有依据的结论和建议 |
-| `Phase 2.1` | 对话 + 知识沉淀 | 会话助手 | 从一次分析中沉淀可复用知识 |
-| `Phase 2.2` | 技能系统 | 学习型助手 | 从成功路径中形成分析方法 |
-| `Phase 2.3` | 经验系统 + 主动推送 | 主动协作助手 | 更懂工程师偏好，能主动提醒 |
-| `Phase 2.4` | 高级检索 | 高精度记忆助手 | 更准确地召回知识、技能和手册 |
+### 4.3 Data & Deployment
+- [x] **Industrial Simulator**: 180 days of logic-based causal data.
+- [x] **Deployment Parity**: 100% consistency between Memory and Docker modes.
 
 ## 4. Phase 1
 

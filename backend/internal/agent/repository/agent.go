@@ -32,6 +32,7 @@ type IAgentRepository interface {
 	GetMessagesByConversationID(convID uint) ([]model.AgentMessage, error)
 	CreateKnowledge(knowledge *model.AgentKnowledge) error
 	UpdateKnowledgeStatus(id string, status string, verifierID *uint) error
+	ListKnowledges(status string, limit int) ([]model.AgentKnowledge, error)
 
 	// Phase 2: Skills
 	CreateSkill(skill *model.AgentSkill) error
@@ -225,6 +226,16 @@ func (r *DBAgentRepository) UpdateKnowledgeStatus(id string, status string, veri
 		updates["verified_at"] = now
 	}
 	return r.db.Model(&model.AgentKnowledge{}).Where("id = ?", id).Updates(updates).Error
+}
+
+func (r *DBAgentRepository) ListKnowledges(status string, limit int) ([]model.AgentKnowledge, error) {
+	var results []model.AgentKnowledge
+	q := r.db.Model(&model.AgentKnowledge{})
+	if status != "" {
+		q = q.Where("status = ?", status)
+	}
+	err := q.Order("created_at DESC").Limit(limit).Find(&results).Error
+	return results, err
 }
 
 // =====================================================

@@ -351,7 +351,7 @@ type KnowledgeArticle struct {
 type ManualDocument struct {
 	BaseModel
 	Title           string         `json:"title" gorm:"size:200;not null"`
-	EquipmentTypeID uint           `json:"equipment_type_id" gorm:"not null"`
+	EquipmentTypeID *uint          `json:"equipment_type_id"`
 	EquipmentType   *EquipmentType `json:"equipment_type,omitempty" gorm:"foreignKey:EquipmentTypeID"`
 	FilePath        string         `json:"file_path" gorm:"size:500"`
 	Chunks          []ManualChunk  `json:"chunks,omitempty" gorm:"foreignKey:DocumentID"`
@@ -370,7 +370,7 @@ type EquipmentRuntimeSnapshot struct {
 	EquipmentID  uint       `json:"equipment_id" gorm:"not null;index"`
 	Status       string     `json:"status" gorm:"size:20"`
 	LoadFactor   float64    `json:"load_factor" gorm:"type:decimal(5,2)"`
-	SnapshotTime time.Time  `json:"snapshot_time" gorm:"index"`
+	SnapshotDate string     `json:"snapshot_date" gorm:"size:10;index"`
 }
 
 // =====================================================
@@ -388,6 +388,7 @@ type AgentSkill struct {
 	Status              string   `json:"status" gorm:"size:20;default:'active';index"`
 	UsageCount          int      `json:"usage_count" gorm:"default:0"`
 	SuccessRate         float64  `json:"success_rate" gorm:"type:decimal(5,4);default:0"`
+	CreatedBy           string   `json:"created_by" gorm:"size:100"`
 }
 
 type AgentKnowledge struct {

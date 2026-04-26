@@ -1,9 +1,7 @@
 package memory
 
 import (
-	"encoding/json"
 	"fmt"
-	"math/rand"
 	"sync"
 	"time"
 
@@ -41,6 +39,8 @@ type Store struct {
 	SparePartConsumption map[uint]*model.SparePartConsumption
 	
 	KnowledgeArticles    map[uint]*model.KnowledgeArticle
+	ManualDocuments      map[uint]*model.ManualDocument
+	ManualChunks         map[uint]*model.ManualChunk
 	
 	AgentSkills           map[uint]*model.AgentSkill
 	AgentKnowledges       map[string]*model.AgentKnowledge
@@ -50,6 +50,11 @@ type Store struct {
 	AgentPushSubscriptions map[uint]*model.AgentPushSubscription
 	AgentUsages           map[uint]*model.AgentUsage
 	AgentArtifacts        map[uint]*model.AgentArtifact
+	AgentEvidenceLinks    map[uint]*model.AgentEvidenceLink
+	AgentSessions         map[uint]*model.AgentSession
+	AgentUsage            map[uint]*model.AgentUsage
+	
+	RuntimeSnapshots      map[uint]*model.EquipmentRuntimeSnapshot
 }
 
 var (
@@ -82,6 +87,8 @@ func GetStore() *Store {
 			SparePartInventory:   make(map[uint]*model.SparePartInventory),
 			SparePartConsumption: make(map[uint]*model.SparePartConsumption),
 			KnowledgeArticles:    make(map[uint]*model.KnowledgeArticle),
+			ManualDocuments:      make(map[uint]*model.ManualDocument),
+			ManualChunks:         make(map[uint]*model.ManualChunk),
 			AgentSkills:           make(map[uint]*model.AgentSkill),
 			AgentKnowledges:       make(map[string]*model.AgentKnowledge),
 			AgentExperiences:      make(map[uint]*model.AgentExperience),
@@ -90,6 +97,10 @@ func GetStore() *Store {
 			AgentPushSubscriptions: make(map[uint]*model.AgentPushSubscription),
 			AgentUsages:           make(map[uint]*model.AgentUsage),
 			AgentArtifacts:        make(map[uint]*model.AgentArtifact),
+			AgentEvidenceLinks:    make(map[uint]*model.AgentEvidenceLink),
+			AgentSessions:         make(map[uint]*model.AgentSession),
+			AgentUsage:            make(map[uint]*model.AgentUsage),
+			RuntimeSnapshots:      make(map[uint]*model.EquipmentRuntimeSnapshot),
 		}
 	})
 	return instance

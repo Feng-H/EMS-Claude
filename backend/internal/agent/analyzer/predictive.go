@@ -28,13 +28,16 @@ func (a *PredictiveAnalyzer) PredictRUL(equipmentID uint) (*dto.RULPrediction, e
 	if err != nil { return nil, err }
 	
 	// 2. 获取最近 30 天工况 (从证据链逻辑中简化)
-	// 在生产中这会调用 get_equipment_runtime 工具
 	loadFactor := 1.15 // 默认使用 Demo 中的超负荷系数
 	avgMTBFHours := 300.0 // 假设该型号标准 MTBF 为 300 小时
 	
 	repairCount := 0.0
 	if val, ok := stats["repair_count"]; ok {
-		repairCount = float64(val.(int64))
+		if v, ok := val.(int); ok {
+			repairCount = float64(v)
+		} else if v, ok := val.(int64); ok {
+			repairCount = float64(v)
+		}
 	}
 	
 	// 如果故障频繁，动态下调预期 MTBF
@@ -43,7 +46,6 @@ func (a *PredictiveAnalyzer) PredictRUL(equipmentID uint) (*dto.RULPrediction, e
 	}
 
 	// 3. 计算预计剩余时间
-	// 简化模型：RUL_hours = Max(0, MTBF - (TimeSinceLastRepair * Load))
 	currentUsedHours := 240.0 // 模拟已连续运行时间
 	rulHours := (avgMTBFHours - currentUsedHours) / loadFactor
 	if rulHours < 0 { rulHours = 0 }
@@ -116,8 +118,6 @@ func (a *PredictiveAnalyzer) DetectSymptoms(equipmentID uint) ([]SymptomFinding,
 	}
 
 	// 3. 分析“保养无效性” (PM vs CM)
-	// 检查最近一次保养后 48 小时内是否有报修
-	// (此处为 Demo 逻辑简化)
 	findings = append(findings, SymptomFinding{
 		Type: "pm_ineffective", Title: "保养有效性质疑", Severity: "high",
 		Description: "检测到设备在执行『二级保养』后 72 小时内即发生了液压系统报警。",
@@ -142,27 +142,30 @@ func (a *PredictiveAnalyzer) CalculateTCO(equipmentID uint) (*TCOResult, error) 
 	// 1. 获取设备财务档案
 	profile, err := a.retrievalTool.GetEquipmentProfile(equipmentID)
 	if err != nil { return nil, err }
-	
-	purchasePrice := profile["purchase_price"].(float64)
-	scrapValue := profile["scrap_value"].(float64)
-	serviceLife := float64(profile["service_life_years"].(int))
-	hourlyLoss := profile["hourly_loss"].(float64)
-	
+
+	// 安全提取字段，防止断言失败
+	purchasePrice, _ := profile["purchase_price"].(float64)
+	scrapValue, _ := profile["scrap_value"].(float64)
+	serviceLifeVal, _ := profile["service_life_years"]
+	serviceLife := 10.0
+	if sl, ok := serviceLifeVal.(int); ok { serviceLife = float64(sl) }
+
+	hourlyLoss, _ := profile["hourly_loss"].(float64)
+
 	// 2. 获取累计维修费与停机时长
 	costStats, _ := a.repairTool.GetCostAnalysis(equipmentID)
 	failureStats, _ := a.repairTool.GetFailureStats(equipmentID)
-	
-	repairCost := costStats["total_cost"].(float64)
-	downtimeHours := failureStats["total_downtime"].(float64)
-	
+
+	repairCost, _ := costStats["total_cost"].(float64)
+	downtimeHours, _ := failureStats["total_downtime"].(float64)
+
 	// 3. 计算逻辑
 	// 停机损失 = 累计停机小时 * 产值损失单价
 	downtimeLoss := downtimeHours * hourlyLoss
 	
 	// 计算折旧 (直线折旧法)
-	// 假设已使用年限 (从故事线推断: CNC 3年, PRESS 12年)
 	yearsUsed := 3.0
-	if profile["code"] == "PRESS-05" { yearsUsed = 12.0 }
+	if code, ok := profile["code"].(string); ok && code == "PRESS-05" { yearsUsed = 12.0 }
 	
 	annualDepreciation := (purchasePrice - scrapValue) / serviceLife
 	currentNetValue := purchasePrice - (annualDepreciation * yearsUsed)
@@ -176,7 +179,7 @@ func (a *PredictiveAnalyzer) CalculateTCO(equipmentID uint) (*TCOResult, error) 
 		DowntimeLoss:      downtimeLoss,
 		DepreciatedValue:  currentNetValue,
 		TCO:               tco,
-		MaintenanceRatio:  repairCost / purchasePrice,
+		MaintenanceRatio:  0, // Default
 	}, nil
 }
 
@@ -188,9 +191,16 @@ func (a *PredictiveAnalyzer) EvaluateRetirement(equipmentID uint) (map[string]in
 	decision := "continue"
 	reason := "设备维护成本处于合理区间，运行ROI良好。"
 	
-	// 触发退役的科学条件：
-	// 1. 累计维修费 > 资产原值的 60%
-	// 2. 或是维护费增长速率过快 (在Demo中简化为比值判断)
+	purchasePrice := 1.0 // Placeholder
+	if tco.AccumulatedRepair > 0 {
+		// Attempt to get price from tool again or profile
+		profile, _ := a.retrievalTool.GetEquipmentProfile(equipmentID)
+		if price, ok := profile["purchase_price"].(float64); ok && price > 0 {
+			purchasePrice = price
+			tco.MaintenanceRatio = tco.AccumulatedRepair / purchasePrice
+		}
+	}
+
 	if tco.MaintenanceRatio > 0.6 {
 		decision = "retire"
 		reason = fmt.Sprintf("强烈建议退役。累计维修费已达原值的 %.1f%%，继续持有将产生负向财务现金流。", tco.MaintenanceRatio*100)

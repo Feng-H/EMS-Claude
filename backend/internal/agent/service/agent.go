@@ -267,6 +267,10 @@ func (s *AgentService) AuditKnowledge(id string, status string, verifierID uint)
 	return s.repo.UpdateKnowledgeStatus(id, status, &verifierID)
 }
 
+func (s *AgentService) ListKnowledges(status string) ([]model.AgentKnowledge, error) {
+	return s.repo.ListKnowledges(status, 100)
+}
+
 // =====================================================
 // Phase 2: Chat & Conversational Logic
 // =====================================================
@@ -633,8 +637,9 @@ func (s *AgentService) asyncExtractSkill(history []model.AgentMessage, convID ui
 		steps, _ := json.Marshal(extracted.Steps)
 		skill := &model.AgentSkill{
 			Name: extracted.Name, Description: extracted.Description, ApplicableScenarios: string(appSce), Steps: string(steps),
-			Status: "draft", CreatedBy: fmt.Sprintf("agent:conv_%d", convID),
+			Status: "draft",
 		}
+		skill.CreatedBy = fmt.Sprintf("agent:conv_%d", convID)
 		_ = s.repo.CreateSkill(skill)
 	}
 }

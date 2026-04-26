@@ -95,7 +95,7 @@ export const agentApi = {
     request.get<any[]>('/agent/skills', { params: { status } }),
 
   listKnowledgeDrafts: () => 
-    request.get<AgentKnowledge[]>('/knowledge'), // 复用知识库接口但过滤状态
+    request.get<AgentKnowledge[]>('/agent/knowledges'), 
     
   // 历史记录
   listSessions: () => 
