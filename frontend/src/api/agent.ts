@@ -106,4 +106,8 @@ export const agentApi = {
     
   getArtifact: (id: number) => 
     request.get<any>(`/agent/artifacts/${id}`),
+
+  // 预测性分析 (Phase 3 补充)
+  getEquipmentPrediction: (equipmentId: number) =>
+    request.get<any>(`/agent/equipment/${equipmentId}/prediction`),
 }

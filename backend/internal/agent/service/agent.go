@@ -537,7 +537,33 @@ func (s *AgentService) Subscribe(userID uint, pushType string, enabled bool, sco
 	return s.repo.CreatePushSubscription(sub)
 }
 
-func (s *AgentService) NotifyEvent(eventType string, targetID uint, context map[string]interface{}) { }
+func (s *AgentService) NotifyEvent(eventType string, targetID uint, context map[string]interface{}) {
+	// 如果 RUL 过低，主动推送预警
+	prediction, err := s.predictiveAnalyzer.PredictRUL(targetID)
+	if err == nil && prediction.EstimatedRULDays < 7 {
+		// 创建一个主动分析 Artifact
+		artifact := &model.AgentArtifact{
+			ArtifactType: "proactive_push",
+			Title:        "设备停机风险预警",
+			Summary:      fmt.Sprintf("Agent 自动巡检发现风险：设备预计剩余健康寿命仅剩 %d 天，建议立即干预。", prediction.EstimatedRULDays),
+			ResultJSON:   "{\"prediction\": \"high_risk\"}",
+			RiskLevel:    "high",
+		}
+		_ = s.repo.CreateArtifact(artifact)
+	}
+}
+
+func (s *AgentService) GetEquipmentPrediction(equipmentID uint) (map[string]interface{}, error) {
+	rul, _ := s.predictiveAnalyzer.PredictRUL(equipmentID)
+	tco, _ := s.predictiveAnalyzer.CalculateTCO(equipmentID)
+	symptoms, _ := s.predictiveAnalyzer.DetectSymptoms(equipmentID)
+
+	return map[string]interface{}{
+		"rul":      rul,
+		"tco":      tco,
+		"symptoms": symptoms,
+	}, nil
+}
 
 func (s *AgentService) mapSkillToResponse(sk *model.AgentSkill) *dto.SkillResponse {
 	var appTo, appSce []string

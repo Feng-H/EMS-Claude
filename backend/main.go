@@ -18,6 +18,7 @@ import (
 	"github.com/ems/backend/pkg/database"
 	"github.com/ems/backend/pkg/redis"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
@@ -32,7 +33,11 @@ import (
 // @name Authorization
 // @description Type "Bearer" followed by a space and JWT token.
 func main() {
-	// Load configuration
+	// 1. Load .env file (Try current and parent directory)
+	_ = godotenv.Load() // Try current directory (e.g. if running from root)
+	_ = godotenv.Load("../.env") // Try parent directory (e.g. if running from backend/)
+
+	// 2. Load configuration
 	if err := config.Load("config/config.yaml"); err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
@@ -360,6 +365,7 @@ func setupMemoryRoutes(router *gin.Engine) {
 				agent.POST("/skills", agentCtrl.CreateSkill)
 				agent.GET("/skills/:id", agentCtrl.GetSkill)
 				agent.PUT("/skills/:id", agentCtrl.UpdateSkill)
+				agent.GET("/equipment/:id/prediction", agentCtrl.GetEquipmentPrediction)
 				agent.POST("/subscribe", agentCtrl.Subscribe)
 				agent.GET("/sessions", agentCtrl.ListSessions)
 				agent.GET("/sessions/:id", agentCtrl.GetSession)
@@ -554,6 +560,7 @@ func setupDatabaseRoutes(router *gin.Engine) {
 				agent.POST("/skills", agentCtrl.CreateSkill)
 				agent.GET("/skills/:id", agentCtrl.GetSkill)
 				agent.PUT("/skills/:id", agentCtrl.UpdateSkill)
+				agent.GET("/equipment/:id/prediction", agentCtrl.GetEquipmentPrediction)
 				agent.POST("/subscribe", agentCtrl.Subscribe)
 				agent.GET("/sessions", agentCtrl.ListSessions)
 				agent.GET("/sessions/:id", agentCtrl.GetSession)

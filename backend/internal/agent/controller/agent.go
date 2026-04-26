@@ -302,3 +302,19 @@ func (ctrl *AgentController) Subscribe(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Subscription updated"})
 }
+
+// GetEquipmentPrediction returns RUL and TCO for a specific equipment
+func (ctrl *AgentController) GetEquipmentPrediction(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		return
+	}
+
+	result, err := ctrl.agentService.GetEquipmentPrediction(uint(id))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}
