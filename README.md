@@ -6,39 +6,9 @@
 
 **Copyright © 2025 Feng-H**
 
-本项目采用 **GNU General Public License v3.0 (GPL-3.0)** 许可证开源。
-
-### ⚠️ 重要声明
-
-**要求开源**：
-- 如果你使用、修改或分发本项目的代码，你的项目也必须以 **GPL-3.0** 协议开源
-- 你必须开源所有基于本项目的修改和衍生作品
-- 你需要提供源代码，并保留原始版权声明
-
-**商业使用需授权**：
-- 如果你不希望开源你的修改，你需要获得项目作者的**书面授权**
-- 联系方式：通过 GitHub Issues 联系 [Feng-H](https://github.com/Feng-H)
-
-### 为什么选择 GPL-3.0？
-
-- ✅ **保护开源**：确保基于本项目的所有改进也必须开源
-- ✅ **防止私有化**：禁止将本代码集成到闭源商业产品中
-- ✅ **社区贡献**：鼓励社区共同改进，所有改进回馈社区
-- ✅ **作者权益**：保护原作者的劳动成果
-
-详见 [LICENSE](./LICENSE) 文件。
+本项目采用 **GNU General Public License v3.0 (GPL-3.0)** 许可证开源。详见 [LICENSE](./LICENSE) 文件。
 
 ---
-
-## 技术栈
-
-- **后端**: Go 1.23 + Gin + GORM + PostgreSQL + Redis
-- **前端**: Vue 3 + TypeScript + Vite + Element Plus
-- **移动端**: Vue 3 + Vant 4 (H5)
-- **UI 风格**: 现代化工业风，支持暗色模式，针对智能运维优化的交互设计
-- **智能大脑**: 基于 LLM 的设备管理 Agent，具备对话、审计、建议及自我学习能力
-- **仿真引擎**: 内置“工业世界模拟器”，自动生成 180 天具有逻辑因果关系的演示数据
-- **部署**: Docker + Docker Compose (生产) / Memory Mode (快速开发)
 
 ## 🤖 智能运维助手 (Agent Phase 3 完全体)
 
@@ -55,60 +25,58 @@
    - 提供 PRESS-05 等超期服役设备的财务退役预警案例。
 4. **双模一致性部署**: 无论是内存模式还是 Docker PostgreSQL 模式，均能获得完全一致的演示体验。
 
-```
-EMS-Claude/
-├── backend/          # Go后端服务
-├── frontend/         # Vue3前端应用
-├── db/              # 数据库脚本
-├── docker/          # Docker配置
-└── docs/            # 项目文档
-```
+---
 
-## 快速开始
+## 🚀 部署与配置 (Deployment)
 
-### 前置要求
-
-- Go 1.23+
-- Node.js 20+
-- PostgreSQL 15+
-- Redis 7+
-- Docker (可选)
-
-### 本地开发
+### 1. 配置环境变量 (.env)
+在项目根目录创建或编辑 `.env` 文件，填入您的 LLM 密钥。本项目已通过 Docker 的 `env_file` 机制实现密钥的安全穿透。
 
 ```bash
-./start-dev.sh
+## LLM config (以 SiliconFlow 为例)
+EMS_LLM_PROVIDER=openai
+EMS_LLM_BASE_URL=https://api.siliconflow.cn/v1
+EMS_LLM_API_KEY=sk-xxxx... # 在此填入您的密钥
+EMS_LLM_MODEL=deepseek-ai/DeepSeek-V3
 ```
 
-- 前端开发服务: http://localhost:5173
-- 后端 API: http://localhost:8080
-- API 文档: http://localhost:8080/swagger/index.html
-
-开发环境会自动启动 PostgreSQL 和 Redis，并与 Docker 部署共用同一套数据卷。
-
-### Docker 部署
-
+### 2. 生产环境部署 (Docker)
 ```bash
-# 启动所有服务（适合 VPS 上由宿主机 Nginx 反代）
+# 启动所有服务
 docker compose up -d --build
 
-# 查看日志
-docker compose logs -f
-
-# 停止服务
-docker compose down
+# 重启后端以应用新的 .env 配置
+docker compose restart backend
 ```
 
-- 前端容器默认监听: `127.0.0.1:3000`
-- 后端容器默认监听: `127.0.0.1:9000`
-- 如需调整端口，可覆盖 `EMS_FRONTEND_PORT`、`EMS_BACKEND_PORT`
+### 🛡️ 安全性保障 (Security)
+- **密钥不泄露**: API Key 仅在**后端容器内部**内存中加载。前端浏览器无法访问，且 Key 不会被打包进 Docker 镜像。
+- **环境隔离**: 敏感配置通过 `.env` 管理并由 Docker 注入，符合 12-Factor App 安全规范。
+
+---
+
+## 技术栈
+
+- **后端**: Go 1.23 + Gin + GORM + PostgreSQL + Redis
+- **前端**: Vue 3 + TypeScript + Vite + Element Plus
+- **移动端**: Vue 3 + Vant 4 (H5)
+- **UI 风格**: 现代化工业风，针对智能运维优化的交互设计
 
 ## 默认账号
 
 | 用户名 | 密码 | 角色 |
 |--------|------|------|
-| admin | password123 | 管理员 |
+| admin | admin123 | 管理员 |
 
-## 开发文档
+## 项目结构
+```
+EMS-Claude/
+├── backend/          # Go后端服务
+├── frontend/         # Vue3前端应用
+├── db/              # 数据库结构与 180天 仿真种子数据
+├── docker/          # Docker部署配置
+└── docs/            # Phase 1-3 深度开发文档
+```
 
-详细开发文档请参阅 [CLAUDE.md](./CLAUDE.md)
+## 开发指引
+详细开发规范请参阅 [CLAUDE.md](./CLAUDE.md)
