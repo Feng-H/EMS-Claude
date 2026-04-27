@@ -3,6 +3,7 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"time"
 	"github.com/ems/backend/internal/agent/analyzer"
 	"github.com/ems/backend/internal/agent/dto"
@@ -51,6 +52,9 @@ func NewAgentService() *AgentService {
 	var llmClient llm.LLMClient
 	if config.Cfg.LLM.APIKey != "" {
 		llmClient = llm.NewOpenAIClient(config.Cfg.LLM.BaseURL, config.Cfg.LLM.APIKey, config.Cfg.LLM.Model)
+		log.Printf("[AgentService] LLM client initialized (Provider: %s, Model: %s)", config.Cfg.LLM.Provider, config.Cfg.LLM.Model)
+	} else {
+		log.Printf("[AgentService] Warning: LLM API key is empty, AI features will be disabled")
 	}
 	
 	return &AgentService{
@@ -94,11 +98,15 @@ func (s *AgentService) RecommendMaintenance(userID uint, role string, req *dto.M
 		} else {
 			p = fmt.Sprintf("%s\n\n### 原始数据参考\n当前计划: %v\n参考证据: %v", p, analysisResult.CurrentPlan, analysisResult.Evidence)
 		}
-		resp, _ := s.llmClient.ChatCompletion([]llm.Message{
+		resp, err := s.llmClient.ChatCompletion([]llm.Message{
 			{Role: "system", Content: "你是一个专业的工业设备管理助手。"},
 			{Role: "user", Content: p},
 		})
-		if resp != "" { summary = resp }
+		if err != nil {
+			log.Printf("[AgentService] LLM request failed in RecommendMaintenance: %v", err)
+		} else if resp != "" {
+			summary = resp
+		}
 	} else if len(analysisResult.Recommendations) > 0 {
 		summary = analysisResult.Recommendations[0].Description + "。" + analysisResult.Recommendations[0].Reason
 	}
@@ -162,11 +170,15 @@ func (s *AgentService) AuditRepair(userID uint, role string, req *dto.RepairAudi
 		} else {
 			p = fmt.Sprintf("%s\n\n### 原始数据参考\n异常项: %v\n参考证据: %v", p, analysisResult.Anomalies, analysisResult.Evidence)
 		}
-		resp, _ := s.llmClient.ChatCompletion([]llm.Message{
+		resp, err := s.llmClient.ChatCompletion([]llm.Message{
 			{Role: "system", Content: "你是一个设备维修审计助手。"},
 			{Role: "user", Content: p},
 		})
-		if resp != "" { summary = resp }
+		if err != nil {
+			log.Printf("[AgentService] LLM request failed in AuditRepair: %v", err)
+		} else if resp != "" {
+			summary = resp
+		}
 	} else if stats, ok := analysisResult.Stats.(map[string]interface{}); ok {
 		if val, exists := stats["anomaly_summary"]; exists {
 			summary = val.(string)
@@ -489,11 +501,15 @@ func (s *AgentService) ExecuteSkill(userID uint, skill *model.AgentSkill, req *d
 	summary := fmt.Sprintf("执行技能【%s】: 已完成 %d 个分析步骤，收集到 %d 条证据。", skill.Name, len(steps), len(evidence))
 	if s.llmClient != nil {
 		prompt := fmt.Sprintf("用户意图: %s\n执行技能: %s\n技能描述: %s\n收集到的证据链: %v\n\n请根据以上信息给出一份专业的中文分析摘要。", req.Message, skill.Name, skill.Description, evidence)
-		resp, _ := s.llmClient.ChatCompletion([]llm.Message{
+		resp, err := s.llmClient.ChatCompletion([]llm.Message{
 			{Role: "system", Content: "你是一个专业的工业设备管理助手，正在执行预定义的分析技能。"},
 			{Role: "user", Content: prompt},
 		})
-		if resp != "" { summary = resp }
+		if err != nil {
+			log.Printf("[AgentService] LLM request failed in SkillExecution: %v", err)
+		} else if resp != "" {
+			summary = resp
+		}
 	}
 	return &dto.AgentResponseEnvelope{
 		Success: true, Scenario: "skill_execution", Summary: summary, EvidenceCount: len(evidence),
@@ -604,10 +620,14 @@ func (s *AgentService) asyncCollectExperience(history []model.AgentMessage, user
 
 func (s *AgentService) asyncExtractKnowledge(history []model.AgentMessage, convID uint) {
 	p := s.promptTool.BuildKnowledgeExtractionPrompt(history)
-	resp, _ := s.llmClient.ChatCompletion([]llm.Message{
+	resp, err := s.llmClient.ChatCompletion([]llm.Message{
 		{Role: "system", Content: "你是一个专业的工业设备知识专家。"},
 		{Role: "user", Content: p},
 	})
+	if err != nil {
+		log.Printf("[AgentService] LLM request failed in asyncExtractKnowledge: %v", err)
+		return
+	}
 	if resp == "" { return }
 	var extracted struct {
 		Title string `json:"title"`; Type string `json:"type"`; Summary string `json:"summary"`; Details any `json:"details"`; Confidence float64 `json:"confidence"`
@@ -624,10 +644,14 @@ func (s *AgentService) asyncExtractKnowledge(history []model.AgentMessage, convI
 
 func (s *AgentService) asyncExtractSkill(history []model.AgentMessage, convID uint) {
 	p := s.promptTool.BuildSkillExtractionPrompt(history)
-	resp, _ := s.llmClient.ChatCompletion([]llm.Message{
+	resp, err := s.llmClient.ChatCompletion([]llm.Message{
 		{Role: "system", Content: "你是一个资深的工业诊断专家。"},
 		{Role: "user", Content: p},
 	})
+	if err != nil {
+		log.Printf("[AgentService] LLM request failed in asyncExtractSkill: %v", err)
+		return
+	}
 	if resp == "" { return }
 	var extracted struct {
 		Name string `json:"name"`; Description string `json:"description"`; ApplicableScenarios []string `json:"applicable_scenarios"`; Steps []any `json:"steps"`

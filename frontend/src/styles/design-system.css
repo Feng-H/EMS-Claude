@@ -139,6 +139,12 @@
 
 /* ==================== 浅色主题 ==================== */
 [data-theme="light"] {
+  /* 主色调 - 暖陶土色 */
+  --color-primary: #c96442;
+  --color-primary-dim: rgba(201, 100, 66, 0.1);
+  --color-primary-glow: rgba(201, 100, 66, 0.2);
+  --color-primary-hover: #d97757;
+
   /* 背景色 - Claude浅色主题 */
   --color-bg-primary: #f5f4ed;
   --color-bg-secondary: #faf9f5;

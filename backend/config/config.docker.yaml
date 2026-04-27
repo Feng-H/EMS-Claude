@@ -45,3 +45,9 @@ app:
   qr_code_base_url: "https://ems.example.com/equipment/"
   gps_validation_enabled: false
   gps_tolerance_meters: 100
+
+llm:
+  provider: openai
+  base_url: ""
+  api_key: ""
+  model: ""

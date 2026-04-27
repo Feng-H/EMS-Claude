@@ -700,7 +700,7 @@ onMounted(() => {
   font-weight: 600;
   background: linear-gradient(135deg, var(--color-primary), #00B8E4);
   border: none;
-  color: var(--color-bg-primary);
+  color: #ffffff;
   transition: all var(--transition-base);
 }
 
