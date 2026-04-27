@@ -1,6 +1,6 @@
 # EMS 设备管理系统
 
-> 企业级设备管理平台，支持点检、维修、保养、备件管理、统计分析等功能。
+> 企业级设备管理平台，支持点检、维修、保养、备件管理、统计分析等功能，集成飞书智能对话。
 >
 > 🌐 **在线演示**: [https://ems.317316.xyz](https://ems.317316.xyz)
 
@@ -12,85 +12,124 @@
 
 ---
 
-## 🤖 智能运维助手 (Agent Phase 3 完全体)
+## 🤖 智能运维助手
 
-本项目集成了一个具有“专家心智”的智能助手，具备 **L4 级主动洞察** 能力：
-
-### 核心能力：
-1. **多轮资产战略对话**: 基于 TCO (总持有成本) 和 RUL (剩余健康寿命) 进行深度财务与技术对标。
-2. **三层记忆体系**:
-   - **技能库**: 沉淀级联失效审计、退役 ROI 评价等专家 SOP。
-   - **知识库**: 自动从对话中提炼“劣质滤芯导致泵报废”等结构化经验。
-   - **经验库**: 自动学习用户偏好，实现个性化管理建模。
-3. **180 天逻辑仿真数据**: 
-   - 完美模拟“李四 (预防专家)”与“张三 (救火队长)”的行为差异。
-   - 提供 PRESS-05 等超期服役设备的财务退役预警案例。
-4. **双模一致性部署**: 无论是内存模式还是 Docker PostgreSQL 模式，均能获得完全一致的演示体验。
+本项目集成了 AI 智能助手，支持多轮对话、设备分析、预测性维护等功能，可通过 Web 界面或飞书机器人直接交互。
 
 ---
 
-## 🚀 部署与配置 (Deployment)
+## 🚀 快速部署
 
-### 1. 配置环境变量 (.env)
-在项目根目录创建或编辑 `.env` 文件（可参考 `.env.example`）。本项目通过 Docker 的 `env_file` 机制实现配置的安全注入。
+### 1. 配置环境变量
+
+在项目根目录创建 `.env` 文件（可参考 `.env.example`）：
 
 ```bash
-# 核心域名配置 (用于生成链接与二维码)
+# 核心域名配置
 EMS_DOMAIN=ems.yourdomain.com
 EMS_APP_BASE_URL=https://${EMS_DOMAIN}
 
-# LLM 智能助手配置
+# LLM 智能助手配置 (默认使用 SiliconFlow/DeepSeek)
 EMS_LLM_PROVIDER=openai
+EMS_LLM_BASE_URL=https://api.siliconflow.cn/v1
 EMS_LLM_API_KEY=sk-xxxx...
-
-# 飞书机器人对接凭证
-EMS_LARK_APP_ID=cli_xxx...
-EMS_LARK_APP_SECRET=xxx...
-EMS_LARK_VERIFICATION_TOKEN=xxx...
+EMS_LLM_MODEL=deepseek-ai/DeepSeek-V3
 ```
 
-### 2. 飞书 (Lark) 智能助手集成
-为了实现“开箱即聊”的设备查询体验：
-1.  **创建应用**：在 [飞书开放平台](https://open.feishu.cn/) 创建“企业自建应用”。
-2.  **设置 Webhook**：将事件订阅地址指向 `https://<您的域名>/api/v1/lark/webhook`。
-3.  **开通权限**：开通“获取用户基本信息”和“发送消息”相关权限，并订阅“接收消息 v1.0”事件。
-4.  **用户绑定**：用户在飞书首次私聊机器人，点击系统回复的链接登录 EMS 账号，即可完成身份绑定。
+### 2. 启动服务
 
-### 3. 生产环境部署 (Docker)
 ```bash
-# 启动所有服务
 docker compose up -d --build
 ```
 
-### 🛡️ 安全性保障 (Security)
-- **密钥不泄露**: API Key 仅在**后端容器内部**内存中加载。前端浏览器无法访问，且 Key 不会被打包进 Docker 镜像。
-- **环境隔离**: 敏感配置通过 `.env` 管理并由 Docker 注入，符合 12-Factor App 安全规范。
+启动后访问前端：`http://你的IP:3000`（或通过 Nginx 反向代理的域名）。
+
+默认账号：`admin` / `admin123`
+
+---
+
+## 📱 飞书机器人集成
+
+通过飞书机器人可以直接在飞书中与 AI 智能助手对话，查询设备状态、维修记录等。
+
+### 配置步骤
+
+#### 第一步：创建飞书应用
+
+1. 登录 [飞书开放平台](https://open.feishu.cn/)
+2. 点击「创建企业自建应用」，选择「机器人」
+3. 记录下 **App ID** 和 **App Secret**
+
+#### 第二步：配置事件订阅
+
+1. 进入应用 -> 「事件与回调」->「事件配置」
+2. **请求地址**填写：`https://你的域名/api/v1/lark/webhook`
+3. 记录页面显示的 **Verification Token**
+4. 如果启用了 **Encrypt Key**，也一并记录
+
+> **配置 .env**：将上述凭证填入项目根目录的 `.env` 文件：
+> ```bash
+> EMS_LARK_APP_ID=cli_xxx...
+> EMS_LARK_APP_SECRET=xxx...
+> EMS_LARK_VERIFICATION_TOKEN=xxx...
+> EMS_LARK_ENCRYPT_KEY=xxx...   # 如果启用了加密则填写，否则留空
+> ```
+
+#### 第三步：验证 Webhook
+
+1. 在「事件与回调」页面点击「验证」按钮
+2. 如果验证失败，检查：
+   - 后端是否正常运行：`curl https://你的域名/health`
+   - `.env` 中的 `EMS_LARK_VERIFICATION_TOKEN` 是否与飞书平台一致
+   - 是否已重新构建后端：`docker compose up -d --build backend`
+
+#### 第四步：订阅消息事件
+
+1. 在「事件与回调」->「事件配置」中点击「添加事件」
+2. 搜索并添加 **`im.message.receive_v1`**（接收消息）事件
+3. 如有版本管理，创建新版本并发布
+
+#### 第五步：绑定 EMS 账号
+
+1. 在手机飞书中打开机器人对话
+2. 发送任意消息，机器人会回复绑定链接（因为此时账号尚未绑定）
+3. 点击链接，用 EMS 系统账号登录
+4. 点击「立即绑定」完成绑定
+
+> **注意**：绑定是一次性操作，绑定关系存储在数据库中，后续重新部署不会丢失。
+
+#### 第六步：开始使用
+
+绑定完成后，直接在飞书中给机器人发消息即可获得 AI 回复。机器人会先回复 "👍 收到，正在分析中..."，处理完成后发送完整分析结果。
+
+### 配置架构
+
+```
+用户手机飞书 -> 飞书开放平台 -> Webhook -> Nginx(前端) -> 后端 API
+                                                  -> Agent AI -> LLM -> 飞书API -> 回复用户
+```
 
 ---
 
 ## 技术栈
 
 - **后端**: Go 1.23 + Gin + GORM + PostgreSQL + Redis
-- **前端**: Vue 3 + TypeScript + Vite + Element Plus
-- **移动端**: Vue 3 + Vant 4 (H5)
-- **UI 风格**: 现代化工业风，针对智能运维优化的交互设计
-
-## 默认账号
-
-| 用户名 | 密码 | 角色 |
-|--------|------|------|
-| admin | admin123 | 管理员 |
-
+- **前端**: Vue 3 + TypeScript + Vite + Element Plus (PC) + Vant 4 (H5)
+- **AI**: OpenAI 兼容接口（支持 DeepSeek、SiliconFlow 等）
+- **部署**: Docker + Nginx
 
 ## 项目结构
+
 ```
 EMS-Claude/
-├── backend/          # Go后端服务
-├── frontend/         # Vue3前端应用
-├── db/              # 数据库结构与 180天 仿真种子数据
-├── docker/          # Docker部署配置
-└── docs/            # Phase 1-3 深度开发文档
+├── backend/          # Go 后端服务
+├── frontend/         # Vue3 前端应用 (PC + H5 移动端)
+├── db/               # 数据库结构参考与种子数据 (文档用)
+├── deploy/           # 生产环境 Docker Compose
+├── docs/             # 开发文档
+└── .env.example      # 环境变量模板
 ```
 
 ## 开发指引
+
 详细开发规范请参阅 [CLAUDE.md](./CLAUDE.md)
