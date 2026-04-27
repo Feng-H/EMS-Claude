@@ -25,16 +25,28 @@ func SeedDatabase(db *gorm.DB) error {
 	
 	// 1. Organization
 	var base model.Base
-	db.Where("code = ?", "BASE-HQ").FirstOrCreate(&base, model.Base{Code: "BASE-HQ", Name: "集团总部基地"})
+	if err := db.Where("code = ?", "BASE-HQ").First(&base).Error; err != nil {
+		base = model.Base{Code: "BASE-HQ", Name: "集团总部基地"}
+		db.Create(&base)
+	}
 	
 	var fac model.Factory
-	db.Where("code = ?", "FAC-SZ").FirstOrCreate(&fac, model.Factory{BaseID: base.ID, Code: "FAC-SZ", Name: "苏州智能工厂"})
+	if err := db.Where("code = ?", "FAC-SZ").First(&fac).Error; err != nil {
+		fac = model.Factory{BaseID: base.ID, Code: "FAC-SZ", Name: "苏州智能工厂"}
+		db.Create(&fac)
+	}
 	
 	var ws1 model.Workshop
-	db.Where("code = ?", "WS-MCH").FirstOrCreate(&ws1, model.Workshop{FactoryID: fac.ID, Code: "WS-MCH", Name: "精密机加车间"})
+	if err := db.Where("code = ?", "WS-MCH").First(&ws1).Error; err != nil {
+		ws1 = model.Workshop{FactoryID: fac.ID, Code: "WS-MCH", Name: "精密机加车间"}
+		db.Create(&ws1)
+	}
 	
 	var ws2 model.Workshop
-	db.Where("code = ?", "WS-ASM").FirstOrCreate(&ws2, model.Workshop{FactoryID: fac.ID, Code: "WS-ASM", Name: "全自动装配车间"})
+	if err := db.Where("code = ?", "WS-ASM").First(&ws2).Error; err != nil {
+		ws2 = model.Workshop{FactoryID: fac.ID, Code: "WS-ASM", Name: "全自动装配车间"}
+		db.Create(&ws2)
+	}
 
 	// 2. Users (强制重置 admin)
 	var admin model.User
@@ -52,13 +64,22 @@ func SeedDatabase(db *gorm.DB) error {
 
 	// 其他核心用户
 	var liSi model.User
-	db.Where("username = ?", "maint_li").FirstOrCreate(&liSi, model.User{Username: "maint_li", PasswordHash: hp, Name: "预防型-李四", Role: model.RoleMaintenance, FactoryID: &fac.ID, IsActive: true, ApprovalStatus: model.ApprovalStatusApproved})
+	if err := db.Where("username = ?", "maint_li").First(&liSi).Error; err != nil {
+		liSi = model.User{Username: "maint_li", PasswordHash: hp, Name: "预防型-李四", Role: model.RoleMaintenance, FactoryID: &fac.ID, IsActive: true, ApprovalStatus: model.ApprovalStatusApproved}
+		db.Create(&liSi)
+	}
 	
 	var zs model.User
-	db.Where("username = ?", "maint_zhang").FirstOrCreate(&zs, model.User{Username: "maint_zhang", PasswordHash: hp, Name: "救火型-张三", Role: model.RoleMaintenance, FactoryID: &fac.ID, IsActive: true, ApprovalStatus: model.ApprovalStatusApproved})
+	if err := db.Where("username = ?", "maint_zhang").First(&zs).Error; err != nil {
+		zs = model.User{Username: "maint_zhang", PasswordHash: hp, Name: "救火型-张三", Role: model.RoleMaintenance, FactoryID: &fac.ID, IsActive: true, ApprovalStatus: model.ApprovalStatusApproved}
+		db.Create(&zs)
+	}
 	
 	var op model.User
-	db.Where("username = ?", "operator").FirstOrCreate(&op, model.User{Username: "operator", PasswordHash: hp, Name: "操作员小王", Role: model.RoleOperator, FactoryID: &fac.ID, IsActive: true, ApprovalStatus: model.ApprovalStatusApproved})
+	if err := db.Where("username = ?", "operator").First(&op).Error; err != nil {
+		op = model.User{Username: "operator", PasswordHash: hp, Name: "操作员小王", Role: model.RoleOperator, FactoryID: &fac.ID, IsActive: true, ApprovalStatus: model.ApprovalStatusApproved}
+		db.Create(&op)
+	}
 
 	// --- 第二部分：业务数据补全 (如果设备表为空) ---
 	
