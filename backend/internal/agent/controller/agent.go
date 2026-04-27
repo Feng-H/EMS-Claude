@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 
@@ -186,16 +187,23 @@ func (ctrl *AgentController) ListKnowledges(c *gin.Context) {
 func (ctrl *AgentController) Chat(c *gin.Context) {
 	var req dto.ChatRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Printf("[AgentController] Chat bind JSON error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	userID, _ := middleware.GetUserID(c)
 	role, _ := middleware.GetUserRole(c)
+	
+	log.Printf("[AgentController] Chat request from User:%d, Message: %s", userID, req.Message)
+	
 	result, err := ctrl.agentService.Chat(userID, role, &req)
 	if err != nil {
+		log.Printf("[AgentController] Chat service error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	
+	log.Printf("[AgentController] Chat success, reply length: %d", len(result.Reply))
 	c.JSON(http.StatusOK, result)
 }
 
