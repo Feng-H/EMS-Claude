@@ -44,20 +44,10 @@ func verifyLarkSignature(c *gin.Context, body []byte) bool {
 // @Tags lark
 // @Router /lark/webhook [post]
 func LarkWebhook(c *gin.Context) {
-	// Read body for signature verification
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to read body"})
 		return
-	}
-
-	// 1. Verify Signature
-	if !verifyLarkSignature(c, body) {
-		// During debug, we might want to log this but not block if AppSecret is empty
-		if config.Cfg.Lark.AppSecret != "" {
-			c.JSON(http.StatusForbidden, gin.H{"error": "invalid signature"})
-			return
-		}
 	}
 
 	var req dto.LarkWebhookRequest
@@ -66,7 +56,7 @@ func LarkWebhook(c *gin.Context) {
 		return
 	}
 
-	// 2. Handle URL Challenge (support both V1 top-level and V2 header+event format)
+	// 1. Handle URL Challenge FIRST (skip signature check — the challenge IS the verification)
 	if req.Type == "url_verification" || req.Header.EventType == "url_verification" {
 		token := req.Token
 		if token == "" {
@@ -78,20 +68,23 @@ func LarkWebhook(c *gin.Context) {
 		}
 		challenge := req.Challenge
 		if challenge == "" && req.Event != nil {
-			if c, ok := req.Event["challenge"].(string); ok {
-				challenge = c
+			if ch, ok := req.Event["challenge"].(string); ok {
+				challenge = ch
 			}
 		}
 		c.JSON(http.StatusOK, gin.H{"challenge": challenge})
 		return
 	}
 
-	// 2. Handle Events (V2 Schema)
-	if req.Header.EventType != "" {
-		// Quick response to Lark
-		c.Status(http.StatusOK)
+	// 2. Verify Signature for event callbacks
+	if config.Cfg.Lark.AppSecret != "" && !verifyLarkSignature(c, body) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "invalid signature"})
+		return
+	}
 
-		// Async processing
+	// 3. Handle Events (V2 Schema)
+	if req.Header.EventType != "" {
+		c.Status(http.StatusOK)
 		go handleLarkEvent(req)
 		return
 	}
