@@ -244,8 +244,8 @@ npm run lint
 
 ### Database
 ```bash
-# Schema is auto-created by GORM AutoMigrate in database mode
-# Manual schema reference: db/schema.sql
+# Schema and data are auto-created by GORM AutoMigrate + Go seeder on startup
+# db/schema.sql and db/seeds/seed.sql are reference documentation only
 
 # Start PostgreSQL and Redis via Docker
 docker-compose up -d postgres redis
@@ -253,24 +253,21 @@ docker-compose up -d postgres redis
 # Connect to database
 psql -h localhost -p 5432 -U ems -d ems_db
 # Password: ems123
-
-# Run manual indexes (for performance optimization)
-psql -h localhost -U ems -d ems_db -f backend/scripts/migrations/add_indexes.sql
 ```
 
 ### Docker
 ```bash
-# Development (root docker-compose: postgres + redis + backend)
-docker-compose up -d
+# Development (root docker-compose: all services)
+docker-compose up -d --build
 
-# Production (deploy/docker-compose: + frontend with nginx)
-cd deploy && docker-compose up -d
+# Production (deploy/docker-compose: with nginx)
+cd deploy && docker-compose up -d --build
+
+# Full rebuild with clean database (when schema changes)
+docker-compose down -v && docker-compose up -d --build
 
 # View logs
-docker-compose logs -f
-
-# Stop services
-docker-compose down
+docker-compose logs -f backend
 ```
 
 ### Scripts
@@ -311,21 +308,17 @@ docker-compose down
 - **AI cockpit**: `frontend/src/views/agent/ManagementAssistantView.vue`
 
 ### Infrastructure
-- **DB schema**: `db/schema.sql` (reference; runtime uses GORM AutoMigrate)
-- **Seed data**: `db/seeds/seed.sql`
-- **Migrations**: `backend/scripts/migrations/`
-- **Root docker-compose**: `docker-compose.yml` (postgres + redis + backend)
-- **Deploy docker-compose**: `deploy/docker-compose.yml` (+ frontend + nginx)
-- **Nginx config**: `deploy/nginx.conf`
+- **DB schema**: `db/schema.sql` (reference only; runtime schema managed by GORM AutoMigrate)
+- **Seed data**: `db/seeds/seed.sql` (reference only; runtime data from Go seeder `repository.SeedDatabase()`)
+- **Migrations**: `backend/scripts/migrations/` (manual performance indexes, optional)
+- **Root docker-compose**: `docker-compose.yml` (postgres + redis + backend + frontend)
+- **Deploy docker-compose**: `deploy/docker-compose.yml` (+ nginx, for production)
+- **Nginx config**: `frontend/nginx.conf` (copied into frontend image at build time)
 - **Env template**: `.env.example`
 
 ### Documentation
-- **Agent design**: `ems_agent_design.md`
-- **Agent PRD**: `docs/ems_agent_prd.md`
-- **Agent roadmap**: `docs/ems_agent_roadmap.md`
-- **Agent API design**: `docs/ems_agent_api_design.md`
-- **Deployment guide**: `docs/deployment.md`
-- **Business requirements**: `业务需求.md`
+- **Historical docs**: `docs/archive/` (completed Agent phase docs, old deployment guides, business requirements)
+- **README.md**: Project overview + detailed Feishu bot setup guide
 
 ## Environment Variables
 
@@ -359,3 +352,11 @@ Key variables (set in `.env`, all prefixed with `EMS_`):
 - Factory-level data isolation is enforced by the Agent policy service
 - All agent conclusions should be backed by traceable evidence from database records
 - When adding new features, implement both `memory` and `database` mode paths
+
+### Important: GORM Column Naming
+
+GORM converts Go field names to snake_case column names. Consecutive uppercase letters are treated as one word:
+- `LarkOpenID` -> column `lark_open_id` (NOT `lark_openid`)
+- `EquipmentTypeID` -> column `equipment_type_id`
+
+When writing raw SQL queries in repository layer, always use the GORM-generated column name, not the Go field name. Test with `docker compose exec backend sh -c "psql -U ems -d ems_db -c '\\d users'"` to verify column names.
