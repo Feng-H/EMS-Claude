@@ -9,6 +9,7 @@ import (
 	agentService "github.com/ems/backend/internal/agent/service"
 	"github.com/ems/backend/internal/dto"
 	"github.com/ems/backend/internal/repository"
+	"github.com/ems/backend/pkg/config"
 	"github.com/ems/backend/pkg/lark"
 )
 
