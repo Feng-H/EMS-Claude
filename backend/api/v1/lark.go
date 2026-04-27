@@ -66,13 +66,23 @@ func LarkWebhook(c *gin.Context) {
 		return
 	}
 
-	// 2. Handle URL Challenge
-	if req.Type == "url_verification" {
-		if req.Token != config.Cfg.Lark.VerificationToken {
+	// 2. Handle URL Challenge (support both V1 top-level and V2 header+event format)
+	if req.Type == "url_verification" || req.Header.EventType == "url_verification" {
+		token := req.Token
+		if token == "" {
+			token = req.Header.Token
+		}
+		if token != config.Cfg.Lark.VerificationToken {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Invalid token"})
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"challenge": req.Challenge})
+		challenge := req.Challenge
+		if challenge == "" && req.Event != nil {
+			if c, ok := req.Event["challenge"].(string); ok {
+				challenge = c
+			}
+		}
+		c.JSON(http.StatusOK, gin.H{"challenge": challenge})
 		return
 	}
 
