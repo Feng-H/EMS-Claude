@@ -19,6 +19,7 @@ type Config struct {
 	Upload   UploadConfig
 	App      AppConfig
 	LLM      LLMConfig
+	Lark     LarkConfig
 }
 
 type ServerConfig struct {
@@ -85,6 +86,7 @@ type UploadConfig struct {
 }
 
 type AppConfig struct {
+	BaseURL              string
 	QRCodeBaseURL        string
 	GPSValidationEnabled bool
 	GPSToleranceMeters   int
@@ -95,6 +97,13 @@ type LLMConfig struct {
 	BaseURL  string
 	APIKey   string
 	Model    string
+}
+
+type LarkConfig struct {
+	AppID             string `mapstructure:"app_id"`
+	AppSecret         string `mapstructure:"app_secret"`
+	VerificationToken string `mapstructure:"verification_token"`
+	EncryptKey        string `mapstructure:"encrypt_key"`
 }
 
 var Cfg *Config
@@ -185,6 +194,7 @@ func applyEnvOverrides(cfg *Config) error {
 	}
 	overrideString(&cfg.Upload.SavePath, "EMS_UPLOAD_SAVE_PATH", "UPLOAD_SAVE_PATH")
 
+	overrideString(&cfg.App.BaseURL, "EMS_APP_BASE_URL", "APP_BASE_URL")
 	overrideString(&cfg.App.QRCodeBaseURL, "EMS_APP_QR_CODE_BASE_URL", "QR_CODE_BASE_URL")
 	if err := overrideBool(&cfg.App.GPSValidationEnabled, "EMS_APP_GPS_VALIDATION_ENABLED"); err != nil {
 		return err
@@ -197,6 +207,11 @@ func applyEnvOverrides(cfg *Config) error {
 	overrideString(&cfg.LLM.BaseURL, "EMS_LLM_BASE_URL", "LLM_BASE_URL")
 	overrideString(&cfg.LLM.APIKey, "EMS_LLM_API_KEY", "LLM_API_KEY")
 	overrideString(&cfg.LLM.Model, "EMS_LLM_MODEL", "LLM_MODEL")
+
+	overrideString(&cfg.Lark.AppID, "EMS_LARK_APP_ID", "LARK_APP_ID")
+	overrideString(&cfg.Lark.AppSecret, "EMS_LARK_APP_SECRET", "LARK_APP_SECRET")
+	overrideString(&cfg.Lark.VerificationToken, "EMS_LARK_VERIFICATION_TOKEN", "LARK_VERIFICATION_TOKEN")
+	overrideString(&cfg.Lark.EncryptKey, "EMS_LARK_ENCRYPT_KEY", "LARK_ENCRYPT_KEY")
 
 	return nil
 }

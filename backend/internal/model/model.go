@@ -47,6 +47,7 @@ type User struct {
 	FirstLogin         bool     `json:"first_login" gorm:"default:true"`
 	FactoryID          *uint    `json:"factory_id"`
 	Factory            *Factory `json:"factory,omitempty" gorm:"foreignKey:FactoryID"`
+	LarkOpenID         string   `json:"lark_openid" gorm:"size:100;uniqueIndex"`
 }
 
 type Base struct {

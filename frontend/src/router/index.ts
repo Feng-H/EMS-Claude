@@ -15,19 +15,49 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/auth/ChangePasswordView.vue'),
     meta: { requiresAuth: true, layout: 'full-screen' },
   },
-  // H5移动端首页
+  // H5移动端路由组
   {
     path: '/h5',
-    name: 'H5Home',
-    component: () => import('@/views/h5/IndexView.vue'),
-    meta: { requiresAuth: true, layout: 'full-screen' },
-  },
-  // H5移动端任务列表
-  {
-    path: '/h5/tasks',
-    name: 'H5Tasks',
-    component: () => import('@/views/h5/TasksView.vue'),
-    meta: { requiresAuth: true, layout: 'full-screen' },
+    component: () => import('@/views/layout/MobileLayout.vue'),
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: '',
+        name: 'H5Home',
+        component: () => import('@/views/h5/IndexView.vue'),
+      },
+      {
+        path: 'tasks',
+        name: 'H5Tasks',
+        component: () => import('@/views/h5/TasksView.vue'),
+      },
+      {
+        path: 'equipment',
+        name: 'H5EquipmentList',
+        component: () => import('@/views/h5/EquipmentListView.vue'),
+      },
+      {
+        path: 'spareparts',
+        name: 'H5SparePartList',
+        component: () => import('@/views/h5/SparePartListView.vue'),
+      },
+      {
+        path: 'knowledge',
+        name: 'H5Knowledge',
+        component: () => import('@/views/h5/KnowledgeView.vue'),
+      },
+      {
+        path: 'profile',
+        name: 'H5Profile',
+        component: () => import('@/views/h5/ProfileView.vue'),
+      },
+      {
+        path: 'bind-lark',
+        name: 'H5BindLark',
+        component: () => import('@/views/h5/BindLarkView.vue'),
+        meta: { requiresAuth: false },
+      },
+    ]
   },
   {
     path: '/',

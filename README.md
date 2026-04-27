@@ -32,23 +32,34 @@
 ## 🚀 部署与配置 (Deployment)
 
 ### 1. 配置环境变量 (.env)
-在项目根目录创建或编辑 `.env` 文件，填入您的 LLM 密钥。本项目已通过 Docker 的 `env_file` 机制实现密钥的安全穿透。
+在项目根目录创建或编辑 `.env` 文件（可参考 `.env.example`）。本项目通过 Docker 的 `env_file` 机制实现配置的安全注入。
 
 ```bash
-## LLM config (以 SiliconFlow 为例)
+# 核心域名配置 (用于生成链接与二维码)
+EMS_DOMAIN=ems.yourdomain.com
+EMS_APP_BASE_URL=https://${EMS_DOMAIN}
+
+# LLM 智能助手配置
 EMS_LLM_PROVIDER=openai
-EMS_LLM_BASE_URL=https://api.siliconflow.cn/v1
-EMS_LLM_API_KEY=sk-xxxx... # 在此填入您的密钥
-EMS_LLM_MODEL=deepseek-ai/DeepSeek-V3
+EMS_LLM_API_KEY=sk-xxxx...
+
+# 飞书机器人对接凭证
+EMS_LARK_APP_ID=cli_xxx...
+EMS_LARK_APP_SECRET=xxx...
+EMS_LARK_VERIFICATION_TOKEN=xxx...
 ```
 
-### 2. 生产环境部署 (Docker)
+### 2. 飞书 (Lark) 智能助手集成
+为了实现“开箱即聊”的设备查询体验：
+1.  **创建应用**：在 [飞书开放平台](https://open.feishu.cn/) 创建“企业自建应用”。
+2.  **设置 Webhook**：将事件订阅地址指向 `https://<您的域名>/api/v1/lark/webhook`。
+3.  **开通权限**：开通“获取用户基本信息”和“发送消息”相关权限，并订阅“接收消息 v1.0”事件。
+4.  **用户绑定**：用户在飞书首次私聊机器人，点击系统回复的链接登录 EMS 账号，即可完成身份绑定。
+
+### 3. 生产环境部署 (Docker)
 ```bash
 # 启动所有服务
 docker compose up -d --build
-
-# 重启后端以应用新的 .env 配置
-docker compose restart backend
 ```
 
 ### 🛡️ 安全性保障 (Security)

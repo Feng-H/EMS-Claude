@@ -51,3 +51,9 @@ llm:
   base_url: ""
   api_key: ""
   model: ""
+
+lark:
+  app_id: ""
+  app_secret: ""
+  verification_token: ""
+  encrypt_key: ""

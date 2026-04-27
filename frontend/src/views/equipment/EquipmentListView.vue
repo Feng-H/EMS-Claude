@@ -1,9 +1,12 @@
 <template>
   <div class="equipment-list">
-    <el-card>
+    <el-card shadow="never" class="list-card">
       <template #header>
         <div class="card-header">
-          <span>设备台账</span>
+          <div class="title-wrapper">
+            <el-icon class="title-icon"><Monitor /></el-icon>
+            <span class="title-text">设备台账</span>
+          </div>
           <el-button type="primary" @click="showCreateDialog = true" v-if="canEdit">
             <el-icon><Plus /></el-icon>
             新增设备
@@ -12,42 +15,54 @@
       </template>
 
       <!-- Search Form -->
-      <el-form :inline="true" :model="queryParams" class="search-form">
-        <el-form-item label="设备编号">
-          <el-input v-model="queryParams.code" placeholder="请输入" clearable />
-        </el-form-item>
-        <el-form-item label="设备名称">
-          <el-input v-model="queryParams.name" placeholder="请输入" clearable />
-        </el-form-item>
-        <el-form-item label="设备类型">
-          <el-select v-model="queryParams.type_id" placeholder="请选择" clearable style="width: 160px">
-            <el-option
-              v-for="type in equipmentTypes"
-              :key="type.id"
-              :label="type.name"
-              :value="type.id"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="queryParams.status" placeholder="请选择" clearable style="width: 160px">
-            <el-option label="运行中" value="running" />
-            <el-option label="已停机" value="stopped" />
-            <el-option label="维修中" value="maintenance" />
-            <el-option label="已报废" value="scrapped" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch">
-            <el-icon><Search /></el-icon>
-            查询
-          </el-button>
-          <el-button @click="handleReset">
-            <el-icon><Refresh /></el-icon>
-            重置
-          </el-button>
-        </el-form-item>
-      </el-form>
+      <div class="search-wrapper">
+        <el-form :model="queryParams" label-width="80px">
+          <el-row :gutter="20">
+            <el-col :span="6">
+              <el-form-item label="设备编号">
+                <el-input v-model="queryParams.code" placeholder="输入编号搜索" clearable @keyup.enter="handleSearch" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6">
+              <el-form-item label="设备名称">
+                <el-input v-model="queryParams.name" placeholder="输入名称搜索" clearable @keyup.enter="handleSearch" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6">
+              <el-form-item label="设备类型">
+                <el-select v-model="queryParams.type_id" placeholder="全部类型" clearable class="full-width">
+                  <el-option
+                    v-for="type in equipmentTypes"
+                    :key="type.id"
+                    :label="type.name"
+                    :value="type.id"
+                  />
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="6">
+              <el-form-item label="设备状态">
+                <el-select v-model="queryParams.status" placeholder="全部状态" clearable class="full-width">
+                  <el-option label="运行中" value="running" />
+                  <el-option label="已停机" value="stopped" />
+                  <el-option label="维修中" value="maintenance" />
+                  <el-option label="已报废" value="scrapped" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <div class="search-buttons">
+            <el-button type="primary" @click="handleSearch">
+              <el-icon><Search /></el-icon>
+              查询
+            </el-button>
+            <el-button @click="handleReset">
+              <el-icon><Refresh /></el-icon>
+              重置
+            </el-button>
+          </div>
+        </el-form>
+      </div>
 
       <!-- Equipment Table -->
       <el-table
@@ -55,32 +70,39 @@
         :data="tableData"
         border
         stripe
-        style="width: 100%; margin-top: 16px"
+        class="custom-table"
       >
-        <el-table-column type="selection" width="55" />
-        <el-table-column type="index" label="序号" width="60" />
-        <el-table-column prop="code" label="设备编号" width="140" />
-        <el-table-column prop="name" label="设备名称" min-width="180" />
-        <el-table-column prop="type_name" label="设备类型" width="120" />
-        <el-table-column prop="factory_name" label="所属工厂" width="120" />
-        <el-table-column prop="workshop_name" label="所属车间" width="120" />
-        <el-table-column label="状态" width="100" align="center">
+        <el-table-column type="index" label="序号" width="60" align="center" />
+        <el-table-column prop="code" label="设备编号" width="140" show-overflow-tooltip />
+        <el-table-column prop="name" label="设备名称" min-width="180" show-overflow-tooltip>
           <template #default="{ row }">
-            <el-tag :type="getStatusType(row.status)">{{ getStatusText(row.status) }}</el-tag>
+            <span class="equipment-name-link" @click="handleView(row)">{{ row.name }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200" align="center" fixed="right">
+        <el-table-column prop="type_name" label="设备类型" width="120" />
+        <el-table-column prop="factory_name" label="工厂" width="120" show-overflow-tooltip />
+        <el-table-column prop="workshop_name" label="车间" width="120" show-overflow-tooltip />
+        <el-table-column label="状态" width="100" align="center">
           <template #default="{ row }">
-            <el-button size="small" text @click="handleView(row)">查看</el-button>
-            <el-button size="small" text type="primary" style="margin-left: 12px" @click="handleEdit(row)" v-if="canEdit">
-              编辑
-            </el-button>
-            <el-button size="small" text type="warning" style="margin-left: 12px" @click="handleQRCode(row)">
-              二维码
-            </el-button>
-            <el-button size="small" text type="danger" style="margin-left: 12px" @click="handleDelete(row)" v-if="canDelete">
-              删除
-            </el-button>
+            <el-tag :type="getStatusType(row.status)" effect="light" round>{{ getStatusText(row.status) }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="220" align="center" fixed="right">
+          <template #default="{ row }">
+            <div class="operation-buttons">
+              <el-button size="small" type="primary" link @click="handleView(row)">
+                <el-icon><View /></el-icon> 查看
+              </el-button>
+              <el-button size="small" type="primary" link @click="handleEdit(row)" v-if="canEdit">
+                <el-icon><Edit /></el-icon> 编辑
+              </el-button>
+              <el-button size="small" type="warning" link @click="handleQRCode(row)">
+                <el-icon><Grid /></el-icon> 码
+              </el-button>
+              <el-button size="small" type="danger" link @click="handleDelete(row)" v-if="canDelete">
+                <el-icon><Delete /></el-icon> 删除
+              </el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -448,7 +470,12 @@ onMounted(() => {
 
 <style scoped>
 .equipment-list {
-  height: 100%;
+  padding: 20px;
+}
+
+.list-card {
+  border-radius: 8px;
+  border: 1px solid #ebeef5;
 }
 
 .card-header {
@@ -457,12 +484,73 @@ onMounted(() => {
   justify-content: space-between;
 }
 
-.search-form {
-  margin-bottom: 0;
+.title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.title-icon {
+  font-size: 20px;
+  color: var(--el-color-primary);
+}
+
+.title-text {
+  font-size: 18px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.search-wrapper {
+  background-color: #f8f9fb;
+  padding: 24px 20px 0;
+  border-radius: 8px;
+  margin-bottom: 24px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.search-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  padding-bottom: 20px;
+  margin-top: 10px;
+}
+
+.custom-table {
+  width: 100%;
+  margin-top: 8px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.equipment-name-link {
+  color: var(--el-color-primary);
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.equipment-name-link:hover {
+  text-decoration: underline;
+}
+
+.operation-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+}
+
+.operation-buttons :deep(.el-button) {
+  padding: 4px 8px;
+  margin-left: 0 !important;
 }
 
 .qr-content {
   text-align: center;
+  padding: 20px 0;
 }
 
 .qr-placeholder {
@@ -470,17 +558,23 @@ onMounted(() => {
   justify-content: center;
   align-items: center;
   height: 200px;
+  background-color: #f5f7fa;
+  border-radius: 8px;
+  margin: 0 auto;
+  width: 200px;
 }
 
 .qr-code-text {
-  margin-top: 16px;
-  font-size: 16px;
+  margin-top: 20px;
+  font-size: 18px;
   font-weight: bold;
-  color: #409eff;
+  color: var(--el-color-primary);
+  letter-spacing: 1px;
 }
 
 .qr-name {
-  margin-top: 8px;
-  color: #606266;
+  margin-top: 10px;
+  font-size: 14px;
+  color: #909399;
 }
 </style>

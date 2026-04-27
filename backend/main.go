@@ -148,6 +148,7 @@ func runDatabaseMode() {
 	v1.InitSparePart()
 	v1.InitAnalytics()
 	v1.InitKnowledge()
+	v1.InitLark()
 
 	// 补种演示数据 (Milestone: Data Parity)
 	if err := repository.SeedDatabase(database.GetDB()); err != nil {
@@ -198,6 +199,7 @@ func setupMemoryRoutes(router *gin.Engine) {
 			auth.POST("/change-password", middleware.AuthMiddleware(), v1.ChangePassword)
 			auth.POST("/apply", v1.ApplyForAccount)
 			auth.GET("/me", middleware.AuthMiddleware(), v1.GetCurrentUser)
+			auth.POST("/bind-lark", middleware.AuthMiddleware(), v1.BindLark)
 		}
 
 		// Protected routes
@@ -387,6 +389,9 @@ func setupMemoryRoutes(router *gin.Engine) {
 
 	// Health check
 	router.GET("/health", v1.HealthCheckMemory)
+
+	// Lark webhook (public)
+	router.POST("/api/v1/lark/webhook", v1.LarkWebhook)
 }
 
 // setupDatabaseRoutes 设置数据库模式路由
@@ -401,6 +406,7 @@ func setupDatabaseRoutes(router *gin.Engine) {
 			auth.POST("/apply", v1.ApplyForAccount)
 			auth.GET("/me", middleware.AuthMiddleware(), v1.GetCurrentUser)
 			auth.POST("/change-password", middleware.AuthMiddleware(), v1.ChangePassword)
+			auth.POST("/bind-lark", middleware.AuthMiddleware(), v1.BindLark)
 		}
 
 		// Protected routes
@@ -585,6 +591,9 @@ func setupDatabaseRoutes(router *gin.Engine) {
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok", "service": "ems-api"})
 	})
+
+	// Lark webhook (public)
+	router.POST("/api/v1/lark/webhook", v1.LarkWebhook)
 }
 
 // startServer 启动 HTTP 服务器

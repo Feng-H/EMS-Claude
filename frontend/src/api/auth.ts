@@ -51,4 +51,5 @@ export const authApi = {
   refreshToken: (token: string) => request.post<{ token: string; expire_at: number }>('/auth/refresh', { token }),
   changePassword: (data: ChangePasswordRequest) => request.post('/auth/change-password', data),
   applyAccount: (data: ApplyAccountRequest) => request.post('/auth/apply', data),
+  bindLark: (openid: string) => request.post('/auth/bind-lark', { openid }),
 }

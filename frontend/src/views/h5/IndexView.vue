@@ -13,32 +13,29 @@
 
     <!-- 已登录状态 -->
     <div v-else class="logged-in-view">
-      <mobile-header title="EMS移动端" :show-back="false">
-        <template #right>
-          <van-icon name="switch" size="20" @click="handleLogout" />
-        </template>
-      </mobile-header>
+      <mobile-header title="EMS 工作台" :show-back="false" />
 
       <div class="content">
-      <!-- 用户信息卡片 -->
-      <van-cell-group inset class="user-card">
-        <van-cell center>
-          <template #title>
-            <div class="user-info">
-              <van-icon name="user-circle-o" size="48" color="#1989fa" />
-              <div class="user-details">
-                <div class="user-name">{{ authStore.user?.name || '未登录' }}</div>
-                <div class="user-role">{{ getRoleText(authStore.user?.role) }}</div>
-              </div>
-            </div>
-          </template>
-        </van-cell>
-      </van-cell-group>
+        <!-- 待办数据统计 -->
+        <div class="stats-overview">
+          <div class="stats-card" @click="navigateTo('/h5/inspection')">
+            <div class="stats-num">{{ pendingInspections }}</div>
+            <div class="stats-label">待点检</div>
+          </div>
+          <div class="stats-card" @click="navigateTo('/h5/maintenance')">
+            <div class="stats-num">{{ pendingMaintenance }}</div>
+            <div class="stats-label">待保养</div>
+          </div>
+          <div class="stats-card" @click="navigateTo('/h5/repair/execute')">
+            <div class="stats-num">{{ pendingRepairs }}</div>
+            <div class="stats-label">待维修</div>
+          </div>
+        </div>
 
-      <!-- 快捷功能 -->
-      <van-cell-group inset class="section">
-        <van-cell title="快捷操作" />
-      </van-cell-group>
+        <!-- 快捷功能 -->
+        <van-cell-group inset class="section-title">
+          <van-cell title="核心作业" />
+        </van-cell-group>
 
       <div class="action-grid">
         <div class="action-item" @click="navigateTo('/h5/inspection')">
@@ -59,64 +56,33 @@
         </div>
       </div>
 
-      <!-- 待办事项 -->
-      <van-cell-group inset class="section">
-        <van-cell title="我的任务" is-link @click="navigateTo('/h5/tasks')" />
-      </van-cell-group>
-
-      <van-cell-group inset>
-        <van-cell
-          title="待处理点检"
-          :value="`${pendingInspections}项`"
-          is-link
-          @click="navigateTo('/h5/inspection')"
-        />
-        <van-cell
-          title="待处理保养"
-          :value="`${pendingMaintenance}项`"
-          is-link
-          @click="navigateTo('/h5/maintenance')"
-        />
-        <van-cell
-          title="待处理维修"
-          :value="`${pendingRepairs}项`"
-          is-link
-          @click="navigateTo('/h5/repair/execute')"
-        />
-      </van-cell-group>
-
-      <!-- 其他功能 -->
-      <van-cell-group inset class="section">
-        <van-cell title="其他" />
+      <!-- 辅助功能 -->
+      <van-cell-group inset class="section-title">
+        <van-cell title="辅助查询" />
       </van-cell-group>
 
       <van-cell-group inset>
         <van-cell
           title="知识库"
-          label="故障处理方法"
+          label="故障处理经验沉淀"
           is-link
-          @click="navigateTo('/knowledge')"
+          icon="description-o"
+          @click="navigateTo('/h5/knowledge')"
         />
         <van-cell
           title="我的设备"
-          label="查看设备列表"
+          label="快速搜索与查看设备"
           is-link
-          @click="navigateTo('/equipment')"
+          icon="cluster-o"
+          @click="navigateTo('/h5/equipment')"
         />
         <van-cell
           title="备件库存"
-          label="查看备件信息"
+          label="备件余量即时查询"
           is-link
-          @click="navigateTo('/spareparts')"
+          icon="shop-o"
+          @click="navigateTo('/h5/spareparts')"
         />
-        <van-cell
-          title="退出登录"
-          @click="handleLogout"
-        >
-          <template #right-icon>
-            <van-icon name="switch" color="#ee0a24" />
-          </template>
-        </van-cell>
       </van-cell-group>
     </div>
     </div>
@@ -126,7 +92,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { showToast, showConfirmDialog } from 'vant'
 import { useAuthStore } from '@/stores/auth'
 import { inspectionTaskApi } from '@/api/inspection'
 import { maintenanceApi } from '@/api/maintenance'
@@ -144,32 +109,14 @@ const pendingRepairs = ref(0)
 
 // 初始化：检查登录状态并获取用户信息
 const initializeAuth = async () => {
-  // 检查localStorage中的token是否有效
   const tokenInStorage = localStorage.getItem('ems_token')
-
   if (tokenInStorage && !authStore.user) {
     try {
       await authStore.getUserInfo()
     } catch (error) {
-      // 获取用户信息失败，清除登录状态
-      console.error('获取用户信息失败:', error)
       authStore.logout()
     }
-  } else if (!tokenInStorage && authStore.isLoggedIn) {
-    // localStorage中没有token但store认为已登录，同步状态
-    authStore.logout()
   }
-}
-
-const getRoleText = (role?: string) => {
-  const roles: Record<string, string> = {
-    admin: '系统管理员',
-    supervisor: '设备主管',
-    engineer: '设备工程师',
-    maintenance: '维修工',
-    operator: '操作工'
-  }
-  return roles[role || ''] || '未知角色'
 }
 
 const navigateTo = (path: string) => {
@@ -177,41 +124,22 @@ const navigateTo = (path: string) => {
 }
 
 const goToLogin = () => {
-  // 清除登录状态
   authStore.logout()
-  // 使用window.location确保完整页面跳转
   window.location.href = '/login'
 }
 
 const loadPendingCounts = async () => {
   try {
-    // 加载待处理点检
     const inspectionsResponse = await inspectionTaskApi.getMyTasks()
     pendingInspections.value = inspectionsResponse.data.filter(t => t.status === 'pending' || t.status === 'in_progress').length
 
-    // 加载待处理保养
     const maintenanceResponse = await maintenanceApi.getMyTasks()
     pendingMaintenance.value = maintenanceResponse.data.filter(t => t.status === 'pending' || t.status === 'in_progress').length
 
-    // 加载待处理维修
     const repairsResponse = await repairOrderApi.getMyTasks()
     pendingRepairs.value = repairsResponse.data.filter(r => r.status === 'pending' || r.status === 'assigned' || r.status === 'in_progress').length
   } catch (error) {
     console.error('加载待办数量失败:', error)
-  }
-}
-
-const handleLogout = async () => {
-  try {
-    await showConfirmDialog({
-      title: '退出登录',
-      message: '确定要退出登录吗？'
-    })
-    authStore.logout()
-    showToast('已退出登录')
-    router.push('/login')
-  } catch {
-    // 用户取消
   }
 }
 
@@ -237,19 +165,6 @@ onMounted(async () => {
   justify-content: center;
   min-height: 100vh;
   padding: 40px;
-  background: var(--color-bg-primary);
-}
-
-.login-icon {
-  margin-bottom: var(--space-xl);
-  opacity: 0.6;
-}
-
-.login-text {
-  font-size: 17px;
-  color: var(--color-text-secondary);
-  margin-bottom: var(--space-2xl);
-  font-weight: 500;
 }
 
 .login-btn {
@@ -264,91 +179,76 @@ onMounted(async () => {
   color: #faf9f5;
 }
 
-.login-btn:active {
-  transform: scale(0.96);
-  box-shadow: 0 4px 12px rgba(201, 100, 66, 0.3);
-}
-
 /* 已登录状态 */
 .logged-in-view {
   min-height: 100vh;
   background: var(--color-bg-primary);
   padding-top: 46px;
-  padding-bottom: env(safe-area-inset-bottom, 20px);
+  padding-bottom: 80px;
 }
 
 .content {
   padding: var(--space-lg);
 }
 
-/* 用户卡片优化 */
-.user-card {
-  margin-bottom: var(--space-xl);
-  border-radius: var(--radius-high);
-  overflow: hidden;
-  box-shadow: var(--shadow-md);
-}
-
-.user-card :deep(.van-cell-group) {
-  background: transparent;
-}
-
-.user-card :deep(.van-cell) {
-  background: var(--color-terracotta);
-  padding: var(--space-xl);
-  color: #faf9f5;
-}
-
-.user-info {
+/* 统计卡片优化 */
+.stats-overview {
   display: flex;
-  align-items: center;
-  gap: 14px;
-  width: 100%;
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
 }
 
-.user-info :deep(.van-icon) {
-  color: rgba(250, 249, 245, 0.9);
-}
-
-.user-details {
+.stats-card {
   flex: 1;
+  background: var(--color-bg-card);
+  padding: var(--space-lg) var(--space-sm);
+  border-radius: var(--radius-very);
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border);
+  transition: all var(--transition-fast);
 }
 
-.user-name {
-  font-size: 18px;
-  font-weight: 500;
+.stats-card:active {
+  transform: scale(0.95);
+  background: var(--color-bg-tertiary);
+}
+
+.stats-num {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--color-terracotta);
   margin-bottom: 4px;
-  color: #faf9f5;
   font-family: var(--font-serif);
 }
 
-.user-role {
-  font-size: 13px;
-  color: rgba(250, 249, 245, 0.8);
+.stats-label {
+  font-size: 12px;
+  color: var(--color-text-secondary);
 }
 
-/* Section 标题优化 */
-.section :deep(.van-cell) {
+/* Section 标题 */
+.section-title :deep(.van-cell) {
   background: transparent;
-  padding: var(--space-md) var(--space-lg) var(--space-sm);
+  padding: var(--space-md) 0 var(--space-sm);
 }
 
-.section :deep(.van-cell__title) {
-  font-size: 15px;
-  font-weight: 500;
+.section-title :deep(.van-cell__title) {
+  font-size: 16px;
+  font-weight: 600;
   color: var(--color-text-primary);
   font-family: var(--font-serif);
 }
 
-/* 快捷操作网格优化 */
+/* 快捷操作网格 */
 .action-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-lg);
-  padding: var(--space-xl) var(--space-lg);
+  gap: var(--space-md);
+  padding: var(--space-xl) var(--space-md);
   background: var(--color-bg-card);
   border-radius: var(--radius-very);
-  margin-bottom: var(--space-lg);
+  margin-bottom: var(--space-xl);
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--color-border);
 }
@@ -357,116 +257,46 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: var(--space-sm) 0;
-  cursor: pointer;
-  transition: all var(--transition-fast);
+  gap: 8px;
 }
 
 .action-item :deep(.van-icon) {
-  width: 52px;
-  height: 52px;
+  width: 48px;
+  height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--color-bg-tertiary);
-  border-radius: var(--radius-high);
-  transition: all var(--transition-fast);
+  border-radius: 14px;
   color: var(--color-terracotta);
-}
-
-.action-item:active :deep(.van-icon) {
-  transform: scale(0.92);
-  background: var(--color-primary-dim);
-}
-
-.action-item:active .action-label {
-  color: var(--color-terracotta);
+  font-size: 24px;
 }
 
 .action-label {
   font-size: 12px;
   color: var(--color-text-secondary);
-  text-align: center;
   font-weight: 500;
-  transition: color var(--transition-fast);
 }
 
-/* Cell Group 优化 */
+/* 列表项优化 */
 .content :deep(.van-cell-group) {
-  border-radius: var(--radius-very);
-  overflow: hidden;
-  margin-bottom: var(--space-md);
-  box-shadow: var(--shadow-sm);
+  background: transparent;
 }
 
 .content :deep(.van-cell) {
   background: var(--color-bg-card);
-  padding: 14px var(--space-lg);
+  border-radius: var(--radius-very);
+  margin-bottom: var(--space-sm);
+  padding: 16px;
   border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
 }
 
-.content :deep(.van-cell:not(:last-child)::after) {
-  left: var(--space-lg);
-  border-color: var(--color-border);
+.content :deep(.van-cell::after) {
+  display: none;
 }
 
 .content :deep(.van-cell__title) {
-  font-size: 15px;
   font-weight: 500;
-  color: var(--color-text-primary);
-}
-
-.content :deep(.van-cell__label) {
-  font-size: 13px;
-  color: var(--color-text-tertiary);
-}
-
-.content :deep(.van-cell__value) {
-  font-size: 14px;
-  color: var(--color-terracotta);
-  font-weight: 500;
-}
-
-.content :deep(.van-icon__image) {
-  color: var(--color-terracotta);
-}
-
-/* 暗色模式适配 */
-@media (prefers-color-scheme: dark) {
-  .h5-home-view,
-  .login-prompt {
-    background: var(--color-bg-primary);
-  }
-
-  .login-text {
-    color: var(--color-text-tertiary);
-  }
-
-  .action-grid,
-  .content :deep(.van-cell) {
-    background: var(--color-bg-card);
-  }
-
-  .section :deep(.van-cell__title),
-  .content :deep(.van-cell__title) {
-    color: var(--color-text-primary);
-  }
-
-  .content :deep(.van-cell__label) {
-    color: var(--color-text-tertiary);
-  }
-
-  .content :deep(.van-cell:not(:last-child)::after) {
-    border-color: var(--color-border);
-  }
-
-  .action-label {
-    color: var(--color-text-tertiary);
-  }
-
-  .action-item :deep(.van-icon) {
-    background: var(--color-bg-tertiary);
-  }
 }
 </style>
