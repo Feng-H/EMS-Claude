@@ -73,7 +73,10 @@
             </div>
             <div v-if="chatLoading" class="message assistant loading">
               <div class="avatar">AI</div>
-              <div class="content"><el-skeleton :rows="2" animated /></div>
+              <div class="content">
+                <div class="loading-tip">AI 专家正在深度分析数据并生成决策建议...</div>
+                <el-skeleton :rows="2" animated />
+              </div>
             </div>
           </div>
           
@@ -248,8 +251,14 @@ async function handleSendChat() {
     })
     setTimeout(loadDrafts, 3000)
     loadConversations()
-  } catch (error) {
+  } catch (error: any) {
     console.error('Chat failed', error)
+    const errorMsg = error.response?.data?.error || '请求失败，请稍后重试'
+    messages.value.push({ 
+      role: 'assistant', 
+      content: `⚠️ 对不起，分析过程中出现错误：${errorMsg}。请检查您的网络连接或稍后再试。` 
+    })
+    ElMessage.error('对话请求失败')
   } finally {
     chatLoading.value = false
     scrollToBottom()
@@ -258,14 +267,22 @@ async function handleSendChat() {
 
 async function handleRunRepairAudit() {
   if (!auditForm.value.equipment_type_id) return
+  const loadingMsg = ElMessage.warning({
+    message: 'AI 审计任务已启动，正在扫描历史记录...',
+    duration: 0
+  })
   try {
     const res = await agentApi.auditRepair({
       equipment_type_id: auditForm.value.equipment_type_id,
       time_range: { start_date: '2026-01-01', end_date: '2026-04-26' }
     })
     auditResult.value = res.data
-  } catch (error) {
+    loadingMsg.close()
+    ElMessage.success('审计完成')
+  } catch (error: any) {
+    loadingMsg.close()
     console.error('Audit failed', error)
+    ElMessage.error('审计任务失败：' + (error.response?.data?.error || '服务响应超时'))
   }
 }
 
@@ -392,6 +409,7 @@ onMounted(async () => {
 .message .avatar { width: 36px; height: 36px; border-radius: 8px; background: var(--color-primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; }
 .message.user .avatar { background: #6366f1; }
 .message .content { background: var(--color-bg-primary); padding: 12px 16px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+.loading-tip { font-size: 13px; color: var(--color-primary); margin-bottom: 8px; font-weight: 500; }
 .message.user .content { background: var(--color-primary); color: white; }
 .msg-footer { margin-top: 8px; font-size: 11px; opacity: 0.6; }
 .chat-input-area { padding: 20px 30px 30px; }
