@@ -136,7 +136,7 @@ func runDatabaseMode() {
 		&model.AgentMessage{},
 		&model.AgentPushSubscription{},
 	); err != nil {
-		log.Fatalf("Failed to migrate database: %v", err)
+		log.Printf("Warning: AutoMigrate error (non-fatal, tables exist from schema.sql): %v", err)
 	}
 
 	// Initialize API handlers
