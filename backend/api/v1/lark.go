@@ -98,7 +98,7 @@ func LarkWebhook(c *gin.Context) {
 
 func handleLarkEvent(req dto.LarkWebhookRequest) {
 	ctx := context.Background()
-	
+
 	switch req.Header.EventType {
 	case "im.message.receive_v1":
 		eventBody, _ := json.Marshal(req.Event)
@@ -107,7 +107,12 @@ func handleLarkEvent(req dto.LarkWebhookRequest) {
 			fmt.Printf("failed to unmarshal lark message event: %v\n", err)
 			return
 		}
-		
+
+		openID := event.Sender.SenderID.OpenID
+		// Send quick ack immediately so user knows bot is alive
+		larkService.SendAck(ctx, openID)
+
+		// Process the message and send full response
 		if err := larkService.HandleIncomingMessage(ctx, event); err != nil {
 			fmt.Printf("failed to handle incoming lark message: %v\n", err)
 		}

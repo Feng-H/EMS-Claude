@@ -27,6 +27,10 @@ func NewLarkService() *LarkService {
 	}
 }
 
+func (s *LarkService) SendAck(ctx context.Context, openID string) error {
+	return s.client.SendTextMessage(ctx, "open_id", openID, "👍 收到，正在分析中...")
+}
+
 func (s *LarkService) HandleIncomingMessage(ctx context.Context, event dto.LarkMessageEvent) error {
 	openID := event.Sender.SenderID.OpenID
 	if openID == "" {
