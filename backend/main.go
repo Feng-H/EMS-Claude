@@ -99,8 +99,9 @@ func runDatabaseMode() {
 		log.Println("Redis connected successfully")
 	}
 
-	// Auto migrate tables
-	if err := database.GetDB().AutoMigrate(
+	// Auto migrate tables (process each model individually so one failure doesn't block others)
+	db := database.GetDB()
+	models := []interface{}{
 		&model.Base{},
 		&model.Factory{},
 		&model.Workshop{},
@@ -135,8 +136,11 @@ func runDatabaseMode() {
 		&model.AgentConversation{},
 		&model.AgentMessage{},
 		&model.AgentPushSubscription{},
-	); err != nil {
-		log.Printf("Warning: AutoMigrate error (non-fatal, tables exist from schema.sql): %v", err)
+	}
+	for _, m := range models {
+		if err := db.AutoMigrate(m); err != nil {
+			log.Printf("Warning: AutoMigrate error for %T: %v", m, err)
+		}
 	}
 
 	// Initialize API handlers
