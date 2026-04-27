@@ -398,7 +398,7 @@ func (r *UserRepository) Update(user *model.User) error {
 
 func (r *UserRepository) GetByLarkOpenID(openID string) (*model.User, error) {
 	var user model.User
-	err := r.db.Where("lark_openid = ?", openID).First(&user).Error
+	err := r.db.Where("lark_open_id = ?", openID).First(&user).Error
 	if err != nil {
 		return nil, err
 	}
@@ -406,5 +406,5 @@ func (r *UserRepository) GetByLarkOpenID(openID string) (*model.User, error) {
 }
 
 func (r *UserRepository) UpdateLarkOpenID(userID uint, openID string) error {
-	return r.db.Model(&model.User{}).Where("id = ?", userID).Update("lark_openid", openID).Error
+	return r.db.Model(&model.User{}).Where("id = ?", userID).Update("lark_open_id", openID).Error
 }
