@@ -213,7 +213,7 @@ func (r *RepairOrderRepository) GetStatisticsByEquipmentID(equipmentID uint) (ma
 
 	// Sum downtime (using PostgreSQL interval extraction)
 	r.db.Model(&model.RepairOrder{}).
-		Select("SUM(EXTRACT(EPOCH FROM (completed_at - started_at)) / 3600)").
+		Select("COALESCE(SUM(EXTRACT(EPOCH FROM (completed_at - started_at)) / 3600), 0)").
 		Where("equipment_id = ? AND started_at IS NOT NULL AND completed_at IS NOT NULL", equipmentID).
 		Scan(&totalDowntime)
 
@@ -232,7 +232,7 @@ func (r *RepairOrderRepository) GetCostByEquipmentID(equipmentID uint) (map[stri
 
 	// Join with RepairCostDetail
 	r.db.Table("repair_cost_details").
-		Select("SUM(spare_part_cost), SUM(labor_cost)").
+		Select("COALESCE(SUM(spare_part_cost), 0), COALESCE(SUM(labor_cost), 0)").
 		Joins("JOIN repair_orders ON repair_orders.id = repair_cost_details.order_id").
 		Where("repair_orders.equipment_id = ?", equipmentID).
 		Row().Scan(&sparePartCost, &laborCost)

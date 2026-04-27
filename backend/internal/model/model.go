@@ -437,9 +437,9 @@ type AgentMessage struct {
 	Role           string    `json:"role" gorm:"size:20;not null"`
 	Content        string    `json:"content" gorm:"type:text;not null"`
 	ImageURL       string    `json:"image_url" gorm:"size:500"`
-	ToolCalls      string    `json:"tool_calls" gorm:"type:jsonb"`
+	ToolCalls      *string   `json:"tool_calls" gorm:"type:jsonb"`
 	SkillID        string    `json:"skill_id" gorm:"size:100"`
-	KnowledgeIDs   string    `json:"knowledge_ids" gorm:"type:jsonb;default:'[]'"`
+	KnowledgeIDs   *string   `json:"knowledge_ids" gorm:"type:jsonb;default:'[]'"`
 	CreatedAt      time.Time `json:"created_at"`
 }
 

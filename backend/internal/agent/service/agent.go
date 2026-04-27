@@ -294,12 +294,19 @@ func (s *AgentService) Chat(userID uint, role string, req *dto.ChatRequest) (*dt
 	// 1. 获取或创建对话
 	var convID = req.ConversationID
 	if convID == 0 {
+		title := req.Message
+		runes := []rune(title)
+		if len(runes) > 30 {
+			title = string(runes[:27]) + "..."
+		}
 		newConv := &model.AgentConversation{
 			UserID: userID,
-			Title:  req.Message,
+			Title:  title,
 		}
-		if len(newConv.Title) > 50 { newConv.Title = newConv.Title[:47] + "..." }
-		_ = s.repo.CreateConversation(newConv)
+		if err := s.repo.CreateConversation(newConv); err != nil {
+			log.Printf("[AgentService] Failed to create conversation: %v", err)
+			return nil, err
+		}
 		convID = newConv.ID
 	}
 
