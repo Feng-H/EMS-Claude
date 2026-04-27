@@ -54,7 +54,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { showToast, showSuccessDialog } from 'vant'
+import { showToast, showDialog } from 'vant'
 import { useAuthStore } from '@/stores/auth'
 import { authApi } from '@/api/auth'
 import MobileHeader from '@/components/mobile/MobileHeader.vue'
@@ -80,10 +80,10 @@ const handleBind = async () => {
 
   binding.value = true
   try {
-    // 调用后端绑定接口
+    // 使用统一的 authApi 进行绑定
     await authApi.bindLark(openID.value)
     
-    await showSuccessDialog({
+    await showDialog({
       title: '绑定成功',
       message: '您的飞书账号已成功关联 EMS 系统，现在可以返回飞书进行对话了。'
     })
