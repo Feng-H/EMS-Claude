@@ -28,10 +28,14 @@ func verifyLarkSignature(c *gin.Context, body []byte) bool {
 	timestamp := c.GetHeader("X-Lark-Request-Timestamp")
 	nonce := c.GetHeader("X-Lark-Request-Nonce")
 	signature := c.GetHeader("X-Lark-Signature")
-	appSecret := config.Cfg.Lark.AppSecret
+	encryptKey := config.Cfg.Lark.EncryptKey
 
-	// Signature = sha256(timestamp + nonce + appSecret + body)
-	content := timestamp + nonce + appSecret + string(body)
+	if encryptKey == "" || signature == "" {
+		return true
+	}
+
+	// V2 signature: sha256(timestamp + "\n" + nonce + "\n" + encrypt_key + "\n" + body)
+	content := timestamp + "\n" + nonce + "\n" + encryptKey + "\n" + string(body)
 	h := sha256.New()
 	h.Write([]byte(content))
 	sum := fmt.Sprintf("%x", h.Sum(nil))
@@ -77,7 +81,7 @@ func LarkWebhook(c *gin.Context) {
 	}
 
 	// 2. Verify Signature for event callbacks
-	if config.Cfg.Lark.AppSecret != "" && !verifyLarkSignature(c, body) {
+	if !verifyLarkSignature(c, body) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "invalid signature"})
 		return
 	}
