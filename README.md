@@ -20,15 +20,30 @@
 
 ## 🚀 快速部署
 
-### 1. 配置环境变量
-
-在项目根目录创建 `.env` 文件（可参考 `.env.example`）：
+### 1. 克隆项目
 
 ```bash
-# 核心域名配置
-EMS_DOMAIN=ems.yourdomain.com
-EMS_APP_BASE_URL=https://${EMS_DOMAIN}
+git clone https://github.com/Feng-H/EMS-Claude.git
+cd EMS-Claude
+```
 
+### 2. 配置环境变量
+
+复制模板并生成密钥：
+
+```bash
+cp .env.example .env
+
+# 生成 JWT 密钥（必填）
+echo "EMS_JWT_SECRET=$(openssl rand -hex 32)" >> .env
+
+# 生成数据库密码
+echo "EMS_DATABASE_PASSWORD=$(openssl rand -hex 16)" >> .env
+```
+
+编辑 `.env`，按需配置 LLM 和飞书：
+
+```bash
 # LLM 智能助手配置 (默认使用 SiliconFlow/DeepSeek)
 EMS_LLM_PROVIDER=openai
 EMS_LLM_BASE_URL=https://api.siliconflow.cn/v1
@@ -40,17 +55,42 @@ EMS_LARK_APP_ID=cli_xxx...
 EMS_LARK_APP_SECRET=xxx...
 EMS_LARK_VERIFICATION_TOKEN=xxx...
 EMS_LARK_ENCRYPT_KEY=xxx...
+
+# 域名配置 (可选，用于飞书回调)
+EMS_DOMAIN=ems.yourdomain.com
 ```
 
-### 2. 启动服务
+### 3. 启动服务
 
 ```bash
 docker compose up -d --build
 ```
 
-启动后访问前端：`http://你的IP:3000`（或通过 Nginx 反向代理的域名）。
+首次启动会自动：
+- 创建数据库表结构
+- 填充演示数据（设备、维修工单、保养计划、知识库等）
 
-默认账号：`admin` / `admin123`
+启动后访问：`http://你的IP:3000`
+
+默认账号：`admin` / `admin123`（首次登录需修改密码）
+
+### 4. 常用命令
+
+```bash
+# 查看日志
+docker compose logs -f backend
+
+# 重启服务
+docker compose restart
+
+# 清空数据重新部署（会重新填充演示数据）
+docker compose down -v
+docker compose up -d --build
+
+# 仅更新代码重新构建
+git pull origin main
+docker compose up -d --build
+```
 
 ---
 
