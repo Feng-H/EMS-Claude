@@ -280,7 +280,8 @@ func GetMyMaintenanceTasks(c *gin.Context) {
 		return
 	}
 
-	today := time.Now().Truncate(24 * time.Hour)
+	loc, _ := time.LoadLocation("Asia/Shanghai")
+	today := time.Now().In(loc).Truncate(24 * time.Hour)
 	tasks, err := maintenanceTaskService.GetMyTasks(userID, today)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

@@ -130,7 +130,7 @@
 <script setup lang="ts">
 import { ref, onMounted, shallowRef } from 'vue'
 import { ElMessage } from 'element-plus'
-import * as echarts from 'echarts'
+import echarts from '@/utils/echarts'
 import type { EChartsOption } from 'echarts'
 import {
   getDashboardOverview,

@@ -453,47 +453,39 @@ onUnmounted(() => {
 </script>
 
 <style>
-/* Global overrides - Fix scrollbar */
+/* Global overrides */
 html, body {
-  margin: 0 !important;
-  padding: 0 !important;
-  border: none !important;
-  outline: none !important;
-  box-shadow: none !important;
-  width: 100% !important;
-  overflow-x: hidden !important;
-  /* Important: Hide scrollbars */
-  scrollbar-width: none !important;
-  -ms-overflow-style: none !important;
-}
-
-#app {
-  margin: 0 !important;
-  padding: 0 !important;
-  border: none !important;
-  outline: none !important;
-  box-shadow: none !important;
-  width: 100% !important;
-}
-
-/* Hide all scrollbars */
-*::-webkit-scrollbar {
-  display: none !important;
-  width: 0 !important;
-  height: 0 !important;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 * {
-  scrollbar-width: none !important;
-  -ms-overflow-style: none !important;
   box-sizing: border-box;
 }
 
-*:focus,
-*:focus-visible,
-*:focus-within {
-  outline: none !important;
-  box-shadow: none !important;
+/* Custom scrollbar for main content areas only */
+.main-content::-webkit-scrollbar,
+.el-aside::-webkit-scrollbar {
+  width: 6px;
+}
+
+.main-content::-webkit-scrollbar-thumb,
+.el-aside::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 3px;
+}
+
+.main-content::-webkit-scrollbar-thumb:hover,
+.el-aside::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* Visible focus styles for accessibility */
+*:focus-visible {
+  outline: 2px solid var(--color-primary, #409eff);
+  outline-offset: 2px;
 }
 </style>
 

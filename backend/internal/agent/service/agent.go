@@ -117,20 +117,27 @@ func (s *AgentService) RecommendMaintenance(userID uint, role string, req *dto.M
 		UserID: userID, Scenario: "maintenance_recommendation", FactoryID: &targetFactoryID,
 		Language: agentCtx.Language, InputSnapshot: string(inputSnap), TraceID: traceID, Status: "completed",
 	}
-	_ = s.repo.CreateSession(session)
+	if err := s.repo.CreateSession(session); err != nil {
+		log.Printf("[AgentService] Failed to create session: %v", err)
+		return nil, err
+	}
 
 	artifact := &model.AgentArtifact{
 		SessionID: session.ID, ArtifactType: "recommendation", Title: "设备保养优化建议",
 		Summary: summary, ResultJSON: string(resultJSON), RiskLevel: "medium",
 	}
-	_ = s.repo.CreateArtifact(artifact)
+	if err := s.repo.CreateArtifact(artifact); err != nil {
+		log.Printf("[AgentService] Failed to create artifact: %v", err)
+	}
 
 	for _, ev := range analysisResult.Evidence {
 		link := model.AgentEvidenceLink{
 			ArtifactID: artifact.ID, EvidenceType: ev.EvidenceType,
 			SourceTable: ev.SourceTable, SourceID: ev.SourceID, Excerpt: ev.Excerpt, Score: ev.Score,
 		}
-		_ = s.repo.CreateEvidenceLinks([]model.AgentEvidenceLink{link})
+		if err := s.repo.CreateEvidenceLinks([]model.AgentEvidenceLink{link}); err != nil {
+			log.Printf("[AgentService] Failed to create evidence link: %v", err)
+		}
 	}
 
 	res := &dto.AgentResponseEnvelope{
@@ -191,20 +198,27 @@ func (s *AgentService) AuditRepair(userID uint, role string, req *dto.RepairAudi
 		UserID: userID, Scenario: "repair_audit", FactoryID: &targetFactoryID,
 		Language: agentCtx.Language, InputSnapshot: string(inputSnap), TraceID: traceID, Status: "completed",
 	}
-	_ = s.repo.CreateSession(session)
+	if err := s.repo.CreateSession(session); err != nil {
+		log.Printf("[AgentService] Failed to create session: %v", err)
+		return nil, err
+	}
 
 	artifact := &model.AgentArtifact{
 		SessionID: session.ID, ArtifactType: "audit_report", Title: "设备维修审计报告",
 		Summary: summary, ResultJSON: string(resultJSON), RiskLevel: "high",
 	}
-	_ = s.repo.CreateArtifact(artifact)
+	if err := s.repo.CreateArtifact(artifact); err != nil {
+		log.Printf("[AgentService] Failed to create artifact: %v", err)
+	}
 
 	for _, ev := range analysisResult.Evidence {
 		link := model.AgentEvidenceLink{
 			ArtifactID: artifact.ID, EvidenceType: ev.EvidenceType,
 			SourceTable: ev.SourceTable, SourceID: ev.SourceID, Excerpt: ev.Excerpt, Score: ev.Score,
 		}
-		_ = s.repo.CreateEvidenceLinks([]model.AgentEvidenceLink{link})
+		if err := s.repo.CreateEvidenceLinks([]model.AgentEvidenceLink{link}); err != nil {
+			log.Printf("[AgentService] Failed to create evidence link: %v", err)
+		}
 	}
 
 	res := &dto.AgentResponseEnvelope{
@@ -611,10 +625,18 @@ func (s *AgentService) logUsage(sessionID, userID uint, scenario string, startTi
 	usage := &model.AgentUsage{
 		SessionID: sessionID, UserID: userID, Scenario: scenario, Model: modelName, ResponseTimeMs: duration,
 	}
-	_ = s.repo.CreateUsage(usage)
+	if err := s.repo.CreateUsage(usage); err != nil {
+		log.Printf("[AgentService] Failed to create usage record: %v", err)
+	}
 }
 
 func (s *AgentService) ReflectAndLearn(convID uint, userID uint) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("[AgentService] PANIC in ReflectAndLearn (conv=%d, user=%d): %v", convID, userID, r)
+		}
+	}()
+
 	if s.llmClient == nil { return }
 	history, err := s.repo.GetMessagesByConversationID(convID)
 	if err != nil || len(history) < 2 { return }

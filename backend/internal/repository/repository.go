@@ -268,12 +268,7 @@ func (r *EquipmentRepository) List(filter EquipmentFilter) ([]model.Equipment, i
 		query = query.Where("status = ?", filter.Status)
 	}
 
-	// Count total
-	if err := query.Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
-
-	// Filter by factory_id through workshop
+	// Filter by factory_id through workshop (BEFORE count for accurate totals)
 	if filter.FactoryID != nil {
 		var workshopIDs []uint
 		r.db.Model(&model.Workshop{}).Where("factory_id = ?", *filter.FactoryID).Pluck("id", &workshopIDs)
@@ -282,6 +277,11 @@ func (r *EquipmentRepository) List(filter EquipmentFilter) ([]model.Equipment, i
 		} else {
 			return []model.Equipment{}, 0, nil
 		}
+	}
+
+	// Count total (now includes factory filter)
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
 	}
 
 	// Pagination
@@ -304,19 +304,25 @@ func (r *EquipmentRepository) Delete(id uint) error {
 func (r *EquipmentRepository) GetStatistics() (map[string]int64, error) {
 	stats := make(map[string]int64)
 
-	var total, running, stopped, maintenance, scrapped int64
+	type result struct {
+		Status string
+		Count  int64
+	}
+	var results []result
 
-	r.db.Model(&model.Equipment{}).Count(&total)
-	r.db.Model(&model.Equipment{}).Where("status = ?", "running").Count(&running)
-	r.db.Model(&model.Equipment{}).Where("status = ?", "stopped").Count(&stopped)
-	r.db.Model(&model.Equipment{}).Where("status = ?", "maintenance").Count(&maintenance)
-	r.db.Model(&model.Equipment{}).Where("status = ?", "scrapped").Count(&scrapped)
+	if err := r.db.Model(&model.Equipment{}).
+		Select("status, COUNT(*) as count").
+		Group("status").
+		Scan(&results).Error; err != nil {
+		return nil, err
+	}
 
+	var total int64
+	for _, row := range results {
+		stats[row.Status] = row.Count
+		total += row.Count
+	}
 	stats["total"] = total
-	stats["running"] = running
-	stats["stopped"] = stopped
-	stats["maintenance"] = maintenance
-	stats["scrapped"] = scrapped
 
 	return stats, nil
 }

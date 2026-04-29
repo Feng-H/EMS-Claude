@@ -312,38 +312,38 @@ async function loadEquipmentTypes() {
 async function loadOrganization() {
   try {
     const bases = await orgApi.getBases()
-    const tree: TreeNode[] = []
 
-    for (const base of bases) {
-      const baseNode: TreeNode = { id: base.id, name: base.name, code: base.code, type: 'base' }
+    const factoryPromises = bases.map(async (base: any) => {
       const factories = await orgApi.getFactories(base.id)
 
-      if (factories.length > 0) {
-        baseNode.children = []
-        for (const factory of factories) {
-          const factoryNode: TreeNode = {
-            id: factory.id,
-            name: factory.name,
-            code: factory.code,
-            type: 'factory',
-          }
-          const workshops = await orgApi.getWorkshops(factory.id)
+      const workshopPromises = factories.map(async (factory: any) => {
+        const workshops = await orgApi.getWorkshops(factory.id)
+        return workshops.map((w: any) => ({
+          id: w.id,
+          name: w.name,
+          code: w.code,
+          type: 'workshop' as const,
+        }))
+      })
 
-          if (workshops.length > 0) {
-            factoryNode.children = workshops.map((w) => ({
-              id: w.id,
-              name: w.name,
-              code: w.code,
-              type: 'workshop' as const,
-            }))
-          }
-          baseNode.children.push(factoryNode)
-        }
+      const workshopResults = await Promise.all(workshopPromises)
+
+      return {
+        id: base.id,
+        name: base.name,
+        code: base.code,
+        type: 'base' as const,
+        children: factories.map((factory: any, idx: number) => ({
+          id: factory.id,
+          name: factory.name,
+          code: factory.code,
+          type: 'factory' as const,
+          children: workshopResults[idx] || []
+        }))
       }
-      tree.push(baseNode)
-    }
+    })
 
-    organizationTree.value = tree
+    organizationTree.value = await Promise.all(factoryPromises)
   } catch (error) {
     // Error handled by interceptor
   }

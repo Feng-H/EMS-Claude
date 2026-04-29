@@ -44,6 +44,11 @@ func main() {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
+	// 3. Validate configuration
+	if err := config.Validate(); err != nil {
+		log.Fatalf("Config validation failed: %v", err)
+	}
+
 	// 根据配置选择存储模式
 	storageMode := "memory"
 	if config.Cfg.Storage.Mode != "" {
@@ -175,8 +180,22 @@ func runDatabaseMode() {
 
 // CORSMiddleware CORS 中间件
 func CORSMiddleware() gin.HandlerFunc {
+	allowedOrigins := config.Cfg.Server.CORSOrigins
+	originSet := make(map[string]bool)
+	for _, o := range allowedOrigins {
+		originSet[o] = true
+	}
+
 	return func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		origin := c.GetHeader("Origin")
+
+		if originSet["*"] || len(allowedOrigins) == 0 {
+			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		} else if originSet[origin] {
+			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+			c.Writer.Header().Set("Vary", "Origin")
+		}
+
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE, PATCH")
@@ -212,6 +231,7 @@ func setupMemoryRoutes(router *gin.Engine) {
 		{
 			// User management routes (admin only)
 			users := protected.Group("/users")
+			users.Use(middleware.RequireRole("admin"))
 			{
 				users.GET("", v1.GetUsersMemory)
 				users.POST("", v1.CreateUserMemory)
@@ -419,6 +439,7 @@ func setupDatabaseRoutes(router *gin.Engine) {
 		{
 			// User management routes (admin only)
 			users := protected.Group("/users")
+			users.Use(middleware.RequireRole("admin"))
 			{
 				users.GET("", v1.GetUsers)
 				users.POST("", v1.CreateUser)

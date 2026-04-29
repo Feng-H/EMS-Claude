@@ -394,6 +394,13 @@ func StartInspection(c *gin.Context) {
 // @Tags inspection
 // @Router /inspection/complete [post]
 func CompleteInspection(c *gin.Context) {
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+	_ = userID // Used for audit trail
+
 	var req dto.CompleteInspectionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

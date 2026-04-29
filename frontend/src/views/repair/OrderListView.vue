@@ -126,7 +126,7 @@
               type="warning"
               size="small"
               link
-              @click="showAssignDialog(row)"
+              @click="openAssignDialog(row)"
             >
               派单
             </el-button>
@@ -241,7 +241,7 @@
     </el-dialog>
 
     <!-- 派单对话框 -->
-    <el-dialog v-model="showAssignDialog" title="派单" width="500px">
+    <el-dialog v-model="assignDialogVisible" title="派单" width="500px">
       <el-form :model="assignForm" :rules="assignRules" ref="assignFormRef" label-width="80px">
         <el-form-item label="维修工" prop="assign_to">
           <el-select v-model="assignForm.assign_to" placeholder="请选择维修工" filterable>
@@ -255,7 +255,7 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showAssignDialog = false">取消</el-button>
+        <el-button @click="assignDialogVisible = false">取消</el-button>
         <el-button type="primary" @click="confirmAssign" :loading="assigning">确定</el-button>
       </template>
     </el-dialog>
@@ -296,7 +296,7 @@ const statistics = ref<RepairStatistics>({
 
 const dateRange = ref<[string, string] | null>(null)
 const showDetailDialog = ref(false)
-const showAssignDialog = ref(false)
+const assignDialogVisible = ref(false)
 const assigning = ref(false)
 
 const filterForm = reactive({
@@ -380,15 +380,10 @@ const viewDetail = async (order: RepairOrder) => {
   showDetailDialog.value = true
 }
 
-const showAssignDialogFunc = (order: RepairOrder) => {
+const openAssignDialog = (order: RepairOrder) => {
   currentOrder.value = order
   assignForm.assign_to = undefined as unknown as number
-  showAssignDialog.value = true
-}
-
-// 需要重新命名避免冲突
-const showAssignDialogInner = (order: RepairOrder) => {
-  showAssignDialogFunc(order)
+  assignDialogVisible.value = true
 }
 
 const confirmAssign = async () => {
@@ -399,7 +394,7 @@ const confirmAssign = async () => {
     try {
       await repairOrderApi.assignOrder(currentOrder.value.id, assignForm)
       ElMessage.success('派单成功')
-      showAssignDialog.value = false
+      assignDialogVisible.value = false
       loadOrders()
       loadStatistics()
     } catch (error: any) {

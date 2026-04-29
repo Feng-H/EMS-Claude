@@ -189,8 +189,9 @@ const loadSpareParts = async () => {
 
   loading.value = true
   try {
-    const data = await sparePartApi.getList({ factory_id: props.factoryId })
-    allParts.value = data.filter(p => p.stock > 0)
+    const res = await sparePartApi.getList({ factory_id: props.factoryId } as any)
+    const items = res.data?.items || res.data || []
+    allParts.value = (Array.isArray(items) ? items : []).filter((p: any) => p.stock > 0)
   } catch (error: any) {
     showToast(error.message || '加载备件失败')
   } finally {

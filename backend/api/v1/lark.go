@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 
 	"github.com/ems/backend/internal/dto"
@@ -30,8 +31,20 @@ func verifyLarkSignature(c *gin.Context, body []byte) bool {
 	signature := c.GetHeader("X-Lark-Signature")
 	encryptKey := config.Cfg.Lark.EncryptKey
 
-	if encryptKey == "" || signature == "" {
+	if encryptKey == "" {
+		if signature != "" {
+			// Attacker sent signature but we have no key configured — reject
+			log.Printf("[Lark] WARNING: Request has signature header but no encrypt_key configured. Rejecting.")
+			return false
+		}
+		// Simple setup without signature — allow (but warn once)
+		log.Printf("[Lark] WARNING: No encrypt_key configured, signature verification disabled.")
 		return true
+	}
+
+	if signature == "" {
+		// Key configured but no signature — reject
+		return false
 	}
 
 	// V2 signature: sha256(timestamp + "\n" + nonce + "\n" + encrypt_key + "\n" + body)

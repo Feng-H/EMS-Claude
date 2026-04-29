@@ -359,3 +359,21 @@ CREATE TABLE repair_cost_details (
 CREATE INDEX idx_agent_messages_conv ON agent_messages(conversation_id);
 CREATE INDEX idx_agent_knowledges_status ON agent_knowledges(status);
 CREATE INDEX idx_equipment_finance ON equipment(purchase_price, purchase_date);
+
+-- Performance indexes
+CREATE INDEX IF NOT EXISTS idx_equipment_workshop_id ON equipment(workshop_id);
+CREATE INDEX IF NOT EXISTS idx_equipment_type_id ON equipment(type_id);
+CREATE INDEX IF NOT EXISTS idx_equipment_status ON equipment(status);
+CREATE INDEX IF NOT EXISTS idx_inspection_tasks_assigned_to ON inspection_tasks(assigned_to);
+CREATE INDEX IF NOT EXISTS idx_inspection_tasks_scheduled_date ON inspection_tasks(scheduled_date);
+CREATE INDEX IF NOT EXISTS idx_inspection_tasks_status ON inspection_tasks(status);
+CREATE INDEX IF NOT EXISTS idx_inspection_tasks_equipment_id ON inspection_tasks(equipment_id);
+CREATE INDEX IF NOT EXISTS idx_repair_orders_status ON repair_orders(status);
+CREATE INDEX IF NOT EXISTS idx_repair_orders_equipment_id ON repair_orders(equipment_id);
+CREATE INDEX IF NOT EXISTS idx_repair_orders_assigned_to ON repair_orders(assigned_to);
+CREATE INDEX IF NOT EXISTS idx_maintenance_tasks_status ON maintenance_tasks(status);
+CREATE INDEX IF NOT EXISTS idx_maintenance_tasks_equipment_id ON maintenance_tasks(equipment_id);
+CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+CREATE INDEX IF NOT EXISTS idx_spare_parts_code ON spare_parts(code);
+CREATE INDEX IF NOT EXISTS idx_spare_parts_factory_id ON spare_parts(factory_id);
+CREATE INDEX IF NOT EXISTS idx_knowledge_articles_status ON knowledge_articles(status);

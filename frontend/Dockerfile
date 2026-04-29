@@ -12,7 +12,7 @@ WORKDIR /build
 COPY package*.json ./
 
 # Install dependencies
-RUN npm install
+RUN npm ci
 
 # Copy source code
 COPY . .
@@ -23,7 +23,7 @@ ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 RUN npm run build
 
 # Runtime stage - Use nginx for serving static files
-FROM nginx:alpine
+FROM nginx:1.27-alpine
 
 # Copy custom nginx config
 COPY nginx.conf /etc/nginx/nginx.conf

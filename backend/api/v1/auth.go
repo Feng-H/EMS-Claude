@@ -2,6 +2,7 @@ package v1
 
 import (
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/ems/backend/internal/dto"
@@ -146,7 +147,11 @@ func ChangePassword(c *gin.Context) {
 		return
 	}
 
-	h, _ := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	h, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to hash password"})
+		return
+	}
 	if config.Cfg.Storage.Mode == "memory" {
 		memory.GetStore().UpdateUser(userID, func(u *model.User) {
 			u.PasswordHash = string(h)
@@ -169,7 +174,33 @@ func ApplyForAccount(c *gin.Context) {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
-	h, _ := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+
+	// Role validation — only allow operator and maintenance for self-registration
+	allowedRoles := map[string]bool{"operator": true, "maintenance": true}
+	if !allowedRoles[req.Role] {
+		c.JSON(400, gin.H{"error": "Only operator and maintenance roles are allowed for self-registration"})
+		return
+	}
+
+	// Check duplicate username
+	if config.Cfg.Storage.Mode == "memory" {
+		if memory.GetStore().FindUserByUsername(req.Username) != nil {
+			c.JSON(409, gin.H{"error": "用户名已存在"})
+			return
+		}
+	} else {
+		var existing model.User
+		if err := db.Where("username = ?", req.Username).First(&existing).Error; err == nil {
+			c.JSON(409, gin.H{"error": "用户名已存在"})
+			return
+		}
+	}
+
+	h, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to hash password"})
+		return
+	}
 	user := model.User{
 		Username: req.Username, PasswordHash: string(h), Name: req.Name,
 		Role: model.UserRole(req.Role), FactoryID: req.FactoryID, Phone: req.Phone,
@@ -202,7 +233,10 @@ func GetPendingApplications(c *gin.Context) {
 func ApproveApplication(c *gin.Context) {
 	targetID := c.Param("id")
 	var req dto.ApproveUserRequest
-	c.ShouldBindJSON(&req)
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
 	var u model.User
 	if db.First(&u, targetID).Error != nil { c.JSON(404, gin.H{"error": "用户不存在"}); return }
 	if req.Approve { u.ApprovalStatus = model.ApprovalStatusApproved } else { u.ApprovalStatus = model.ApprovalStatusRejected }
@@ -212,8 +246,20 @@ func ApproveApplication(c *gin.Context) {
 
 // GetUsers (Memory proxy in main.go)
 func GetUsers(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 20
+	}
+
+	var total int64
 	var users []model.User
-	db.Find(&users)
+	db.Model(&model.User{}).Count(&total)
+	db.Offset((page - 1) * pageSize).Limit(pageSize).Find(&users)
+
 	res := make([]dto.UserListResponse, len(users))
 	for i, u := range users {
 		res[i] = dto.UserListResponse{
@@ -222,14 +268,21 @@ func GetUsers(c *gin.Context) {
 			FactoryID: u.FactoryID, CreatedAt: u.CreatedAt.Format("2006-01-02 15:04:05"),
 		}
 	}
-	c.JSON(200, res)
+	c.JSON(200, gin.H{"items": res, "total": total, "page": page, "page_size": pageSize})
 }
 
 // CreateUser (Memory proxy in main.go)
 func CreateUser(c *gin.Context) {
 	var req dto.CreateUserRequest
-	c.ShouldBindJSON(&req)
-	h, _ := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+	h, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to hash password"})
+		return
+	}
 	u := model.User{
 		Username: req.Username, PasswordHash: string(h), Name: req.Name,
 		Role: model.UserRole(req.Role), FactoryID: req.FactoryID, Phone: req.Phone,
@@ -243,7 +296,10 @@ func CreateUser(c *gin.Context) {
 func UpdateUser(c *gin.Context) {
 	targetID := c.Param("id")
 	var req dto.UpdateUserRequest
-	c.ShouldBindJSON(&req)
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
 	var u model.User
 	if db.First(&u, targetID).Error != nil { c.JSON(404, gin.H{"error": "用户不存在"}); return }
 	if req.Name != "" { u.Name = req.Name }

@@ -33,5 +33,9 @@ export default defineConfig({
         warn(warning)
       }
     }
-  }
+  },
+  test: {
+    environment: 'jsdom',
+    globals: true,
+  },
 })

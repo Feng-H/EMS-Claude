@@ -203,6 +203,7 @@ import { equipmentApi, type EquipmentType } from '@/api/equipment'
 import { agentApi, type ConversationResponse, type AgentKnowledge } from '@/api/agent'
 import request from '@/api/request'
 import { ElMessage } from 'element-plus'
+import DOMPurify from 'dompurify'
 
 // 状态
 const activeMode = ref('chat')
@@ -349,7 +350,8 @@ async function rejectKnowledge(id: string) {
 }
 
 function formatMessage(text: string) {
-  return (text || '').replace(/\n/g, '<br>')
+  const clean = DOMPurify.sanitize(text || '')
+  return clean.replace(/\n/g, '<br>')
 }
 
 function scrollToBottom() {

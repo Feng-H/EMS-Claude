@@ -38,8 +38,7 @@ if [ -f /tmp/ems-frontend.pid ]; then
 fi
 
 # 清理可能残留的进程
-pkill -f "go run main.go" 2>/dev/null && echo -e "${GREEN}✓ 已清理残留的后端进程${NC}"
-pkill -f "vite" 2>/dev/null && echo -e "${GREEN}✓ 已清理残留的前端进程${NC}"
+# Note: Only PID-based killing is used to avoid killing other projects' processes
 
 echo ""
 echo -e "${GREEN}所有服务已停止${NC}"

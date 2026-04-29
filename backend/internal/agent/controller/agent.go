@@ -22,6 +22,21 @@ func NewAgentController() *AgentController {
 	}
 }
 
+// requireAuth extracts user ID and role, aborts with 401 if missing.
+func requireAuth(c *gin.Context) (uint, string, bool) {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return 0, "", false
+	}
+	role, ok := middleware.GetUserRole(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User role not found"})
+		return 0, "", false
+	}
+	return userID, role, true
+}
+
 // RecommendMaintenance generates maintenance optimization recommendations
 func (ctrl *AgentController) RecommendMaintenance(c *gin.Context) {
 	var req dto.MaintenanceRecommendRequest
@@ -33,8 +48,10 @@ func (ctrl *AgentController) RecommendMaintenance(c *gin.Context) {
 		})
 		return
 	}
-	userID, _ := middleware.GetUserID(c)
-	role, _ := middleware.GetUserRole(c)
+	userID, role, ok := requireAuth(c)
+	if !ok {
+		return
+	}
 	result, err := ctrl.agentService.RecommendMaintenance(userID, role, &req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
@@ -58,8 +75,10 @@ func (ctrl *AgentController) AuditRepair(c *gin.Context) {
 		})
 		return
 	}
-	userID, _ := middleware.GetUserID(c)
-	role, _ := middleware.GetUserRole(c)
+	userID, role, ok := requireAuth(c)
+	if !ok {
+		return
+	}
 	result, err := ctrl.agentService.AuditRepair(userID, role, &req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
@@ -79,8 +98,10 @@ func (ctrl *AgentController) AuditMaintenance(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	userID, _ := middleware.GetUserID(c)
-	role, _ := middleware.GetUserRole(c)
+	userID, role, ok := requireAuth(c)
+	if !ok {
+		return
+	}
 	result, err := ctrl.agentService.AuditMaintenance(userID, role, &req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -96,8 +117,10 @@ func (ctrl *AgentController) Analyze(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	userID, _ := middleware.GetUserID(c)
-	role, _ := middleware.GetUserRole(c)
+	userID, role, ok := requireAuth(c)
+	if !ok {
+		return
+	}
 	result, err := ctrl.agentService.Analyze(userID, role, &req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -138,7 +161,10 @@ func (ctrl *AgentController) GetArtifact(c *gin.Context) {
 
 // ListSessions returns user's recent agent sessions
 func (ctrl *AgentController) ListSessions(c *gin.Context) {
-	userID, _ := middleware.GetUserID(c)
+	userID, _, ok := requireAuth(c)
+	if !ok {
+		return
+	}
 	result, err := ctrl.agentService.ListSessions(userID, 10)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -158,7 +184,10 @@ func (ctrl *AgentController) AuditKnowledge(c *gin.Context) {
 		return
 	}
 
-	userID, _ := middleware.GetUserID(c)
+	userID, _, ok := requireAuth(c)
+	if !ok {
+		return
+	}
 	err := ctrl.agentService.AuditKnowledge(id, req.Status, userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -191,9 +220,11 @@ func (ctrl *AgentController) Chat(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	userID, _ := middleware.GetUserID(c)
-	role, _ := middleware.GetUserRole(c)
-	
+	userID, role, ok := requireAuth(c)
+	if !ok {
+		return
+	}
+
 	log.Printf("[AgentController] Chat request from User:%d, Message: %s", userID, req.Message)
 	
 	result, err := ctrl.agentService.Chat(userID, role, &req)
@@ -209,7 +240,10 @@ func (ctrl *AgentController) Chat(c *gin.Context) {
 
 // ListConversations returns user's chat history
 func (ctrl *AgentController) ListConversations(c *gin.Context) {
-	userID, _ := middleware.GetUserID(c)
+	userID, _, ok := requireAuth(c)
+	if !ok {
+		return
+	}
 	result, err := ctrl.agentService.ListConversations(userID, 20)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -313,7 +347,10 @@ func (ctrl *AgentController) Subscribe(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	userID, _ := middleware.GetUserID(c)
+	userID, _, ok := requireAuth(c)
+	if !ok {
+		return
+	}
 	err := ctrl.agentService.Subscribe(userID, req.PushType, req.Enabled, req.Scope)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

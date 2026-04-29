@@ -1,6 +1,7 @@
 server:
   port: 8080
   mode: release
+  cors_origins: []  # Set via EMS_CORS_ORIGINS env var (comma-separated)
 
 storage:
   mode: database # Docker部署使用数据库模式
@@ -24,7 +25,7 @@ redis:
   pool_size: 10
 
 jwt:
-  secret: your-secret-key-change-in-production
+  secret: ""  # MUST be set via EMS_JWT_SECRET env var
   expire_hours: 24
   issuer: ems-system
 
@@ -51,3 +52,9 @@ llm:
   base_url: ""
   api_key: ""
   model: ""
+
+lark:
+  app_id: ""
+  app_secret: ""
+  verification_token: ""
+  encrypt_key: ""

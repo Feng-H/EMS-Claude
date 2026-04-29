@@ -56,7 +56,8 @@ func RequireRole(roles ...string) gin.HandlerFunc {
 			return
 		}
 
-		if !roleMap[userRole.(string)] {
+		roleStr, ok := userRole.(string)
+		if !ok || !roleMap[roleStr] {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient permissions"})
 			c.Abort()
 			return
@@ -71,7 +72,11 @@ func GetUserID(c *gin.Context) (uint, bool) {
 	if !exists {
 		return 0, false
 	}
-	return userID.(uint), true
+	uid, ok := userID.(uint)
+	if !ok {
+		return 0, false
+	}
+	return uid, true
 }
 
 func GetUserRole(c *gin.Context) (string, bool) {
@@ -79,5 +84,9 @@ func GetUserRole(c *gin.Context) (string, bool) {
 	if !exists {
 		return "", false
 	}
-	return role.(string), true
+	roleStr, ok := role.(string)
+	if !ok {
+		return "", false
+	}
+	return roleStr, true
 }

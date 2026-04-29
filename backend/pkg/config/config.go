@@ -2,8 +2,10 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/spf13/viper"
@@ -23,8 +25,9 @@ type Config struct {
 }
 
 type ServerConfig struct {
-	Port int
-	Mode string
+	Port        int
+	Mode        string
+	CORSOrigins []string `mapstructure:"cors_origins"`
 }
 
 type StorageConfig struct {
@@ -128,8 +131,41 @@ func Load(configPath string) error {
 	return nil
 }
 
+var jwtPlaceholder = "your-secret-key-change-in-production"
+
+// Validate checks configuration for common misconfigurations.
+// In release mode, it returns an error for placeholder secrets.
+// In debug mode, it logs a warning and continues.
+func Validate() error {
+	if Cfg == nil {
+		return fmt.Errorf("config not loaded")
+	}
+
+	// JWT secret validation
+	if Cfg.JWT.Secret == jwtPlaceholder || Cfg.JWT.Secret == "" {
+		if Cfg.Server.Mode == "release" {
+			return fmt.Errorf("JWT secret is not configured; set EMS_JWT_SECRET env variable (refusing to start in release mode with placeholder)")
+		}
+		log.Println("WARNING: Using placeholder JWT secret. Set EMS_JWT_SECRET for production use.")
+	}
+
+	// Database password validation in release mode
+	if Cfg.Storage.Mode == "database" && Cfg.Server.Mode == "release" {
+		if Cfg.Database.Password == "ems123" || Cfg.Database.Password == "" {
+			log.Println("WARNING: Database password appears to be a default or empty. Set EMS_DATABASE_PASSWORD for production use.")
+		}
+	}
+
+	return nil
+}
+
 func applyEnvOverrides(cfg *Config) error {
 	overrideString(&cfg.Server.Mode, "EMS_SERVER_MODE", "SERVER_MODE", "GIN_MODE")
+
+	// CORS origins from env (comma-separated)
+	if corsEnv, ok := os.LookupEnv("EMS_CORS_ORIGINS"); ok && corsEnv != "" {
+		cfg.Server.CORSOrigins = strings.Split(corsEnv, ",")
+	}
 	overrideString(&cfg.Storage.Mode, "EMS_STORAGE_MODE", "STORAGE_MODE")
 
 	if err := overrideInt(&cfg.Server.Port, "EMS_SERVER_PORT", "SERVER_PORT", "PORT"); err != nil {

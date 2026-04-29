@@ -236,8 +236,13 @@
               <span>{{ isLoginMode ? '测试环境' : '申请提示' }}</span>
             </div>
             <div v-if="isLoginMode" class="test-account">
-              <span>账号: <strong>admin</strong></span>
-              <span>密码: <strong>admin123</strong></span>
+              <template v-if="isDev">
+                <span>账号: <strong>admin</strong></span>
+                <span>密码: <strong>admin123</strong></span>
+              </template>
+              <template v-else>
+                <span>请联系管理员获取账号</span>
+              </template>
             </div>
             <div v-else class="test-account">
               <span>提交后需要等待管理员审核</span>
@@ -263,6 +268,7 @@ const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 
+const isDev = import.meta.env.DEV
 const formRef = ref<FormInstance>()
 const loading = ref(false)
 const isLoginMode = ref(true)

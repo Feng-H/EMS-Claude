@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_DB: ems_db
       POSTGRES_USER: ems
-      POSTGRES_PASSWORD: ems123
+      POSTGRES_PASSWORD: ${EMS_DATABASE_PASSWORD:-changeme}
       TZ: Asia/Shanghai
     ports:
       - "${EMS_BIND_HOST:-127.0.0.1}:${EMS_POSTGRES_PORT:-5432}:5432"
@@ -24,7 +24,7 @@ services:
     image: redis:7-alpine
     container_name: ems-redis
     restart: unless-stopped
-    command: redis-server --appendonly yes --requirepass ""
+    command: redis-server --appendonly yes --requirepass ${EMS_REDIS_PASSWORD:-}
     ports:
       - "${EMS_BIND_HOST:-127.0.0.1}:${EMS_REDIS_PORT:-6379}:6379"
     volumes:
@@ -51,7 +51,7 @@ services:
       EMS_DATABASE_HOST: postgres
       EMS_DATABASE_PORT: 5432
       EMS_DATABASE_USER: ems
-      EMS_DATABASE_PASSWORD: ems123
+      EMS_DATABASE_PASSWORD: ${EMS_DATABASE_PASSWORD:-changeme}
       EMS_DATABASE_NAME: ems_db
       EMS_REDIS_HOST: redis
       EMS_REDIS_PORT: 6379
