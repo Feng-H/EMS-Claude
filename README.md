@@ -133,7 +133,6 @@ EMS-Claude/
 ├── backend/          # Go 后端服务
 ├── frontend/         # Vue3 前端应用 (PC + H5 移动端)
 ├── db/               # 数据库结构参考与种子数据 (文档用)
-├── deploy/           # 生产环境 Docker Compose
 ├── docs/             # 开发文档
 └── .env.example      # 环境变量模板
 ```

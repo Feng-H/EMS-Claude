@@ -257,11 +257,8 @@ psql -h localhost -p 5432 -U ems -d ems_db
 
 ### Docker
 ```bash
-# Development (root docker-compose: all services)
+# Start all services
 docker-compose up -d --build
-
-# Production (deploy/docker-compose: with nginx)
-cd deploy && docker-compose up -d --build
 
 # Full rebuild with clean database (when schema changes)
 docker-compose down -v && docker-compose up -d --build
@@ -311,8 +308,7 @@ docker-compose logs -f backend
 - **DB schema**: `db/schema.sql` (reference only; runtime schema managed by GORM AutoMigrate)
 - **Seed data**: `db/seeds/seed.sql` (reference only; runtime data from Go seeder `repository.SeedDatabase()`)
 - **Migrations**: `backend/scripts/migrations/` (manual performance indexes, optional)
-- **Root docker-compose**: `docker-compose.yml` (postgres + redis + backend + frontend)
-- **Deploy docker-compose**: `deploy/docker-compose.yml` (+ nginx, for production)
+- **Docker-compose**: `docker-compose.yml` (postgres + redis + backend + frontend)
 - **Nginx config**: `frontend/nginx.conf` (copied into frontend image at build time)
 - **Env template**: `.env.example`
 
