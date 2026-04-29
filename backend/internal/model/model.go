@@ -382,9 +382,9 @@ type AgentSkill struct {
 	BaseModel
 	Name                string   `json:"name" gorm:"size:200;not null"`
 	Description         string   `json:"description" gorm:"type:text"`
-	ApplicableTo        string   `json:"applicable_to" gorm:"type:jsonb"`
-	ApplicableScenarios string   `json:"applicable_scenarios" gorm:"type:jsonb"`
-	Steps               string   `json:"steps" gorm:"type:jsonb;not null"`
+	ApplicableTo        string   `json:"applicable_to" gorm:"type:text"`
+	ApplicableScenarios string   `json:"applicable_scenarios" gorm:"type:text"`
+	Steps               string   `json:"steps" gorm:"type:text;not null"`
 	Version             int      `json:"version" gorm:"default:1"`
 	Status              string   `json:"status" gorm:"size:20;default:'active';index"`
 	UsageCount          int      `json:"usage_count" gorm:"default:0"`
@@ -438,9 +438,9 @@ type AgentMessage struct {
 	Role           string    `json:"role" gorm:"size:20;not null"`
 	Content        string    `json:"content" gorm:"type:text;not null"`
 	ImageURL       string    `json:"image_url" gorm:"size:500"`
-	ToolCalls      *string   `json:"tool_calls" gorm:"type:jsonb"`
+	ToolCalls      *string   `json:"tool_calls" gorm:"type:text"`
 	SkillID        string    `json:"skill_id" gorm:"size:100"`
-	KnowledgeIDs   *string   `json:"knowledge_ids" gorm:"type:jsonb;default:'[]'"`
+	KnowledgeIDs   *string   `json:"knowledge_ids" gorm:"type:text;default:'[]'"`
 	CreatedAt      time.Time `json:"created_at"`
 }
 
@@ -449,7 +449,7 @@ type AgentPushSubscription struct {
 	UserID   uint   `json:"user_id" gorm:"not null;index"`
 	PushType string `json:"push_type" gorm:"size:50;not null"`
 	Enabled  bool   `json:"enabled" gorm:"default:true"`
-	Scope    string `json:"scope" gorm:"type:jsonb"`
+	Scope    string `json:"scope" gorm:"type:text"`
 }
 
 type AgentUsage struct {
