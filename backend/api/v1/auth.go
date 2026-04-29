@@ -78,6 +78,7 @@ func Login(c *gin.Context) {
 			FactoryID:         user.FactoryID,
 			ApprovalStatus:    string(user.ApprovalStatus),
 			MustChangePassword: user.MustChangePassword,
+			LarkOpenID:        user.LarkOpenID,
 		},
 		MustChangePassword: user.MustChangePassword,
 	})
@@ -104,6 +105,7 @@ func GetCurrentUser(c *gin.Context) {
 	c.JSON(200, dto.UserInfo{
 		ID: user.ID, Username: user.Username, Name: user.Name, Role: string(user.Role),
 		FactoryID: user.FactoryID, ApprovalStatus: string(user.ApprovalStatus), MustChangePassword: user.MustChangePassword,
+		LarkOpenID: user.LarkOpenID,
 	})
 }
 

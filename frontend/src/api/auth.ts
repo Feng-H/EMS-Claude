@@ -28,6 +28,7 @@ export interface UserInfo {
   factory_id?: number
   approval_status: string
   must_change_password: boolean
+  lark_openid?: string
 }
 
 export interface ChangePasswordRequest {

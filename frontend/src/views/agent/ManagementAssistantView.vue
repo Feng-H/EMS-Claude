@@ -36,6 +36,15 @@
           </div>
         </div>
 
+        <div class="nav-group">
+          <div class="group-title">飞书集成</div>
+          <div class="nav-item" @click="showLarkDialog = true">
+            <el-icon><Connection /></el-icon>
+            <span>绑定飞书账号</span>
+            <el-tag v-if="isLarkBound" type="success" size="small" class="badge">已绑定</el-tag>
+          </div>
+        </div>
+
         <div class="nav-group history-group">
           <div class="group-title">历史会话</div>
           <div v-for="c in conversations" :key="c.id" 
@@ -193,17 +202,44 @@
         </el-card>
       </aside>
     </div>
+
+    <!-- 飞书绑定弹窗 -->
+    <el-dialog v-model="showLarkDialog" title="绑定飞书账号" width="480px">
+      <div v-if="isLarkBound" class="lark-bound-status">
+        <el-result icon="success" title="已绑定飞书账号" sub-title="您可以在飞书中直接与 AI 助手对话">
+          <template #extra>
+            <el-tag type="success">{{ authStore.userInfo?.lark_openid }}</el-tag>
+          </template>
+        </el-result>
+      </div>
+      <div v-else class="lark-bind-steps">
+        <el-steps direction="vertical" :active="-1">
+          <el-step title="步骤一" description="在飞书中搜索并打开 EMS 智能运维机器人" />
+          <el-step title="步骤二" description="向机器人发送任意消息，它会回复一个绑定链接" />
+          <el-step title="步骤三" description="点击链接，用您的 EMS 账号登录后即可完成绑定" />
+        </el-steps>
+        <el-alert type="info" :closable="false" show-icon style="margin-top: 16px">
+          绑定后，您可以在飞书中直接向 AI 助手提问设备状态、维修记录等信息。
+        </el-alert>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from 'vue'
-import { ChatDotRound, CircleCheck, Reading } from '@element-plus/icons-vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
+import { ChatDotRound, CircleCheck, Reading, Connection } from '@element-plus/icons-vue'
+import { useAuthStore } from '@/stores/auth'
 import { equipmentApi, type EquipmentType } from '@/api/equipment'
 import { agentApi, type ConversationResponse, type AgentKnowledge } from '@/api/agent'
 import request from '@/api/request'
 import { ElMessage } from 'element-plus'
 import DOMPurify from 'dompurify'
+
+// 飞书绑定
+const authStore = useAuthStore()
+const showLarkDialog = ref(false)
+const isLarkBound = computed(() => !!authStore.userInfo?.lark_openid)
 
 // 状态
 const activeMode = ref('chat')

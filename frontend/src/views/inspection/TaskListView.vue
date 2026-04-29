@@ -367,7 +367,7 @@ const loadTasks = async () => {
 const loadStatistics = async () => {
   try {
     const data = await inspectionTaskApi.getStatistics()
-    statistics.value = data
+    statistics.value = data.data
   } catch (error: any) {
     console.error('加载统计数据失败', error)
   }

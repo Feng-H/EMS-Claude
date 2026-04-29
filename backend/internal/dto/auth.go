@@ -14,13 +14,14 @@ type LoginResponse struct {
 }
 
 type UserInfo struct {
-	ID                uint   `json:"id"`
-	Username          string `json:"username"`
-	Name              string `json:"name"`
-	Role              string `json:"role"`
-	FactoryID         *uint  `json:"factory_id"`
-	ApprovalStatus    string `json:"approval_status"`
+	ID                uint    `json:"id"`
+	Username          string  `json:"username"`
+	Name              string  `json:"name"`
+	Role              string  `json:"role"`
+	FactoryID         *uint   `json:"factory_id"`
+	ApprovalStatus    string  `json:"approval_status"`
 	MustChangePassword bool   `json:"must_change_password"`
+	LarkOpenID        *string `json:"lark_openid"`
 }
 
 type RefreshTokenRequest struct {
