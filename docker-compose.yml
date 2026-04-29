@@ -24,7 +24,7 @@ services:
     image: redis:7-alpine
     container_name: ems-redis
     restart: unless-stopped
-    command: redis-server --appendonly yes --requirepass ${EMS_REDIS_PASSWORD:-}
+    command: redis-server --appendonly yes
     ports:
       - "${EMS_BIND_HOST:-127.0.0.1}:${EMS_REDIS_PORT:-6379}:6379"
     volumes:
