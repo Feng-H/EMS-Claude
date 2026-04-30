@@ -41,6 +41,7 @@ export interface InspectionTask {
   longitude?: number
   item_count: number
   completed_count: number
+  records?: InspectionRecord[]
 }
 
 export interface InspectionTaskListResponse {
@@ -132,6 +133,9 @@ export const inspectionTemplateApi = {
   getTemplate: (id: number) => request.get<InspectionTemplateDetail>(`/inspection/templates/${id}`),
   createTemplate: (data: { name: string; equipment_type_id: number }) =>
     request.post<InspectionTemplate>('/inspection/templates', data),
+  updateTemplate: (id: number, data: { name: string; equipment_type_id: number }) =>
+    request.put<InspectionTemplate>(`/inspection/templates/${id}`, data),
+  deleteTemplate: (id: number) => request.delete(`/inspection/templates/${id}`),
 }
 
 // Item APIs
@@ -143,6 +147,16 @@ export const inspectionItemApi = {
     criteria?: string
     sequence_order: number
   }) => request.post<InspectionItem>('/inspection/items', data),
+  updateItem: (
+    id: number,
+    data: {
+      name: string
+      method?: string
+      criteria?: string
+      sequence_order: number
+    }
+  ) => request.put<InspectionItem>(`/inspection/items/${id}`, data),
+  deleteItem: (id: number) => request.delete(`/inspection/items/${id}`),
 }
 
 // Task APIs

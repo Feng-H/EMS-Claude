@@ -381,9 +381,10 @@ const viewDetail = async (task: InspectionTask) => {
   // 如果已完成，加载点检记录
   if (task.status === 'completed') {
     try {
-      // TODO: 实现获取点检记录的API
-      // const records = await inspectionTaskApi.getRecords(task.id)
-      // currentTaskRecords.value = records
+      const response = await inspectionTaskApi.getTask(task.id)
+      if (response.data.records) {
+        currentTaskRecords.value = response.data.records
+      }
     } catch (error: any) {
       console.error('加载点检记录失败', error)
     }

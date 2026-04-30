@@ -454,5 +454,23 @@ func taskToResponse(task *model.MaintenanceTask) dto.MaintenanceTaskResponse {
 	}
 	r.CompletedCount = len(task.Records)
 
+	if len(task.Records) > 0 {
+		r.Records = make([]dto.MaintenanceRecordResponse, len(task.Records))
+		for i, rec := range task.Records {
+			r.Records[i] = dto.MaintenanceRecordResponse{
+				ID:        rec.ID,
+				TaskID:    rec.TaskID,
+				ItemID:    rec.ItemID,
+				Result:    rec.Result,
+				Remark:    rec.Remark,
+				PhotoURL:  rec.PhotoURL,
+				CreatedAt: rec.CreatedAt,
+			}
+			if rec.Item != nil {
+				r.Records[i].ItemName = rec.Item.Name
+			}
+		}
+	}
+
 	return r
 }

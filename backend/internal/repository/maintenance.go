@@ -64,6 +64,15 @@ func (r *MaintenancePlanItemRepository) Create(item *model.MaintenancePlanItem) 
 	return r.db.Create(item).Error
 }
 
+func (r *MaintenancePlanItemRepository) GetByID(id uint) (*model.MaintenancePlanItem, error) {
+	var item model.MaintenancePlanItem
+	err := r.db.First(&item, id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &item, nil
+}
+
 func (r *MaintenancePlanItemRepository) GetByPlanID(planID uint) ([]model.MaintenancePlanItem, error) {
 	var items []model.MaintenancePlanItem
 	err := r.db.Where("plan_id = ?", planID).

@@ -94,7 +94,19 @@ type MaintenanceTaskResponse struct {
 	Remark         string                   `json:"remark,omitempty"`
 	ItemCount      int                      `json:"item_count"`
 	CompletedCount int                      `json:"completed_count"`
+	Records        []MaintenanceRecordResponse `json:"records,omitempty"`
 	CreatedAt      time.Time                `json:"created_at"`
+}
+
+type MaintenanceRecordResponse struct {
+	ID        uint      `json:"id"`
+	TaskID    uint      `json:"task_id"`
+	ItemID    uint      `json:"item_id"`
+	ItemName  string    `json:"item_name,omitempty"`
+	Result    string    `json:"result"`
+	Remark    string    `json:"remark"`
+	PhotoURL  string    `json:"photo_url"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 // MaintenanceTaskListResponse represents a paginated list of maintenance tasks

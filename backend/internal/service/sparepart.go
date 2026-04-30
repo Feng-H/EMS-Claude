@@ -10,18 +10,20 @@ import (
 
 // SparePartService
 type SparePartService struct {
-	partRepo       *repository.SparePartRepository
-	inventoryRepo  *repository.SparePartInventoryRepository
+	partRepo        *repository.SparePartRepository
+	inventoryRepo   *repository.SparePartInventoryRepository
 	consumptionRepo *repository.SparePartConsumptionRepository
-	userRepo       *repository.UserRepository
+	txRepo          *repository.SparePartTransactionRepository
+	userRepo        *repository.UserRepository
 }
 
 func NewSparePartService() *SparePartService {
 	return &SparePartService{
-		partRepo:       repository.NewSparePartRepository(),
-		inventoryRepo:  repository.NewSparePartInventoryRepository(),
+		partRepo:        repository.NewSparePartRepository(),
+		inventoryRepo:   repository.NewSparePartInventoryRepository(),
 		consumptionRepo: repository.NewSparePartConsumptionRepository(),
-		userRepo:       repository.NewUserRepository(),
+		txRepo:          repository.NewSparePartTransactionRepository(),
+		userRepo:        repository.NewUserRepository(),
 	}
 }
 
@@ -93,7 +95,7 @@ func (s *SparePartService) DeletePart(id uint) error {
 // Inventory operations
 func (s *SparePartService) StockIn(partID, factoryID uint, quantity int, remark string, userID uint) error {
 	// Verify part exists
-	part, err := s.partRepo.GetByID(partID)
+	_, err := s.partRepo.GetByID(partID)
 	if err != nil {
 		return ErrNotFound
 	}
@@ -103,17 +105,22 @@ func (s *SparePartService) StockIn(partID, factoryID uint, quantity int, remark 
 		return err
 	}
 
-	// TODO: Create stock in transaction record
-	_ = part
-	_ = remark
-	_ = userID
+	// Create transaction record
+	tx := &model.SparePartTransaction{
+		SparePartID: partID,
+		FactoryID:   factoryID,
+		Type:        "in",
+		Quantity:    quantity,
+		OperatorID:  userID,
+		Remark:      remark,
+	}
 
-	return nil
+	return s.txRepo.Create(tx)
 }
 
 func (s *SparePartService) StockOut(partID, factoryID uint, quantity int, orderID, taskID *uint, remark string, userID uint) error {
 	// Verify part exists
-	part, err := s.partRepo.GetByID(partID)
+	_, err := s.partRepo.GetByID(partID)
 	if err != nil {
 		return ErrNotFound
 	}
@@ -146,10 +153,21 @@ func (s *SparePartService) StockOut(partID, factoryID uint, quantity int, orderI
 		return err
 	}
 
-	_ = part
-	_ = remark
+	// Create transaction record
+	tx := &model.SparePartTransaction{
+		SparePartID: partID,
+		FactoryID:   factoryID,
+		Type:        "out",
+		Quantity:    -quantity,
+		OperatorID:  userID,
+		RelatedID:   orderID, // Prioritize order_id as related_id
+		Remark:      remark,
+	}
+	if tx.RelatedID == nil {
+		tx.RelatedID = taskID
+	}
 
-	return nil
+	return s.txRepo.Create(tx)
 }
 
 func (s *SparePartService) GetInventory(filter repository.InventoryFilter) (*InventoryListResult, error) {

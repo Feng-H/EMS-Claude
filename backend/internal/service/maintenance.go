@@ -111,12 +111,14 @@ func (s *MaintenancePlanService) DeletePlan(id uint) error {
 
 // MaintenanceTaskService
 type MaintenanceTaskService struct {
-	taskRepo        *repository.MaintenanceTaskRepository
-	planRepo        *repository.MaintenancePlanRepository
-	recordRepo      *repository.MaintenanceRecordRepository
-	equipRepo       *repository.EquipmentRepository
-	userRepo        *repository.UserRepository
-	planItemRepo    *repository.MaintenancePlanItemRepository
+	taskRepo     *repository.MaintenanceTaskRepository
+	planRepo     *repository.MaintenancePlanRepository
+	recordRepo   *repository.MaintenanceRecordRepository
+	equipRepo    *repository.EquipmentRepository
+	userRepo     *repository.UserRepository
+	planItemRepo *repository.MaintenancePlanItemRepository
+	repairRepo   *repository.RepairOrderRepository
+	logRepo      *repository.RepairLogRepository
 }
 
 func NewMaintenanceTaskService() *MaintenanceTaskService {
@@ -127,6 +129,8 @@ func NewMaintenanceTaskService() *MaintenanceTaskService {
 		equipRepo:    repository.NewEquipmentRepo(),
 		userRepo:     repository.NewUserRepository(),
 		planItemRepo: repository.NewMaintenancePlanItemRepository(),
+		repairRepo:   repository.NewRepairOrderRepository(),
+		logRepo:      repository.NewRepairLogRepository(),
 	}
 }
 
@@ -285,6 +289,8 @@ func (s *MaintenanceTaskService) CompleteMaintenance(req *CompleteMaintenanceReq
 	// Create records
 	var recordModels []model.MaintenanceRecord
 	var ngItemIDs []uint
+	var ngDescriptions []string
+	var ngPhotos []string
 
 	for _, r := range req.Records {
 		record := model.MaintenanceRecord{
@@ -298,6 +304,17 @@ func (s *MaintenanceTaskService) CompleteMaintenance(req *CompleteMaintenanceReq
 
 		if r.Result == "NG" {
 			ngItemIDs = append(ngItemIDs, r.ItemID)
+			// Get item name for description
+			item, _ := s.planItemRepo.GetByID(r.ItemID)
+			itemName := "Unknown Item"
+			if item != nil {
+				itemName = item.Name
+			}
+			desc := fmt.Sprintf("- %s: %s", itemName, r.Remark)
+			ngDescriptions = append(ngDescriptions, desc)
+			if r.PhotoURL != "" {
+				ngPhotos = append(ngPhotos, r.PhotoURL)
+			}
 		}
 	}
 
@@ -319,6 +336,41 @@ func (s *MaintenanceTaskService) CompleteMaintenance(req *CompleteMaintenanceReq
 
 	if err := s.taskRepo.Update(task); err != nil {
 		return nil, err
+	}
+
+	// Trigger repair workflow if there are NG items
+	if len(ngItemIDs) > 0 {
+		faultDesc := "保养发现异常:\n"
+		for _, d := range ngDescriptions {
+			faultDesc += d + "\n"
+		}
+
+		order := &model.RepairOrder{
+			EquipmentID:      task.EquipmentID,
+			FaultDescription: faultDesc,
+			FaultCode:        "MAINTENANCE_NG",
+			Photos:           ngPhotos,
+			Priority:         2, // Medium
+			ReporterID:       req.UserID,
+			Status:           model.RepairPending,
+		}
+
+		if err := s.repairRepo.Create(order); err == nil {
+			// Update equipment status
+			if equip, err := s.equipRepo.GetByID(task.EquipmentID); err == nil {
+				equip.Status = "maintenance"
+				s.equipRepo.Update(equip)
+			}
+
+			// Create log
+			log := &model.RepairLog{
+				OrderID: order.ID,
+				UserID:  req.UserID,
+				Action:  "created",
+				Content: "通过保养 NG 自动创建",
+			}
+			s.logRepo.Create(log)
+		}
 	}
 
 	// Get total items for count
