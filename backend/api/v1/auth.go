@@ -248,19 +248,8 @@ func ApproveApplication(c *gin.Context) {
 
 // GetUsers (Memory proxy in main.go)
 func GetUsers(c *gin.Context) {
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 || pageSize > 100 {
-		pageSize = 20
-	}
-
-	var total int64
 	var users []model.User
-	db.Model(&model.User{}).Count(&total)
-	db.Offset((page - 1) * pageSize).Limit(pageSize).Find(&users)
+	db.Find(&users)
 
 	res := make([]dto.UserListResponse, len(users))
 	for i, u := range users {
@@ -270,7 +259,7 @@ func GetUsers(c *gin.Context) {
 			FactoryID: u.FactoryID, CreatedAt: u.CreatedAt.Format("2006-01-02 15:04:05"),
 		}
 	}
-	c.JSON(200, gin.H{"items": res, "total": total, "page": page, "page_size": pageSize})
+	c.JSON(200, res)
 }
 
 // CreateUser (Memory proxy in main.go)
