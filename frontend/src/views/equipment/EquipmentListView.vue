@@ -238,7 +238,6 @@ const currentEquipment = ref<Equipment | null>(null)
 const currentQRCode = ref<string>('')
 const loadingQR = ref(false)
 
-const currentEquipment = ref<Equipment | null>(null)
 const submitting = ref(false)
 
 const formRef = ref<FormInstance>()
