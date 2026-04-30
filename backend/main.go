@@ -444,28 +444,22 @@ func setupDatabaseRoutes(router *gin.Engine) {
 		protected := api.Group("")
 		protected.Use(middleware.AuthMiddleware())
 		{
-			// ... (rest remains same)
-		}
-	}
-
-	// Health check
-	router.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "ok"})
-	})
-
-	// Lark webhook (public)
-	router.POST("/api/v1/lark/webhook", v1.LarkWebhook)
-	router.POST("/api/v1/lark/webhook/:user_id", v1.LarkWebhook)
-}
+			// Organization routes
+			org := protected.Group("/organization")
+			{
+				// Bases
+				org.GET("/bases", v1.ListBases)
 				org.POST("/bases", v1.CreateBase)
 				org.PUT("/bases/:id", v1.UpdateBase)
 				org.DELETE("/bases/:id", v1.DeleteBase)
 
+				// Factories
 				org.GET("/factories", v1.ListFactories)
 				org.POST("/factories", v1.CreateFactory)
 				org.PUT("/factories/:id", v1.UpdateFactory)
 				org.DELETE("/factories/:id", v1.DeleteFactory)
 
+				// Workshops
 				org.GET("/workshops", v1.ListWorkshops)
 				org.POST("/workshops", v1.CreateWorkshop)
 				org.PUT("/workshops/:id", v1.UpdateWorkshop)
@@ -627,6 +621,7 @@ func setupDatabaseRoutes(router *gin.Engine) {
 	})
 
 	// Lark webhook (public)
+	router.POST("/api/v1/lark/webhook", v1.LarkWebhook)
 	router.POST("/api/v1/lark/webhook/:user_id", v1.LarkWebhook)
 }
 
