@@ -143,12 +143,13 @@ func verifyLarkSignature(c *gin.Context, body []byte, encryptKey string) bool {
 
 	if encryptKey == "" {
 		if signature != "" {
-			return false
+			fmt.Printf("[verifyLarkSignature] Warning: Received signature from Lark but Encrypt Key is NOT configured in EMS. Allowing request for now. Please configure Encrypt Key for security.\n")
 		}
 		return true
 	}
 
 	if signature == "" {
+		fmt.Printf("[verifyLarkSignature] Error: Missing signature from Lark but Encrypt Key IS configured in EMS.\n")
 		return false
 	}
 

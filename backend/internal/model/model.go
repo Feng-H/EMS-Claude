@@ -311,6 +311,7 @@ type SparePart struct {
 	Category      string `json:"category" gorm:"size:50"`
 	SafetyStock   int    `json:"safety_stock" gorm:"default:0"`
 	FactoryID     *uint  `json:"factory_id"`
+	Factory       *Factory `json:"factory,omitempty" gorm:"foreignKey:FactoryID"`
 }
 
 type SparePartInventory struct {
