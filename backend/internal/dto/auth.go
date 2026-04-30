@@ -96,8 +96,8 @@ type UserListResponse struct {
 }
 
 type LarkConfigReq struct {
-	AppID             string `json:"app_id" binding:"required"`
-	AppSecret         string `json:"app_secret" binding:"required"`
+	AppID             string `json:"app_id"`
+	AppSecret         string `json:"app_secret"`
 	VerificationToken string `json:"verification_token"`
 	EncryptKey        string `json:"encrypt_key"`
 }

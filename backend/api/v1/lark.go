@@ -80,11 +80,23 @@ func UpdateLarkConfig(c *gin.Context) {
 		return
 	}
 
-	updates := map[string]interface{}{
-		"lark_app_id":             req.AppID,
-		"lark_app_secret":         req.AppSecret,
-		"lark_verification_token": req.VerificationToken,
-		"lark_encrypt_key":        req.EncryptKey,
+	updates := make(map[string]interface{})
+	if req.AppID != "" {
+		updates["lark_app_id"] = req.AppID
+	}
+	if req.AppSecret != "" {
+		updates["lark_app_secret"] = req.AppSecret
+	}
+	if req.VerificationToken != "" {
+		updates["lark_verification_token"] = req.VerificationToken
+	}
+	if req.EncryptKey != "" {
+		updates["lark_encrypt_key"] = req.EncryptKey
+	}
+
+	if len(updates) == 0 {
+		c.JSON(http.StatusOK, gin.H{"message": "no changes"})
+		return
 	}
 
 	if err := db.Model(&model.User{}).Where("id = ?", userID).Updates(updates).Error; err != nil {
