@@ -444,6 +444,17 @@ func setupDatabaseRoutes(router *gin.Engine) {
 		protected := api.Group("")
 		protected.Use(middleware.AuthMiddleware())
 		{
+			// User management routes (admin only)
+			users := protected.Group("/users")
+			users.Use(middleware.RequireRole("admin"))
+			{
+				users.GET("", v1.GetUsers)
+				users.POST("", v1.CreateUser)
+				users.GET("/applications", v1.GetPendingApplications)
+				users.PUT("/:id", v1.UpdateUser)
+				users.PUT("/:id/approve", v1.ApproveApplication)
+			}
+
 			// Organization routes
 			org := protected.Group("/organization")
 			{
