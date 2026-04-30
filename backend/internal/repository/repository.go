@@ -411,6 +411,19 @@ func (r *UserRepository) GetByLarkOpenID(openID string) (*model.User, error) {
 	return &user, nil
 }
 
+func (r *UserRepository) GetByLarkAppID(appID string) (*model.User, error) {
+	var user model.User
+	err := r.db.Where("lark_app_id = ?", appID).First(&user).Error
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+func (r *UserRepository) UpdateLarkCredentials(userID uint, creds map[string]interface{}) error {
+	return r.db.Model(&model.User{}).Where("id = ?", userID).Updates(creds).Error
+}
+
 func (r *UserRepository) UpdateLarkOpenID(userID uint, openID string) error {
 	return r.db.Model(&model.User{}).Where("id = ?", userID).Update("lark_open_id", openID).Error
 }

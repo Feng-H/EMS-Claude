@@ -223,6 +223,7 @@ func setupMemoryRoutes(router *gin.Engine) {
 			auth.POST("/apply", v1.ApplyForAccount)
 			auth.GET("/me", middleware.AuthMiddleware(), v1.GetCurrentUser)
 			auth.POST("/bind-lark", middleware.AuthMiddleware(), v1.BindLark)
+			auth.POST("/lark-config", middleware.AuthMiddleware(), v1.UpdateLarkConfig)
 		}
 
 		// Protected routes
@@ -431,6 +432,7 @@ func setupDatabaseRoutes(router *gin.Engine) {
 			auth.GET("/me", middleware.AuthMiddleware(), v1.GetCurrentUser)
 			auth.POST("/change-password", middleware.AuthMiddleware(), v1.ChangePassword)
 			auth.POST("/bind-lark", middleware.AuthMiddleware(), v1.BindLark)
+			auth.POST("/lark-config", middleware.AuthMiddleware(), v1.UpdateLarkConfig)
 		}
 
 		// Protected routes

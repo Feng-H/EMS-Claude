@@ -204,23 +204,74 @@
     </div>
 
     <!-- 飞书绑定弹窗 -->
-    <el-dialog v-model="showLarkDialog" title="绑定飞书账号" width="480px">
+    <el-dialog v-model="showLarkDialog" title="配置飞书智能助手" width="540px">
+      <!-- 状态：已绑定 -->
       <div v-if="isLarkBound" class="lark-bound-status">
-        <el-result icon="success" title="已绑定飞书账号" sub-title="您可以在飞书中直接与 AI 助手对话">
+        <el-result icon="success" title="已成功接入飞书助手" sub-title="您已配置私有机器人并完成账号绑定">
           <template #extra>
-            <el-tag type="success">{{ authStore.userInfo?.lark_openid }}</el-tag>
+            <div class="bound-info">
+              <p><strong>App ID:</strong> {{ authStore.userInfo?.lark_app_id }}</p>
+              <p><strong>绑定的 OpenID:</strong> <el-tag type="success" size="small">{{ authStore.userInfo?.lark_openid }}</el-tag></p>
+            </div>
+            <el-button type="info" plain @click="isLarkBound ? resetLarkConfig() : null">重新配置</el-button>
           </template>
         </el-result>
       </div>
-      <div v-else class="lark-bind-steps">
-        <el-steps direction="vertical" :active="-1">
-          <el-step title="步骤一" description="在飞书中搜索并打开 EMS 智能运维机器人" />
-          <el-step title="步骤二" description="向机器人发送任意消息，它会回复一个绑定链接" />
-          <el-step title="步骤三" description="点击链接，用您的 EMS 账号登录后即可完成绑定" />
+
+      <!-- 状态：未配置或正在配置 -->
+      <div v-else class="lark-bind-flow">
+        <el-steps :active="bindStep" finish-status="success" simple style="margin-bottom: 20px">
+          <el-step title="1. 配置机器人" />
+          <el-step title="2. 消息绑定" />
         </el-steps>
-        <el-alert type="info" :closable="false" show-icon style="margin-top: 16px">
-          绑定后，您可以在飞书中直接向 AI 助手提问设备状态、维修记录等信息。
-        </el-alert>
+
+        <!-- 步骤 1: 输入机器人凭证 -->
+        <div v-if="bindStep === 0" class="step-content">
+          <p class="step-tip">请前往 <a href="https://open.feishu.cn/app" target="_blank">飞书开放平台</a> 创建企业自建应用，并开启“机器人”能力。</p>
+          <el-form :model="larkForm" label-position="top" size="default">
+            <el-form-item label="App ID" required>
+              <el-input v-model="larkForm.lark_app_id" placeholder="cli_xxxxxxxx" />
+            </el-form-item>
+            <el-form-item label="App Secret" required>
+              <el-input v-model="larkForm.lark_app_secret" type="password" show-password placeholder="密钥" />
+            </el-form-item>
+            <el-form-item label="Verification Token (选填)">
+              <el-input v-model="larkForm.lark_verify_token" placeholder="用于事件订阅校验" />
+            </el-form-item>
+            <el-form-item label="Encrypt Key (选填)">
+              <el-input v-model="larkForm.lark_encrypt_key" placeholder="用于消息加解密" />
+            </el-form-item>
+            <div class="webhook-guide">
+              <p class="label">事件订阅 Webhook 地址:</p>
+              <el-input readonly :value="webhookUrl">
+                <template #append>
+                  <el-button @click="copyWebhook">复制</el-button>
+                </template>
+              </el-input>
+            </div>
+          </el-form>
+          <div class="step-actions">
+            <el-button type="primary" @click="handleSaveConfig" :loading="savingConfig">保存并下一步</el-button>
+          </div>
+        </div>
+
+        <!-- 步骤 2: 引导用户发消息 -->
+        <div v-if="bindStep === 1" class="step-content">
+          <div class="lark-bind-steps">
+            <el-steps direction="vertical" :active="-1">
+              <el-step title="第一步" description="在飞书中搜索并打开您的私有机器人" />
+              <el-step title="第二步" description="向机器人发送任意消息（如：你好）" />
+              <el-step title="第三步" description="机器人将回复绑定链接，点击链接完成最后一步" />
+            </el-steps>
+            <el-alert type="warning" :closable="false" show-icon style="margin-top: 16px">
+              请确保飞书开放平台中的 Webhook 地址已配置正确并处于“有效”状态。
+            </el-alert>
+            <div class="mt-20 flex-center">
+              <el-button @click="bindStep = 0">上一步</el-button>
+              <el-button type="primary" @click="handleGoToLarkBind">直接前往 H5 模拟绑定</el-button>
+            </div>
+          </div>
+        </div>
       </div>
     </el-dialog>
   </div>
@@ -232,6 +283,7 @@ import { ChatDotRound, CircleCheck, Reading, Connection } from '@element-plus/ic
 import { useAuthStore } from '@/stores/auth'
 import { equipmentApi, type EquipmentType } from '@/api/equipment'
 import { agentApi, type ConversationResponse, type AgentKnowledge } from '@/api/agent'
+import { authApi } from '@/api/auth'
 import request from '@/api/request'
 import { ElMessage } from 'element-plus'
 import DOMPurify from 'dompurify'
@@ -240,6 +292,48 @@ import DOMPurify from 'dompurify'
 const authStore = useAuthStore()
 const showLarkDialog = ref(false)
 const isLarkBound = computed(() => !!authStore.userInfo?.lark_openid)
+const bindStep = ref(0)
+const savingConfig = ref(false)
+const larkForm = ref({
+  lark_app_id: authStore.userInfo?.lark_app_id || '',
+  lark_app_secret: authStore.userInfo?.lark_app_secret || '',
+  lark_verify_token: authStore.userInfo?.lark_verify_token || '',
+  lark_encrypt_key: authStore.userInfo?.lark_encrypt_key || ''
+})
+
+const webhookUrl = computed(() => window.location.origin + '/api/v1/lark/webhook')
+
+async function handleSaveConfig() {
+  if (!larkForm.value.lark_app_id || !larkForm.value.lark_app_secret) {
+    return ElMessage.warning('请填写 App ID 和 App Secret')
+  }
+  savingConfig.value = true
+  try {
+    await authApi.updateLarkConfig(larkForm.value)
+    ElMessage.success('配置已保存')
+    await authStore.fetchUserInfo()
+    bindStep.value = 1
+  } catch (e) {
+    ElMessage.error('配置保存失败')
+  } finally {
+    savingConfig.value = false
+  }
+}
+
+function copyWebhook() {
+  navigator.clipboard.writeText(webhookUrl.value)
+  ElMessage.success('已复制到剪贴板')
+}
+
+function resetLarkConfig() {
+  bindStep.value = 0
+  // Note: Backend might need an explicit reset if security required
+  // For now we just show the form again
+}
+
+async function handleGoToLarkBind() {
+  window.open('/bind-lark?openid=demo_openid_' + Math.floor(Math.random() * 1000), '_blank')
+}
 
 // 状态
 const activeMode = ref('chat')
@@ -479,4 +573,15 @@ onMounted(async () => {
 .max-w-400 { max-w: 400px; }
 .result-card { background: #fdf6ec; border: 1px solid #faecd8; }
 .summary-text { white-space: pre-wrap; font-family: inherit; font-size: 14px; line-height: 1.6; }
+
+.lark-bind-flow { padding: 10px 0; }
+.step-content { margin-top: 20px; }
+.step-tip { font-size: 13px; color: var(--color-text-secondary); margin-bottom: 20px; line-height: 1.6; }
+.step-tip a { color: var(--color-primary); text-decoration: none; }
+.webhook-guide { margin-top: 20px; padding: 16px; background: var(--color-bg-tertiary); border-radius: 8px; }
+.webhook-guide .label { font-size: 12px; color: var(--color-text-tertiary); margin-bottom: 8px; font-weight: bold; }
+.step-actions { margin-top: 24px; display: flex; justify-content: flex-end; }
+.flex-center { display: flex; align-items: center; justify-content: center; gap: 12px; }
+.bound-info { background: var(--color-bg-tertiary); padding: 16px; border-radius: 8px; margin-bottom: 20px; text-align: left; }
+.bound-info p { margin: 8px 0; font-size: 13px; }
 </style>

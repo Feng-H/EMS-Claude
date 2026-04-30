@@ -21,7 +21,6 @@ type Config struct {
 	Upload   UploadConfig
 	App      AppConfig
 	LLM      LLMConfig
-	Lark     LarkConfig
 }
 
 type ServerConfig struct {

@@ -29,6 +29,17 @@ export interface UserInfo {
   approval_status: string
   must_change_password: boolean
   lark_openid?: string
+  lark_app_id?: string
+  lark_app_secret?: string
+  lark_verify_token?: string
+  lark_encrypt_key?: string
+}
+
+export interface LarkConfig {
+  lark_app_id: string
+  lark_app_secret: string
+  lark_verify_token?: string
+  lark_encrypt_key?: string
 }
 
 export interface ChangePasswordRequest {
@@ -53,4 +64,5 @@ export const authApi = {
   changePassword: (data: ChangePasswordRequest) => request.post('/auth/change-password', data),
   applyAccount: (data: ApplyAccountRequest) => request.post('/auth/apply', data),
   bindLark: (openid: string) => request.post('/auth/bind-lark', { openid }),
+  updateLarkConfig: (data: LarkConfig) => request.post('/auth/lark-config', data),
 }

@@ -25,19 +25,15 @@ type Client struct {
 	mu        sync.RWMutex
 }
 
-var (
-	defaultClient *Client
-	once          sync.Once
-)
+func NewClient(appID, appSecret string) *Client {
+	return &Client{
+		appID:     appID,
+		appSecret: appSecret,
+	}
+}
 
-func GetClient() *Client {
-	once.Do(func() {
-		defaultClient = &Client{
-			appID:     config.Cfg.Lark.AppID,
-			appSecret: config.Cfg.Lark.AppSecret,
-		}
-	})
-	return defaultClient
+func GetClient(appID, appSecret string) *Client {
+	return NewClient(appID, appSecret)
 }
 
 type TokenResponse struct {
@@ -49,8 +45,9 @@ type TokenResponse struct {
 
 func (c *Client) GetTenantAccessToken(ctx context.Context) (string, error) {
 	// 1. Try to get from Redis
+	tokenKey := fmt.Sprintf("ems:lark:token:%s", c.appID)
 	if redis.Client != nil {
-		token, err := redis.Client.Get(ctx, redisTokenKey).Result()
+		token, err := redis.Client.Get(ctx, tokenKey).Result()
 		if err == nil && token != "" {
 			return token, nil
 		}
@@ -84,7 +81,7 @@ func (c *Client) GetTenantAccessToken(ctx context.Context) (string, error) {
 		if expire < 0 {
 			expire = 1 * time.Minute
 		}
-		redis.Client.Set(ctx, redisTokenKey, result.TenantAccessToken, expire)
+		redis.Client.Set(ctx, tokenKey, result.TenantAccessToken, expire)
 	}
 
 	return result.TenantAccessToken, nil

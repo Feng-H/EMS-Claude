@@ -157,7 +157,13 @@ func SeedDatabase(db *gorm.DB) error {
 	filterOEM := model.SparePart{Code: "FLT-OEM", Name: "原厂精密滤芯", FactoryID: &fac.ID, Specification: "Rexroth 原厂", Unit: "个", SafetyStock: 20}
 	bearing := model.SparePart{Code: "BRG-6205", Name: "深沟球轴承", FactoryID: &fac.ID, Specification: "SKF 6205-2RS", Unit: "个", SafetyStock: 10}
 	seal := model.SparePart{Code: "SEAL-NBR50", Name: "NBR密封圈套装", FactoryID: &fac.ID, Specification: "φ50 标准", Unit: "套", SafetyStock: 15}
-	if err := mustCreate(db, "SpareParts", []*model.SparePart{&pump, &filter, &oil, &filterOEM, &bearing, &seal}); err != nil {
+	belt := model.SparePart{Code: "BELT-3M", Name: "同步带", FactoryID: &fac.ID, Specification: "3M-GT3-900", Unit: "根", SafetyStock: 10}
+	sensor := model.SparePart{Code: "SEN-PROX", Name: "接近开关", FactoryID: &fac.ID, Specification: "OMRON TL-Q5MC1", Unit: "个", SafetyStock: 15}
+	relay := model.SparePart{Code: "RLY-24V", Name: "中间继电器", FactoryID: &fac.ID, Specification: "Schneider RXM2AB2BD", Unit: "个", SafetyStock: 30}
+	valve := model.SparePart{Code: "VLV-SOL", Name: "电磁阀", FactoryID: &fac.ID, Specification: "SMC SY5120-5G-C6", Unit: "个", SafetyStock: 5}
+	tool := model.SparePart{Code: "CNC-TOOL-01", Name: "数控刀头", FactoryID: &fac.ID, Specification: "Sandvik Coromant", Unit: "把", SafetyStock: 10}
+
+	if err := mustCreate(db, "SpareParts", []*model.SparePart{&pump, &filter, &oil, &filterOEM, &bearing, &seal, &belt, &sensor, &relay, &valve, &tool}); err != nil {
 		return err
 	}
 	if err := mustCreate(db, "SparePartInventories", []*model.SparePartInventory{
@@ -165,8 +171,13 @@ func SeedDatabase(db *gorm.DB) error {
 		{SparePartID: filter.ID, FactoryID: fac.ID, Quantity: 120},
 		{SparePartID: oil.ID, FactoryID: fac.ID, Quantity: 250},
 		{SparePartID: filterOEM.ID, FactoryID: fac.ID, Quantity: 35},
-		{SparePartID: bearing.ID, FactoryID: fac.ID, Quantity: 8},  // Below safety stock!
+		{SparePartID: bearing.ID, FactoryID: fac.ID, Quantity: 8}, // Below safety stock!
 		{SparePartID: seal.ID, FactoryID: fac.ID, Quantity: 40},
+		{SparePartID: belt.ID, FactoryID: fac.ID, Quantity: 25},
+		{SparePartID: sensor.ID, FactoryID: fac.ID, Quantity: 12},
+		{SparePartID: relay.ID, FactoryID: fac.ID, Quantity: 55},
+		{SparePartID: valve.ID, FactoryID: fac.ID, Quantity: 8},
+		{SparePartID: tool.ID, FactoryID: fac.ID, Quantity: 18},
 	}); err != nil {
 		return err
 	}
@@ -296,8 +307,8 @@ func SeedDatabase(db *gorm.DB) error {
 	}
 	mustCreate(db, "RepairOrder(robot)", &robotOrder)
 
-	// --- Inspection Tasks & Records (7 days for CNC-001) ---
-	for i := 0; i < 7; i++ {
+	// --- Inspection Tasks & Records (180 days for CNC-001) ---
+	for i := 1; i <= 180; i++ {
 		date := now.AddDate(0, 0, -i)
 		task := model.InspectionTask{
 			EquipmentID: e1.ID, TemplateID: cncTemp.ID, AssignedTo: op.ID,
@@ -309,8 +320,9 @@ func SeedDatabase(db *gorm.DB) error {
 		// Create records for each item using actual IDs
 		for _, item := range cncItems {
 			result := "OK"
-			if i == 3 && item.Name == "主轴温度" {
-				result = "NG" // One NG record for variety
+			// Every 15 days, simulate an NG record for variety
+			if i%15 == 0 && item.Name == "主轴温度" {
+				result = "NG"
 			}
 			mustCreate(db, "InspectionRecord", &model.InspectionRecord{
 				TaskID: task.ID, ItemID: item.ID, Result: result,

@@ -35,14 +35,37 @@ INSERT INTO spare_parts (code, name, specification, unit, factory_id, safety_sto
 ('PUMP-01', '高压柱塞泵', 'Rexroth A10V', '台', 1, 2),
 ('FLT-CHEAP', '普通滤芯(降本件)', 'Generic-100', '个', 1, 50),
 ('FLT-OEM', '原厂精密滤芯', 'Rexroth-E30', '个', 1, 20),
-('OIL-HM46', '液压油', 'Shell HM-46', '桶', 1, 100);
+('OIL-HM46', '液压油', 'Shell HM-46', '桶', 1, 100),
+('BELT-3M', '同步带', '3M-GT3-900', '根', 1, 10),
+('BRG-6205', '深沟球轴承', 'NSK 6205-ZZ', '个', 1, 20),
+('SEN-PROX', '接近开关', 'OMRON TL-Q5MC1', '个', 1, 15),
+('RLY-24V', '中间继电器', 'Schneider RXM2AB2BD', '个', 1, 30),
+('VLV-SOL', '电磁阀', 'SMC SY5120-5G-C6', '个', 1, 5),
+('CNC-TOOL-01', '数控刀头', 'Sandvik Coromant', '把', 1, 10);
 
 INSERT INTO spare_part_inventory (spare_part_id, factory_id, quantity) VALUES 
-(1, 1, 3), (2, 1, 120), (3, 1, 15), (4, 1, 250);
+(1, 1, 3), (2, 1, 120), (3, 1, 15), (4, 1, 250), (5, 1, 25), (6, 1, 40), (7, 1, 12), (8, 1, 55), (9, 1, 8), (10, 1, 18);
 
 -- 5. Maintenance History (Li Si is diligent, Zhang San is lazy)
 INSERT INTO maintenance_plans (name, equipment_type_id, level, cycle_days, flexible_days, work_hours) VALUES
 ('CNC二级保养', 1, 2, 30, 3, 4.0);
+
+-- 5.5 Inspection History (180 days of daily inspections for CNC-001)
+INSERT INTO inspection_tasks (equipment_id, template_id, assigned_to, scheduled_date, status, completed_at)
+SELECT 1, 1, 3, CURRENT_DATE - (n || ' days')::interval, 'completed', CURRENT_TIMESTAMP - (n || ' days')::interval + INTERVAL '1 hour'
+FROM generate_series(1, 180) AS n;
+
+-- Insert records for each task (all OK)
+INSERT INTO inspection_records (task_id, item_id, result)
+SELECT t.id, i.id, 'OK'
+FROM inspection_tasks t
+JOIN inspection_items i ON i.template_id = t.template_id
+WHERE t.equipment_id = 1;
+
+-- Add some NG records to make it interesting
+UPDATE inspection_records 
+SET result = 'NG', remark = '油位略低，已补加'
+WHERE id IN (SELECT id FROM inspection_records WHERE task_id % 15 = 0 LIMIT 10);
 
 -- Li Si's 6 months of diligent maintenance for CNC-001
 INSERT INTO maintenance_tasks (plan_id, equipment_id, assigned_to, scheduled_date, status, completed_at, actual_hours) 

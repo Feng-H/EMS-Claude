@@ -11,6 +11,7 @@ import (
 
 	"github.com/ems/backend/internal/dto"
 	"github.com/ems/backend/internal/middleware"
+	"github.com/ems/backend/internal/repository"
 	"github.com/ems/backend/internal/service"
 	"github.com/ems/backend/pkg/config"
 	"github.com/gin-gonic/gin"
@@ -24,26 +25,20 @@ func InitLark() {
 	larkService = service.NewLarkService()
 }
 
-// verifyLarkSignature ensures the request is coming from Lark
-func verifyLarkSignature(c *gin.Context, body []byte) bool {
+// verifyLarkSignature ensures the request is coming from Lark using user's specific encrypt_key
+func verifyLarkSignature(c *gin.Context, body []byte, encryptKey string) bool {
 	timestamp := c.GetHeader("X-Lark-Request-Timestamp")
 	nonce := c.GetHeader("X-Lark-Request-Nonce")
 	signature := c.GetHeader("X-Lark-Signature")
-	encryptKey := config.Cfg.Lark.EncryptKey
 
 	if encryptKey == "" {
 		if signature != "" {
-			// Attacker sent signature but we have no key configured — reject
-			log.Printf("[Lark] WARNING: Request has signature header but no encrypt_key configured. Rejecting.")
 			return false
 		}
-		// Simple setup without signature — allow (but warn once)
-		log.Printf("[Lark] WARNING: No encrypt_key configured, signature verification disabled.")
 		return true
 	}
 
 	if signature == "" {
-		// Key configured but no signature — reject
 		return false
 	}
 
@@ -73,14 +68,35 @@ func LarkWebhook(c *gin.Context) {
 		return
 	}
 
-	// 1. Handle URL Challenge FIRST (skip signature check — the challenge IS the verification)
+	// 0. Identify user by AppID
+	appID := req.Header.AppID
+	if appID == "" {
+		// Fallback for some events
+		if eventAppID, ok := req.Event["app_id"].(string); ok {
+			appID = eventAppID
+		}
+	}
+	if appID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing app_id"})
+		return
+	}
+
+	userRepo := repository.NewUserRepository()
+	user, err := userRepo.GetByLarkAppID(appID)
+	if err != nil {
+		log.Printf("[Lark] Unrecognized AppID: %s", appID)
+		c.JSON(http.StatusForbidden, gin.H{"error": "unrecognized app_id"})
+		return
+	}
+
+	// 1. Handle URL Challenge FIRST
 	if req.Type == "url_verification" || req.Header.EventType == "url_verification" {
 		token := req.Token
 		if token == "" {
 			token = req.Header.Token
 		}
-		if token != config.Cfg.Lark.VerificationToken {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Invalid token"})
+		if token != user.LarkVerifyToken {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Invalid verification token"})
 			return
 		}
 		challenge := req.Challenge
@@ -93,23 +109,23 @@ func LarkWebhook(c *gin.Context) {
 		return
 	}
 
-	// 2. Verify Signature for event callbacks
-	if !verifyLarkSignature(c, body) {
+	// 2. Verify Signature
+	if !verifyLarkSignature(c, body, user.LarkEncryptKey) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "invalid signature"})
 		return
 	}
 
-	// 3. Handle Events (V2 Schema)
+	// 3. Handle Events
 	if req.Header.EventType != "" {
 		c.Status(http.StatusOK)
-		go handleLarkEvent(req)
+		go handleLarkEvent(appID, req)
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "ok"})
 }
 
-func handleLarkEvent(req dto.LarkWebhookRequest) {
+func handleLarkEvent(appID string, req dto.LarkWebhookRequest) {
 	ctx := context.Background()
 
 	switch req.Header.EventType {
@@ -122,11 +138,11 @@ func handleLarkEvent(req dto.LarkWebhookRequest) {
 		}
 
 		openID := event.Sender.SenderID.OpenID
-		// Send quick ack immediately so user knows bot is alive
-		larkService.SendAck(ctx, openID)
+		// Send quick ack immediately
+		larkService.SendAck(ctx, appID, openID)
 
-		// Process the message and send full response
-		if err := larkService.HandleIncomingMessage(ctx, event); err != nil {
+		// Process the message
+		if err := larkService.HandleIncomingMessage(ctx, appID, event); err != nil {
 			fmt.Printf("failed to handle incoming lark message: %v\n", err)
 		}
 	default:
@@ -134,8 +150,46 @@ func handleLarkEvent(req dto.LarkWebhookRequest) {
 	}
 }
 
-// BindLark handles account binding from H5
-// @Summary Bind Lark account
+// UpdateLarkConfig updates the user's private bot credentials
+// @Summary Update Lark bot config
+// @Tags auth
+// @Router /auth/lark-config [post]
+func UpdateLarkConfig(c *gin.Context) {
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	var req struct {
+		AppID       string `json:"lark_app_id" binding:"required"`
+		AppSecret   string `json:"lark_app_secret" binding:"required"`
+		VerifyToken string `json:"lark_verify_token"`
+		EncryptKey  string `json:"lark_encrypt_key"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	userRepo := repository.NewUserRepository()
+	updates := map[string]interface{}{
+		"lark_app_id":       req.AppID,
+		"lark_app_secret":   req.AppSecret,
+		"lark_verify_token": req.VerifyToken,
+		"lark_encrypt_key":  req.EncryptKey,
+	}
+
+	if err := userRepo.UpdateLarkCredentials(userID, updates); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Lark configuration updated successfully"})
+}
+
+// BindLark handles account binding from H5 (OpenID)
+// @Summary Bind Lark account (OpenID)
 // @Tags auth
 // @Router /auth/bind-lark [post]
 func BindLark(c *gin.Context) {
