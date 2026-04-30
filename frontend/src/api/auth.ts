@@ -45,6 +45,21 @@ export interface ApplyAccountRequest {
   phone?: string
 }
 
+export interface LarkConfigReq {
+  app_id: string;
+  app_secret: string;
+  verification_token: string;
+  encrypt_key: string;
+}
+
+export interface LarkConfigResp {
+  app_id: string;
+  has_app_secret: boolean;
+  verification_token: string;
+  has_encrypt_key: boolean;
+  webhook_url: string;
+}
+
 export const authApi = {
   login: (data: LoginRequest) => request.post<LoginResponse>('/auth/login', data),
   logout: () => request.post('/auth/logout'),
@@ -53,4 +68,6 @@ export const authApi = {
   changePassword: (data: ChangePasswordRequest) => request.post('/auth/change-password', data),
   applyAccount: (data: ApplyAccountRequest) => request.post('/auth/apply', data),
   bindLark: (openid: string) => request.post('/auth/bind-lark', { openid }),
+  getLarkConfig: () => request.get<LarkConfigResp>('/auth/lark-config'),
+  updateLarkConfig: (data: LarkConfigReq) => request.put('/auth/lark-config', data),
 }
