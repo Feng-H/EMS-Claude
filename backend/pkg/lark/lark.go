@@ -6,38 +6,30 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"sync"
 	"time"
 
-	"github.com/ems/backend/pkg/config"
 	"github.com/ems/backend/pkg/redis"
 )
 
 const (
 	tokenURL       = "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal"
 	sendMessageURL = "https://open.feishu.cn/open-apis/im/v1/messages"
-	redisTokenKey  = "ems:lark:tenant_access_token"
 )
 
 type Client struct {
 	appID     string
 	appSecret string
-	mu        sync.RWMutex
 }
 
-var (
-	defaultClient *Client
-	once          sync.Once
-)
+func NewClient(appID, appSecret string) *Client {
+	return &Client{
+		appID:     appID,
+		appSecret: appSecret,
+	}
+}
 
-func GetClient() *Client {
-	once.Do(func() {
-		defaultClient = &Client{
-			appID:     config.Cfg.Lark.AppID,
-			appSecret: config.Cfg.Lark.AppSecret,
-		}
-	})
-	return defaultClient
+func (c *Client) getRedisKey() string {
+	return "ems:lark:tenant_access_token:" + c.appID
 }
 
 type TokenResponse struct {
@@ -48,9 +40,10 @@ type TokenResponse struct {
 }
 
 func (c *Client) GetTenantAccessToken(ctx context.Context) (string, error) {
+	redisKey := c.getRedisKey()
 	// 1. Try to get from Redis
 	if redis.Client != nil {
-		token, err := redis.Client.Get(ctx, redisTokenKey).Result()
+		token, err := redis.Client.Get(ctx, redisKey).Result()
 		if err == nil && token != "" {
 			return token, nil
 		}
@@ -145,6 +138,12 @@ func (c *Client) SendMessage(ctx context.Context, receiveIDType, receiveID, msgT
 	}
 
 	if result.Code != 0 {
+		return fmt.Errorf("lark send message error: %s (code: %d)", result.Msg, result.Code)
+	}
+
+	return nil
+}
+t.Code != 0 {
 		return fmt.Errorf("lark send message error: %s (code: %d)", result.Msg, result.Code)
 	}
 
