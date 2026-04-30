@@ -14,6 +14,7 @@ import (
 	"github.com/ems/backend/internal/model"
 	"github.com/ems/backend/internal/service"
 	"github.com/ems/backend/pkg/config"
+	"github.com/ems/backend/pkg/memory"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -37,9 +38,19 @@ func GetLarkConfig(c *gin.Context) {
 	}
 
 	var user model.User
-	if err := db.First(&user, userID).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user"})
-		return
+	if config.Cfg.Storage.Mode == "memory" {
+		store := memory.GetStore()
+		u := store.FindUser(userID)
+		if u == nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+			return
+		}
+		user = *u
+	} else {
+		if err := db.First(&user, userID).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user"})
+			return
+		}
 	}
 
 	appID, token := "", ""
@@ -77,6 +88,23 @@ func UpdateLarkConfig(c *gin.Context) {
 	var req dto.LarkConfigReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if config.Cfg.Storage.Mode == "memory" {
+		store := memory.GetStore()
+		u := store.FindUser(userID)
+		if u == nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+			return
+		}
+
+		if req.AppID != "" { u.LarkAppID = &req.AppID }
+		if req.AppSecret != "" { u.LarkAppSecret = &req.AppSecret }
+		if req.VerificationToken != "" { u.LarkVerificationToken = &req.VerificationToken }
+		if req.EncryptKey != "" { u.LarkEncryptKey = &req.EncryptKey }
+		
+		c.JSON(http.StatusOK, gin.H{"message": "success"})
 		return
 	}
 
@@ -143,9 +171,19 @@ func LarkWebhook(c *gin.Context) {
 	}
 
 	var user model.User
-	if err := db.First(&user, userID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
-		return
+	if config.Cfg.Storage.Mode == "memory" {
+		store := memory.GetStore()
+		u := store.FindUser(uint(userID))
+		if u == nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+			return
+		}
+		user = *u
+	} else {
+		if err := db.First(&user, userID).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+			return
+		}
 	}
 
 	body, err := io.ReadAll(c.Request.Body)
@@ -198,6 +236,10 @@ func LarkWebhook(c *gin.Context) {
 
 	// 3. Handle Events
 	if req.Header.EventType != "" {
+		if larkService == nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Lark service not initialized"})
+			return
+		}
 		c.Status(http.StatusOK)
 		go handleLarkEvent(req, user)
 		return
@@ -243,14 +285,39 @@ func BindLark(c *gin.Context) {
 		OpenID string `json:"openid" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		fmt.Printf("[BindLark] Invalid request body: %v\n", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request: " + err.Error()})
+		return
+	}
+
+	fmt.Printf("[BindLark] User %d attempting to bind OpenID: %s\n", userID, req.OpenID)
+
+	if config.Cfg.Storage.Mode == "memory" {
+		store := memory.GetStore()
+		u := store.FindUser(userID)
+		if u == nil {
+			fmt.Printf("[BindLark] User %d not found in memory store\n", userID)
+			c.JSON(http.StatusNotFound, gin.H{"error": "User not found in memory store"})
+			return
+		}
+		u.LarkOpenID = &req.OpenID
+		fmt.Printf("[BindLark] User %d bound successfully (Memory Mode)\n", userID)
+		c.JSON(http.StatusOK, gin.H{"message": "Lark account bound successfully"})
+		return
+	}
+
+	if larkService == nil {
+		fmt.Printf("[BindLark] larkService is nil! Ensure InitLark was called.\n")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Lark service not initialized on server"})
 		return
 	}
 
 	if err := larkService.BindUser(userID, req.OpenID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		fmt.Printf("[BindLark] Failed to bind user %d: %v\n", userID, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error: " + err.Error()})
 		return
 	}
 
+	fmt.Printf("[BindLark] User %d bound successfully (Database Mode)\n", userID)
 	c.JSON(http.StatusOK, gin.H{"message": "Lark account bound successfully"})
 }

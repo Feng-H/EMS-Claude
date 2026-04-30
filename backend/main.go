@@ -70,6 +70,7 @@ func runMemoryMode() {
 
 	// 初始化内存存储
 	v1.InitMemory()
+	v1.InitLark(nil)
 	log.Println("Memory store initialized with mock data")
 
 	// Setup Gin

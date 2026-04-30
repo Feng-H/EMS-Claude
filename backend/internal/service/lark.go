@@ -20,6 +20,8 @@ type LarkService struct {
 }
 
 func NewLarkService() *LarkService {
+	// If repository.DB is nil, we might be in memory mode or not fully initialized
+	// We'll still create the service, but repository calls might fail if not careful
 	return &LarkService{
 		userRepo:     repository.NewUserRepository(),
 		agentService: agentService.NewAgentService(),
@@ -53,8 +55,24 @@ func (s *LarkService) HandleIncomingMessage(ctx context.Context, botUser model.U
 	}
 
 	// 1. Try to find bound user (the sender)
-	user, err := s.userRepo.GetByLarkOpenID(openID)
-	if err != nil {
+	var user *model.User
+	if config.Cfg.Storage.Mode == "memory" {
+		store := memory.GetStore()
+		for _, u := range store.Users {
+			if u.LarkOpenID != nil && *u.LarkOpenID == openID {
+				user = u
+				break
+			}
+		}
+	} else {
+		var err error
+		user, err = s.userRepo.GetByLarkOpenID(openID)
+		if err != nil {
+			user = nil
+		}
+	}
+
+	if user == nil {
 		// Not bound, send binding link
 		return s.sendBindingGuide(ctx, client, openID)
 	}
