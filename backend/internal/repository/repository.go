@@ -425,14 +425,19 @@ func (r *UserRepository) UpdateLarkCredentials(userID uint, creds map[string]int
 }
 
 func (r *UserRepository) UpdateLarkOpenID(userID uint, openID string) error {
-	return r.db.Model(&model.User{}).Where("id = ?", userID).Update("lark_openid", openID).Error
+	return r.db.Model(&model.User{}).Where("id = ?", userID).Update("LarkOpenID", openID).Error
 }
 
 func (r *UserRepository) UpdateLarkConfig(userID uint, appID, appSecret, verificationToken, encryptKey string) error {
-	return r.db.Model(&model.User{}).Where("id = ?", userID).Updates(map[string]interface{}{
-		"lark_app_id":             appID,
-		"lark_app_secret":         appSecret,
-		"lark_verification_token": verificationToken,
-		"lark_encrypt_key":        encryptKey,
-	}).Error
+	updates := map[string]interface{}{
+		"LarkAppID":             appID,
+		"LarkVerificationToken": verificationToken,
+	}
+	if appSecret != "" {
+		updates["LarkAppSecret"] = appSecret
+	}
+	if encryptKey != "" {
+		updates["LarkEncryptKey"] = encryptKey
+	}
+	return r.db.Model(&model.User{}).Where("id = ?", userID).Updates(updates).Error
 }

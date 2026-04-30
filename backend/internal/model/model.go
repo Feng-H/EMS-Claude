@@ -47,7 +47,7 @@ type User struct {
 	FirstLogin         bool     `json:"first_login" gorm:"default:true"`
 	FactoryID          *uint    `json:"factory_id"`
 	Factory            *Factory `json:"factory,omitempty" gorm:"foreignKey:FactoryID"`
-	LarkOpenID         *string  `json:"lark_openid" gorm:"size:100;uniqueIndex"`
+	LarkOpenID         *string  `json:"lark_openid" gorm:"column:lark_openid;size:100;uniqueIndex"`
 	LarkAppID          *string  `json:"lark_app_id" gorm:"size:100"`
 	LarkAppSecret      *string  `json:"lark_app_secret" gorm:"size:255"`
 	LarkVerificationToken *string `json:"lark_verification_token" gorm:"size:100"`

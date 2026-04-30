@@ -110,16 +110,16 @@ func UpdateLarkConfig(c *gin.Context) {
 
 	updates := make(map[string]interface{})
 	if req.AppID != "" {
-		updates["lark_app_id"] = req.AppID
+		updates["LarkAppID"] = req.AppID
 	}
 	if req.AppSecret != "" {
-		updates["lark_app_secret"] = req.AppSecret
+		updates["LarkAppSecret"] = req.AppSecret
 	}
 	if req.VerificationToken != "" {
-		updates["lark_verification_token"] = req.VerificationToken
+		updates["LarkVerificationToken"] = req.VerificationToken
 	}
 	if req.EncryptKey != "" {
-		updates["lark_encrypt_key"] = req.EncryptKey
+		updates["LarkEncryptKey"] = req.EncryptKey
 	}
 
 	if len(updates) == 0 {
