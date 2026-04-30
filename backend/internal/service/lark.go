@@ -70,7 +70,7 @@ func (s *LarkService) HandleIncomingMessage(ctx context.Context, botUser model.U
 		Message: content.Text,
 	}
 
-	resp, err := s.agentService.Chat(user.ID, string(user.Role), chatReq)
+	resp, err := s.agentService.Chat(*user, chatReq)
 	if err != nil {
 		return client.SendTextMessage(ctx, "open_id", openID, "抱歉，分析过程中出现了点问题："+err.Error())
 	}

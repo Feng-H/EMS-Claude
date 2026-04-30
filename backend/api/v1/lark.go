@@ -23,6 +23,7 @@ var (
 )
 
 func InitLark(database *gorm.DB) {
+	// db is already declared in auth.go (same package v1)
 	db = database
 	larkService = service.NewLarkService()
 }
@@ -218,10 +219,7 @@ func handleLarkEvent(req dto.LarkWebhookRequest, user model.User) {
 	}
 }
 
-// BindLark handles account binding from H5 (OpenID)
-// @Summary Bind Lark account (OpenID)
-// @Tags auth
-// @Router /auth/bind-lark [post]
+// BindLark handles manual Lark binding from H5
 func BindLark(c *gin.Context) {
 	userID, exists := middleware.GetUserID(c)
 	if !exists {

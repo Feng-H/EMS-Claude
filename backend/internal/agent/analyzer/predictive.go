@@ -5,6 +5,7 @@ import (
 	"math"
 	"github.com/ems/backend/internal/agent/dto"
 	"github.com/ems/backend/internal/agent/tool"
+	"github.com/ems/backend/internal/model"
 )
 
 type PredictiveAnalyzer struct {
@@ -22,9 +23,9 @@ func NewPredictiveAnalyzer(rt *tool.RepairTool, mt *tool.MaintenanceTool, ret *t
 }
 
 // PredictRUL 预测剩余健康寿命
-func (a *PredictiveAnalyzer) PredictRUL(equipmentID uint) (*dto.RULPrediction, error) {
+func (a *PredictiveAnalyzer) PredictRUL(equipmentID uint, user model.User) (*dto.RULPrediction, error) {
 	// 1. 获取基础统计 (MTBF 等)
-	stats, err := a.repairTool.GetFailureStats(equipmentID)
+	stats, err := a.repairTool.GetFailureStats(equipmentID, user)
 	if err != nil { return nil, err }
 	
 	// 2. 获取最近 30 天工况 (从证据链逻辑中简化)
@@ -94,11 +95,11 @@ type SymptomFinding struct {
 }
 
 // DetectSymptoms 识别设备亚健康征兆
-func (a *PredictiveAnalyzer) DetectSymptoms(equipmentID uint) ([]SymptomFinding, error) {
+func (a *PredictiveAnalyzer) DetectSymptoms(equipmentID uint, user model.User) ([]SymptomFinding, error) {
 	findings := []SymptomFinding{}
 	
 	// 1. 获取最近 30 天的维修记录
-	orders, err := a.repairTool.GetRecentOrdersByEquipment(equipmentID, 20)
+	orders, err := a.repairTool.GetRecentOrdersByEquipment(equipmentID, 20, user)
 	if err != nil { return nil, err }
 
 	// 2. 分析“频发微停” (Micro-stops)
@@ -138,9 +139,9 @@ type TCOResult struct {
 }
 
 // CalculateTCO 计算设备全生命周期总成本
-func (a *PredictiveAnalyzer) CalculateTCO(equipmentID uint) (*TCOResult, error) {
+func (a *PredictiveAnalyzer) CalculateTCO(equipmentID uint, user model.User) (*TCOResult, error) {
 	// 1. 获取设备财务档案
-	profile, err := a.retrievalTool.GetEquipmentProfile(equipmentID)
+	profile, err := a.retrievalTool.GetEquipmentProfile(equipmentID, user)
 	if err != nil { return nil, err }
 
 	// 安全提取字段，防止断言失败
@@ -153,8 +154,8 @@ func (a *PredictiveAnalyzer) CalculateTCO(equipmentID uint) (*TCOResult, error) 
 	hourlyLoss, _ := profile["hourly_loss"].(float64)
 
 	// 2. 获取累计维修费与停机时长
-	costStats, _ := a.repairTool.GetCostAnalysis(equipmentID)
-	failureStats, _ := a.repairTool.GetFailureStats(equipmentID)
+	costStats, _ := a.repairTool.GetCostAnalysis(equipmentID, user)
+	failureStats, _ := a.repairTool.GetFailureStats(equipmentID, user)
 
 	repairCost, _ := costStats["total_cost"].(float64)
 	downtimeHours, _ := failureStats["total_downtime"].(float64)
@@ -184,8 +185,8 @@ func (a *PredictiveAnalyzer) CalculateTCO(equipmentID uint) (*TCOResult, error) 
 }
 
 // EvaluateRetirement 评估设备是否建议退役
-func (a *PredictiveAnalyzer) EvaluateRetirement(equipmentID uint) (map[string]interface{}, error) {
-	tco, err := a.CalculateTCO(equipmentID)
+func (a *PredictiveAnalyzer) EvaluateRetirement(equipmentID uint, user model.User) (map[string]interface{}, error) {
+	tco, err := a.CalculateTCO(equipmentID, user)
 	if err != nil { return nil, err }
 	
 	decision := "continue"
@@ -194,7 +195,7 @@ func (a *PredictiveAnalyzer) EvaluateRetirement(equipmentID uint) (map[string]in
 	purchasePrice := 1.0 // Placeholder
 	if tco.AccumulatedRepair > 0 {
 		// Attempt to get price from tool again or profile
-		profile, _ := a.retrievalTool.GetEquipmentProfile(equipmentID)
+		profile, _ := a.retrievalTool.GetEquipmentProfile(equipmentID, user)
 		if price, ok := profile["purchase_price"].(float64); ok && price > 0 {
 			purchasePrice = price
 			tco.MaintenanceRatio = tco.AccumulatedRepair / purchasePrice

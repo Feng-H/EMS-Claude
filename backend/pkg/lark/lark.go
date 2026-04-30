@@ -49,6 +49,7 @@ func (c *Client) GetTenantAccessToken(ctx context.Context) (string, error) {
 		}
 	}
 
+
 	// 2. Fetch from Lark API
 	reqBody, _ := json.Marshal(map[string]string{
 		"app_id":     c.appID,

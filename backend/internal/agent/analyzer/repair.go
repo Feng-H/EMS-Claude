@@ -3,6 +3,7 @@ package analyzer
 import (
 	"github.com/ems/backend/internal/agent/dto"
 	"github.com/ems/backend/internal/agent/tool"
+	"github.com/ems/backend/internal/model"
 )
 
 type RepairAuditAnalyzer struct {
@@ -17,7 +18,7 @@ func NewRepairAuditAnalyzer(retrievalTool *tool.RetrievalTool, repairTool *tool.
 	}
 }
 
-func (a *RepairAuditAnalyzer) Analyze(req *dto.RepairAuditRequest) (*dto.RepairAuditData, error) {
+func (a *RepairAuditAnalyzer) Analyze(req *dto.RepairAuditRequest, user model.User) (*dto.RepairAuditData, error) {
 	data := &dto.RepairAuditData{
 		Anomalies: []dto.AnomalyItem{},
 		Stats: map[string]interface{}{
@@ -45,7 +46,7 @@ func (a *RepairAuditAnalyzer) Analyze(req *dto.RepairAuditRequest) (*dto.RepairA
 	})
 
 	// 2. Fetch evidence for the detected fault
-	evidence, err := a.retrievalTool.SearchManualKnowledge("主轴异响 轴承 更换", &req.EquipmentTypeID)
+	evidence, err := a.retrievalTool.SearchManualKnowledge("主轴异响 轴承 更换", &req.EquipmentTypeID, user)
 	if err == nil {
 		data.Evidence = evidence
 	}
