@@ -240,10 +240,10 @@
                 :placeholder="hasAppSecret ? '******** (已保存)' : '密钥'" 
               />
             </el-form-item>
-            <el-form-item label="Verification Token (选填)">
+            <el-form-item label="Verification Token" required>
               <el-input v-model="larkForm.verification_token" placeholder="用于事件订阅校验" />
             </el-form-item>
-            <el-form-item label="Encrypt Key (选填)">
+            <el-form-item label="Encrypt Key (默认为空)">
               <el-input 
                 v-model="larkForm.encrypt_key" 
                 type="password" 
@@ -338,6 +338,9 @@ async function handleSaveConfig() {
   if (!larkForm.value.app_id) {
     return ElMessage.warning('请填写 App ID')
   }
+  if (!larkForm.value.verification_token) {
+    return ElMessage.warning('请填写 Verification Token')
+  }
   savingConfig.value = true
   try {
     await authApi.updateLarkConfig(larkForm.value)
@@ -364,7 +367,8 @@ function resetLarkConfig() {
 }
 
 async function handleGoToLarkBind() {
-  window.open('/h5/bind-lark?openid=demo_openid_' + Math.floor(Math.random() * 1000), '_blank')
+  const appId = larkForm.value.app_id || 'demo_appid'
+  window.open(`/h5/bind-lark?appid=${appId}`, '_blank')
 }
 
 // 状态

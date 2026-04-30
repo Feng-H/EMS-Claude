@@ -63,7 +63,7 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 
-const openID = computed(() => (route.query.openid as string) || '')
+const openID = computed(() => (route.query.appid as string) || (route.query.openid as string) || '')
 const shortOpenID = computed(() => {
   if (!openID.value) return '未知'
   return openID.value.substring(0, 8) + '...'
