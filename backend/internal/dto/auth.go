@@ -94,3 +94,18 @@ type UserListResponse struct {
 	FactoryID         *uint  `json:"factory_id"`
 	CreatedAt         string `json:"created_at"`
 }
+
+type LarkConfigReq struct {
+	AppID             string `json:"app_id" binding:"required"`
+	AppSecret         string `json:"app_secret" binding:"required"`
+	VerificationToken string `json:"verification_token"`
+	EncryptKey        string `json:"encrypt_key"`
+}
+
+type LarkConfigResp struct {
+	AppID             string `json:"app_id"`
+	HasAppSecret      bool   `json:"has_app_secret"`
+	VerificationToken string `json:"verification_token"`
+	HasEncryptKey     bool   `json:"has_encrypt_key"`
+	WebhookURL        string `json:"webhook_url"`
+}

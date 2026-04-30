@@ -157,7 +157,7 @@ func runDatabaseMode() {
 	v1.InitSparePart()
 	v1.InitAnalytics()
 	v1.InitKnowledge()
-	v1.InitLark()
+	v1.InitLark(database.GetDB())
 
 	// 补种演示数据 (Milestone: Data Parity)
 	if err := repository.SeedDatabase(database.GetDB()); err != nil {
@@ -223,6 +223,8 @@ func setupMemoryRoutes(router *gin.Engine) {
 			auth.POST("/apply", v1.ApplyForAccount)
 			auth.GET("/me", middleware.AuthMiddleware(), v1.GetCurrentUser)
 			auth.POST("/bind-lark", middleware.AuthMiddleware(), v1.BindLark)
+			auth.GET("/lark-config", middleware.AuthMiddleware(), v1.GetLarkConfig)
+			auth.PUT("/lark-config", middleware.AuthMiddleware(), v1.UpdateLarkConfig)
 		}
 
 		// Protected routes
@@ -431,6 +433,8 @@ func setupDatabaseRoutes(router *gin.Engine) {
 			auth.GET("/me", middleware.AuthMiddleware(), v1.GetCurrentUser)
 			auth.POST("/change-password", middleware.AuthMiddleware(), v1.ChangePassword)
 			auth.POST("/bind-lark", middleware.AuthMiddleware(), v1.BindLark)
+			auth.GET("/lark-config", middleware.AuthMiddleware(), v1.GetLarkConfig)
+			auth.PUT("/lark-config", middleware.AuthMiddleware(), v1.UpdateLarkConfig)
 		}
 
 		// Protected routes

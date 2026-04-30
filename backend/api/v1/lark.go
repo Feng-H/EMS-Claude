@@ -18,10 +18,79 @@ import (
 
 var (
 	larkService *service.LarkService
+	db          *gorm.DB
 )
 
-func InitLark() {
+func InitLark(database *gorm.DB) {
+	db = database
 	larkService = service.NewLarkService()
+}
+
+// GetLarkConfig retrieves user's bot config (masked)
+func GetLarkConfig(c *gin.Context) {
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	var user model.User
+	if err := db.First(&user, userID).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user"})
+		return
+	}
+
+	appID, token := "", ""
+	if user.LarkAppID != nil {
+		appID = *user.LarkAppID
+	}
+	if user.LarkVerificationToken != nil {
+		token = *user.LarkVerificationToken
+	}
+
+	// Use domain from config
+	baseURL := config.Cfg.App.BaseURL
+	if baseURL == "" {
+		baseURL = "http://localhost:8080" // fallback
+	}
+	webhookURL := fmt.Sprintf("%s/api/v1/lark/webhook/%d", baseURL, userID)
+
+	c.JSON(http.StatusOK, dto.LarkConfigResp{
+		AppID:             appID,
+		HasAppSecret:      user.LarkAppSecret != nil && *user.LarkAppSecret != "",
+		VerificationToken: token,
+		HasEncryptKey:     user.LarkEncryptKey != nil && *user.LarkEncryptKey != "",
+		WebhookURL:        webhookURL,
+	})
+}
+
+// UpdateLarkConfig updates user's bot config
+func UpdateLarkConfig(c *gin.Context) {
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	var req dto.LarkConfigReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	updates := map[string]interface{}{
+		"lark_app_id":             req.AppID,
+		"lark_app_secret":         req.AppSecret,
+		"lark_verification_token": req.VerificationToken,
+		"lark_encrypt_key":        req.EncryptKey,
+	}
+
+	if err := db.Model(&model.User{}).Where("id = ?", userID).Updates(updates).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update config"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "success"})
 }
 
 // verifyLarkSignature ensures the request is coming from Lark
