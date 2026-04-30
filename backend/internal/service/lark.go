@@ -12,6 +12,7 @@ import (
 	"github.com/ems/backend/internal/repository"
 	"github.com/ems/backend/pkg/config"
 	"github.com/ems/backend/pkg/lark"
+	"github.com/ems/backend/pkg/memory"
 )
 
 type LarkService struct {
