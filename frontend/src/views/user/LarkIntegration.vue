@@ -136,11 +136,12 @@ const saving = ref(false)
 const fetchConfig = async () => {
   try {
     const res = await authApi.getLarkConfig()
-    configForm.value.app_id = res.app_id
-    configForm.value.verification_token = res.verification_token
-    webhookUrl.value = res.webhook_url
-    hasAppSecret.value = res.has_app_secret
-    hasEncryptKey.value = res.has_encrypt_key
+    const data = res.data
+    configForm.value.app_id = data.app_id
+    configForm.value.verification_token = data.verification_token
+    webhookUrl.value = data.webhook_url
+    hasAppSecret.value = data.has_app_secret
+    hasEncryptKey.value = data.has_encrypt_key
     // Reset secrets in form if they exist
     configForm.value.app_secret = ''
     configForm.value.encrypt_key = ''

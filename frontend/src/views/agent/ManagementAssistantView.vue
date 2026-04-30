@@ -320,11 +320,12 @@ const webhookUrl = computed(() => backendWebhookUrl.value || (window.location.or
 async function fetchLarkConfig() {
   try {
     const res = await authApi.getLarkConfig()
-    larkForm.value.app_id = res.app_id
-    larkForm.value.verification_token = res.verification_token
-    backendWebhookUrl.value = res.webhook_url
-    hasAppSecret.value = res.has_app_secret
-    hasEncryptKey.value = res.has_encrypt_key
+    const data = res.data
+    larkForm.value.app_id = data.app_id
+    larkForm.value.verification_token = data.verification_token
+    backendWebhookUrl.value = data.webhook_url
+    hasAppSecret.value = data.has_app_secret
+    hasEncryptKey.value = data.has_encrypt_key
     // Reset local secrets
     larkForm.value.app_secret = ''
     larkForm.value.encrypt_key = ''
@@ -405,11 +406,12 @@ async function handleSendChat() {
       conversation_id: currentConvId.value || undefined,
       message: text
     })
-    currentConvId.value = res.data.conversation_id
+    const data = res.data
+    currentConvId.value = data.conversation_id
     messages.value.push({ 
       role: 'assistant', 
-      content: res.data.reply,
-      trace_id: res.data.trace_id 
+      content: data.reply,
+      trace_id: data.trace_id 
     })
     setTimeout(loadDrafts, 3000)
     loadConversations()
