@@ -27,6 +27,7 @@
         </h3>
       </div>
       <el-table :data="pendingUsers" style="width: 100%">
+        <el-table-column prop="id" label="ID" width="70" />
         <el-table-column prop="username" label="用户名" width="120" />
         <el-table-column prop="name" label="姓名" width="120" />
         <el-table-column prop="role" label="角色" width="120">
@@ -73,6 +74,7 @@
       </div>
 
       <el-table :data="filteredUsers" style="width: 100%">
+        <el-table-column prop="id" label="ID" width="70" />
         <el-table-column prop="username" label="用户名" width="120" />
         <el-table-column prop="name" label="姓名" width="120" />
         <el-table-column prop="role" label="角色" width="120">
