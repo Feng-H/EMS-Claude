@@ -79,6 +79,11 @@ CREATE TABLE users (
     approval_status user_approval_status DEFAULT 'approved',
     must_change_password BOOLEAN DEFAULT false,
     first_login BOOLEAN DEFAULT true,
+    lark_openid VARCHAR(100) UNIQUE,
+    lark_app_id VARCHAR(100),
+    lark_app_secret VARCHAR(100),
+    lark_verification_token VARCHAR(100),
+    lark_encrypt_key VARCHAR(100),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

@@ -48,6 +48,10 @@ type User struct {
 	FactoryID          *uint    `json:"factory_id"`
 	Factory            *Factory `json:"factory,omitempty" gorm:"foreignKey:FactoryID"`
 	LarkOpenID         *string  `json:"lark_openid" gorm:"size:100;uniqueIndex"`
+	LarkAppID          *string  `json:"lark_app_id" gorm:"size:100"`
+	LarkAppSecret      *string  `json:"lark_app_secret" gorm:"size:100"`
+	LarkVerificationToken *string `json:"lark_verification_token" gorm:"size:100"`
+	LarkEncryptKey     *string  `json:"lark_encrypt_key" gorm:"size:100"`
 }
 
 type Base struct {
