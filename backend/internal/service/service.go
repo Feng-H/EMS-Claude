@@ -2,7 +2,6 @@ package service
 
 import (
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/ems/backend/internal/model"
@@ -380,7 +379,7 @@ func (s *EquipmentService) Create(req *CreateEquipmentRequest) (*model.Equipment
 	}
 
 	// Generate QR code
-	qrCode := fmt.Sprintf("QR_%s", req.Code)
+	qrCode := req.Code
 
 	// Validate maintenance user if provided
 	if req.DedicatedMaintenanceID != nil {

@@ -232,7 +232,7 @@ func (s *Store) InitMockData() {
 
 		eq := &model.Equipment{
 			BaseModel: model.BaseModel{ID: s.nextIDInternal()}, Code: fmt.Sprintf("EQ-%04d", i), Name: fmt.Sprintf("%s-%03d", eType.Name, i),
-			TypeID: eType.ID, Type: eType, WorkshopID: ws.ID, Workshop: ws, QRCode: fmt.Sprintf("QR_EQ_%04d", i),
+			TypeID: eType.ID, Type: eType, WorkshopID: ws.ID, Workshop: ws, QRCode: fmt.Sprintf("EQ-%04d", i),
 			PurchasePrice: float64(rnd.Intn(500000) + 50000), PurchaseDate: timePtr(now.AddDate(-rnd.Intn(5), -rnd.Intn(12), 0)),
 			ServiceLifeYears: 10, ScrapValue: 5000.0, HourlyLoss: float64(rnd.Intn(400) + 50),
 			Status: status, DedicatedMaintenanceID: &maint.ID,

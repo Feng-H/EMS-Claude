@@ -25,10 +25,10 @@ INSERT INTO inspection_items (template_id, name, criteria, sequence_order) VALUE
 
 -- 3. Equipment (Financials & Lifecycle)
 INSERT INTO equipment (code, name, type_id, workshop_id, qr_code, spec, purchase_price, purchase_date, service_life_years, scrap_value, hourly_loss, status, dedicated_maintenance_id) VALUES
-('CNC-001', 'A区-精密机床(李四维护)', 1, 1, 'QR_A', 'VMC850', 280000.00, CURRENT_DATE - INTERVAL '3 years', 8, 28000.00, 150.00, 'running', 3),
-('CNC-002', 'B区-精密机床(张三维护)', 1, 1, 'QR_B', 'VMC850', 280000.00, CURRENT_DATE - INTERVAL '3 years', 8, 28000.00, 150.00, 'stopped', 4),
-('PRESS-05', 'C区-12年老旧冲床', 2, 1, 'QR_OLD', 'P-200T', 150000.00, CURRENT_DATE - INTERVAL '12 years', 10, 5000.00, 80.00, 'maintenance', 4),
-('ROBOT-01', 'D区-码垛机器人', 3, 2, 'QR_R1', 'ABB-6700', 450000.00, CURRENT_DATE - INTERVAL '1 year', 5, 45000.00, 300.00, 'running', 3);
+('CNC-001', 'A区-精密机床(李四维护)', 1, 1, 'CNC-001', 'VMC850', 280000.00, CURRENT_DATE - INTERVAL '3 years', 8, 28000.00, 150.00, 'running', 3),
+('CNC-002', 'B区-精密机床(张三维护)', 1, 1, 'CNC-002', 'VMC850', 280000.00, CURRENT_DATE - INTERVAL '3 years', 8, 28000.00, 150.00, 'stopped', 4),
+('PRESS-05', 'C区-12年老旧冲床', 2, 1, 'PRESS-05', 'P-200T', 150000.00, CURRENT_DATE - INTERVAL '12 years', 10, 5000.00, 80.00, 'maintenance', 4),
+('ROBOT-01', 'D区-码垛机器人', 3, 2, 'ROBOT-01', 'ABB-6700', 450000.00, CURRENT_DATE - INTERVAL '1 year', 5, 45000.00, 300.00, 'running', 3);
 
 -- 4. Spare Parts & Inventory
 INSERT INTO spare_parts (code, name, specification, unit, factory_id, safety_stock) VALUES
