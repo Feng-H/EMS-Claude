@@ -187,16 +187,19 @@
 
     <!-- QR Code Dialog -->
     <el-dialog v-model="showQRDialog" title="设备二维码" width="400px">
-      <div class="qr-content">
-        <div class="qr-placeholder">
-          <el-icon :size="150"><Grid /></el-icon>
+      <div class="qr-content" v-loading="loadingQR">
+        <div class="qr-image-wrapper">
+          <img v-if="currentQRCode" :src="currentQRCode" alt="QR Code" class="real-qr-image" />
+          <div v-else class="qr-placeholder">
+            <el-icon :size="150"><Grid /></el-icon>
+          </div>
         </div>
-        <p class="qr-code-text">{{ currentEquipment?.qr_code }}</p>
+        <p class="qr-code-text">{{ currentEquipment?.code }}</p>
         <p class="qr-name">{{ currentEquipment?.name }}</p>
       </div>
       <template #footer>
         <el-button @click="showQRDialog = false">关闭</el-button>
-        <el-button type="primary" @click="handleDownloadQR">下载二维码</el-button>
+        <el-button type="primary" :disabled="!currentQRCode" @click="handleDownloadQR">下载二维码</el-button>
       </template>
     </el-dialog>
   </div>
@@ -231,7 +234,10 @@ const queryParams = reactive({
 
 const showCreateDialog = ref(false)
 const showQRDialog = ref(false)
-const editingEquipment = ref<Equipment | null>(null)
+const currentEquipment = ref<Equipment | null>(null)
+const currentQRCode = ref<string>('')
+const loadingQR = ref(false)
+
 const currentEquipment = ref<Equipment | null>(null)
 const submitting = ref(false)
 
@@ -406,13 +412,31 @@ async function handleDelete(row: Equipment) {
   }
 }
 
-function handleQRCode(row: Equipment) {
+async function handleQRCode(row: Equipment) {
   currentEquipment.value = row
   showQRDialog.value = true
+  loadingQR.value = true
+  currentQRCode.value = ''
+  
+  try {
+    const res = await equipmentApi.getQRCode(row.id)
+    currentQRCode.value = res.data.qr_code_data
+  } catch (error) {
+    ElMessage.error('生成二维码失败')
+  } finally {
+    loadingQR.value = false
+  }
 }
 
 function handleDownloadQR() {
-  ElMessage.info('二维码下载功能开发中')
+  if (!currentQRCode.value) return
+  
+  const link = document.createElement('a')
+  link.href = currentQRCode.value
+  link.download = `QR_${currentEquipment.value?.code}.png`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
 }
 
 async function handleSubmit() {
@@ -553,6 +577,21 @@ onMounted(() => {
   padding: 20px 0;
 }
 
+.qr-image-wrapper {
+  margin: 0 auto;
+  width: 200px;
+  height: 200px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.real-qr-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
 .qr-placeholder {
   display: flex;
   justify-content: center;
@@ -560,7 +599,6 @@ onMounted(() => {
   height: 200px;
   background-color: #f5f7fa;
   border-radius: 8px;
-  margin: 0 auto;
   width: 200px;
 }
 

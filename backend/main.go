@@ -482,6 +482,7 @@ func setupDatabaseRoutes(router *gin.Engine) {
 			{
 				equipment.GET("", v1.ListEquipment)
 				equipment.GET("/:id", v1.GetEquipment)
+				equipment.GET("/:id/qrcode", v1.GetEquipmentQRCode)
 				equipment.GET("/qr/:code", v1.GetEquipmentByQRCode)
 				equipment.POST("", v1.CreateEquipment)
 				equipment.PUT("/:id", v1.UpdateEquipment)

@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"encoding/base64"
 	"errors"
 	"net/http"
 	"strconv"
@@ -10,6 +11,7 @@ import (
 	"github.com/ems/backend/internal/model"
 	"github.com/ems/backend/internal/repository"
 	"github.com/ems/backend/internal/service"
+	"github.com/ems/backend/pkg/qrcode"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -618,6 +620,46 @@ func GetEquipmentByQRCode(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, equipmentToResponse(equipment))
+}
+
+// GetEquipmentQRCode returns equipment QR code as base64
+// @Summary Get equipment QR code
+// @Tags equipment
+// @Router /equipment/{id}/qrcode [get]
+func GetEquipmentQRCode(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		return
+	}
+
+	equipment, err := equipmentService.GetByID(uint(id))
+	if err != nil {
+		if err == service.ErrNotFound || errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Equipment not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Generate QR code (using the unique qr_code field)
+	png, err := qrcode.GenerateForQRCode(equipment.QRCode)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate QR code"})
+		return
+	}
+
+	// Encode to base64
+	base64Data := base64.StdEncoding.EncodeToString(png)
+
+	c.JSON(http.StatusOK, dto.QRCodeResponse{
+		EquipmentID: equipment.ID,
+		Code:        equipment.Code,
+		Name:        equipment.Name,
+		QRCodeData:  "data:image/png;base64," + base64Data,
+	})
 }
 
 // CreateEquipment creates new equipment

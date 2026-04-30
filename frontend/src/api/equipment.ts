@@ -70,6 +70,13 @@ export interface EquipmentStatistics {
   scrapped: number
 }
 
+export interface QRCodeResponse {
+  equipment_id: number
+  code: string
+  name: string
+  qr_code_data: string
+}
+
 // Organization APIs
 export const orgApi = {
   // Bases
@@ -123,6 +130,8 @@ export const equipmentApi = {
   }) => request.get<EquipmentListResponse>('/equipment', { params }),
 
   getById: (id: number) => request.get<Equipment>(`/equipment/${id}`),
+
+  getQRCode: (id: number) => request.get<QRCodeResponse>(`/equipment/${id}/qrcode`),
 
   getByQRCode: (code: string) => request.get<Equipment>(`/equipment/qr/${code}`),
 
