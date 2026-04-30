@@ -79,13 +79,13 @@ CREATE TABLE users (
     approval_status user_approval_status DEFAULT 'approved',
     must_change_password BOOLEAN DEFAULT false,
     first_login BOOLEAN DEFAULT true,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     lark_openid VARCHAR(100) UNIQUE,
     lark_app_id VARCHAR(100),
     lark_app_secret VARCHAR(255),
-    lark_verify_token VARCHAR(100),
-    lark_encrypt_key VARCHAR(100)
+    lark_verification_token VARCHAR(100),
+    lark_encrypt_key VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_lark_app_id ON users(lark_app_id);

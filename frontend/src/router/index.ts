@@ -162,6 +162,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/agent/ManagementAssistantView.vue'),
         meta: { title: '管理助手' },
       },
+      {
+        path: 'agent/lark-config',
+        name: 'LarkIntegration',
+        component: () => import('@/views/user/LarkIntegration.vue'),
+        meta: { title: '飞书机器人配置' },
+      },
     ],
   },
 ]

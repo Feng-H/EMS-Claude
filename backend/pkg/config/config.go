@@ -101,13 +101,6 @@ type LLMConfig struct {
 	Model    string
 }
 
-type LarkConfig struct {
-	AppID             string `mapstructure:"app_id"`
-	AppSecret         string `mapstructure:"app_secret"`
-	VerificationToken string `mapstructure:"verification_token"`
-	EncryptKey        string `mapstructure:"encrypt_key"`
-}
-
 var Cfg *Config
 
 func Load(configPath string) error {
@@ -243,14 +236,8 @@ func applyEnvOverrides(cfg *Config) error {
 	overrideString(&cfg.LLM.APIKey, "EMS_LLM_API_KEY", "LLM_API_KEY")
 	overrideString(&cfg.LLM.Model, "EMS_LLM_MODEL", "LLM_MODEL")
 
-	overrideString(&cfg.Lark.AppID, "EMS_LARK_APP_ID", "LARK_APP_ID")
-	overrideString(&cfg.Lark.AppSecret, "EMS_LARK_APP_SECRET", "LARK_APP_SECRET")
-	overrideString(&cfg.Lark.VerificationToken, "EMS_LARK_VERIFICATION_TOKEN", "LARK_VERIFICATION_TOKEN")
-	overrideString(&cfg.Lark.EncryptKey, "EMS_LARK_ENCRYPT_KEY", "LARK_ENCRYPT_KEY")
-
-	return nil
-}
-
+	return cfg, nil
+	}
 func overrideString(target *string, keys ...string) {
 	for _, key := range keys {
 		if value, ok := os.LookupEnv(key); ok {
