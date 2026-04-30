@@ -20,7 +20,6 @@ import (
 
 var (
 	larkService *service.LarkService
-	db          *gorm.DB
 )
 
 func InitLark(database *gorm.DB) {

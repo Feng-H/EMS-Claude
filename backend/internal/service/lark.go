@@ -8,6 +8,7 @@ import (
 	agentDto "github.com/ems/backend/internal/agent/dto"
 	agentService "github.com/ems/backend/internal/agent/service"
 	"github.com/ems/backend/internal/dto"
+	"github.com/ems/backend/internal/model"
 	"github.com/ems/backend/internal/repository"
 	"github.com/ems/backend/pkg/config"
 	"github.com/ems/backend/pkg/lark"
