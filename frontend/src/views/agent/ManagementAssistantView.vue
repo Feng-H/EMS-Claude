@@ -315,7 +315,10 @@ const larkForm = ref({
   encrypt_key: ''
 })
 
-const webhookUrl = computed(() => backendWebhookUrl.value || (window.location.origin + '/api/v1/lark/webhook'))
+const webhookUrl = computed(() => {
+  if (backendWebhookUrl.value) return backendWebhookUrl.value
+  return window.location.origin + '/api/v1/lark/webhook'
+})
 
 async function fetchLarkConfig() {
   try {

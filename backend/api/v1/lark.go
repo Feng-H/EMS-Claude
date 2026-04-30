@@ -164,79 +164,103 @@ func verifyLarkSignature(c *gin.Context, body []byte, encryptKey string) bool {
 // LarkWebhook handles Lark events
 func LarkWebhook(c *gin.Context) {
 	userIDStr := c.Param("user_id")
-	userID, err := strconv.ParseUint(userIDStr, 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id"})
-		return
-	}
-
 	var user model.User
-	if config.Cfg.Storage.Mode == "memory" {
-		store := memory.GetStore()
-		u := store.FindUser(uint(userID))
-		if u == nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
-			return
-		}
-		user = *u
-	} else {
-		if err := db.First(&user, userID).Error; err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
-			return
-		}
-	}
+	var err error
 
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
+		fmt.Printf("[LarkWebhook] Failed to read body: %v\n", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to read body"})
 		return
 	}
 
 	var req dto.LarkWebhookRequest
 	if err := json.Unmarshal(body, &req); err != nil {
+		fmt.Printf("[LarkWebhook] Failed to unmarshal request: %v\n", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// 1. Handle URL Challenge FIRST
-	if req.Type == "url_verification" || req.Header.EventType == "url_verification" {
-		token := req.Token
-		if token == "" {
-			token = req.Header.Token
+	// 1. Identify User
+	if userIDStr != "" {
+		// Use ID from URL if present
+		userID, _ := strconv.ParseUint(userIDStr, 10, 64)
+		if config.Cfg.Storage.Mode == "memory" {
+			u := memory.GetStore().FindUser(uint(userID))
+			if u != nil { user = *u } else { err = fmt.Errorf("user not found") }
+		} else {
+			err = db.First(&user, userID).Error
 		}
-		
-		expectedToken := ""
-		if user.LarkVerificationToken != nil {
-			expectedToken = *user.LarkVerificationToken
+	} else {
+		// Try to match by AppID from headers/body
+		appID := req.Header.AppID
+		if appID == "" {
+			// Fallback: check nested event for challenge
+			if req.Event != nil {
+				if aid, ok := req.Event["app_id"].(string); ok { appID = aid }
+			}
 		}
 
+		if appID != "" {
+			if config.Cfg.Storage.Mode == "memory" {
+				found := false
+				for _, u := range memory.GetStore().Users {
+					if u.LarkAppID != nil && *u.LarkAppID == appID {
+						user = *u; found = true; break
+					}
+				}
+				if !found { err = fmt.Errorf("no user configured with app_id: %s", appID) }
+			} else {
+				err = db.Where("lark_app_id = ?", appID).First(&user).Error
+			}
+		} else {
+			err = fmt.Errorf("missing app_id in request and no user_id in URL")
+		}
+	}
+
+	if err != nil {
+		fmt.Printf("[LarkWebhook] User identification failed: %v\n", err)
+		c.JSON(http.StatusNotFound, gin.H{"error": "configuration not found"})
+		return
+	}
+
+	fmt.Printf("[LarkWebhook] Processing event for user %d (AppID: %s, Event: %s)\n", 
+		user.ID, req.Header.AppID, req.Header.EventType)
+
+	// 2. Handle URL Challenge FIRST
+	if req.Type == "url_verification" || req.Header.EventType == "url_verification" {
+		token := req.Token
+		if token == "" { token = req.Header.Token }
+		
+		expectedToken := ""
+		if user.LarkVerificationToken != nil { expectedToken = *user.LarkVerificationToken }
+
 		if token != expectedToken {
+			fmt.Printf("[LarkWebhook] Verification token mismatch. Got: %s, Expected: %s\n", token, expectedToken)
 			c.JSON(http.StatusForbidden, gin.H{"error": "Invalid token"})
 			return
 		}
 		challenge := req.Challenge
 		if challenge == "" && req.Event != nil {
-			if ch, ok := req.Event["challenge"].(string); ok {
-				challenge = ch
-			}
+			if ch, ok := req.Event["challenge"].(string); ok { challenge = ch }
 		}
 		c.JSON(http.StatusOK, gin.H{"challenge": challenge})
 		return
 	}
 
-	// 2. Verify Signature for event callbacks
+	// 3. Verify Signature
 	encryptKey := ""
-	if user.LarkEncryptKey != nil {
-		encryptKey = *user.LarkEncryptKey
-	}
+	if user.LarkEncryptKey != nil { encryptKey = *user.LarkEncryptKey }
 	if !verifyLarkSignature(c, body, encryptKey) {
+		fmt.Printf("[LarkWebhook] Signature verification failed for user %d\n", user.ID)
 		c.JSON(http.StatusForbidden, gin.H{"error": "invalid signature"})
 		return
 	}
 
-	// 3. Handle Events
+	// 4. Handle Events
 	if req.Header.EventType != "" {
 		if larkService == nil {
+			fmt.Printf("[LarkWebhook] larkService is nil!\n")
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Lark service not initialized"})
 			return
 		}
