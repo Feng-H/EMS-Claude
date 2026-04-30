@@ -41,7 +41,7 @@ echo "EMS_JWT_SECRET=$(openssl rand -hex 32)" >> .env
 echo "EMS_DATABASE_PASSWORD=$(openssl rand -hex 16)" >> .env
 ```
 
-编辑 `.env`，按需配置 LLM 和飞书：
+编辑 `.env`，按需配置 LLM：
 
 ```bash
 # LLM 智能助手配置 (默认使用 SiliconFlow/DeepSeek)
@@ -50,13 +50,7 @@ EMS_LLM_BASE_URL=https://api.siliconflow.cn/v1
 EMS_LLM_API_KEY=sk-xxxx...
 EMS_LLM_MODEL=deepseek-ai/DeepSeek-V3
 
-# 飞书机器人配置 (如不使用飞书可留空)
-EMS_LARK_APP_ID=cli_xxx...
-EMS_LARK_APP_SECRET=xxx...
-EMS_LARK_VERIFICATION_TOKEN=xxx...
-EMS_LARK_ENCRYPT_KEY=xxx...
-
-# 域名配置 (可选，用于飞书回调)
+# 域名配置 (可选，用于生成飞书回调基地址)
 EMS_DOMAIN=ems.yourdomain.com
 ```
 
@@ -109,25 +103,16 @@ docker compose up -d --build
 #### 第二步：配置事件订阅
 
 1. 进入应用 -> 「事件与回调」->「事件配置」
-2. **请求地址**填写：`https://你的域名/api/v1/lark/webhook`
+2. **请求地址**填写：`https://你的域名/api/v1/lark/webhook/你的UID`
+   > **如何获取 UID？**：登录 EMS 系统，进入「个人设置」->「飞书集成」，页面会显示你专属的 Webhook URL。
 3. 记录页面显示的 **Verification Token**
 4. 如果启用了 **Encrypt Key**，也一并记录
 
-> **配置 .env**：将上述凭证填入项目根目录的 `.env` 文件：
-> ```bash
-> EMS_LARK_APP_ID=cli_xxx...
-> EMS_LARK_APP_SECRET=xxx...
-> EMS_LARK_VERIFICATION_TOKEN=xxx...
-> EMS_LARK_ENCRYPT_KEY=xxx...   # 如果启用了加密则填写，否则留空
-> ```
+#### 第三步：配置 EMS 系统
 
-#### 第三步：验证 Webhook
-
-1. 在「事件与回调」页面点击「验证」按钮
-2. 如果验证失败，检查：
-   - 后端是否正常运行：`curl https://你的域名/health`
-   - `.env` 中的 `EMS_LARK_VERIFICATION_TOKEN` 是否与飞书平台一致
-   - 是否已重新构建后端：`docker compose up -d --build backend`
+1. 登录 EMS 系统，进入「个人中心」或「系统设置」->「飞书集成」
+2. 填入飞书应用的 **App ID**、**App Secret**、**Verification Token** 和 **Encrypt Key**
+3. 点击保存。系统会自动激活该机器人的 Webhook 处理逻辑。
 
 #### 第四步：订阅消息事件
 
