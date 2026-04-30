@@ -126,10 +126,20 @@ func verifyLarkSignature(c *gin.Context, body []byte) bool {
 }
 
 // LarkWebhook handles Lark events
-// @Summary Lark webhook
-// @Tags lark
-// @Router /lark/webhook [post]
 func LarkWebhook(c *gin.Context) {
+	userIDStr := c.Param("user_id")
+	userID, err := strconv.ParseUint(userIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id"})
+		return
+	}
+
+	var user model.User
+	if err := db.First(&user, userID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		return
+	}
+
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to read body"})
@@ -142,13 +152,19 @@ func LarkWebhook(c *gin.Context) {
 		return
 	}
 
-	// 1. Handle URL Challenge FIRST (skip signature check — the challenge IS the verification)
+	// 1. Handle URL Challenge FIRST
 	if req.Type == "url_verification" || req.Header.EventType == "url_verification" {
 		token := req.Token
 		if token == "" {
 			token = req.Header.Token
 		}
-		if token != config.Cfg.Lark.VerificationToken {
+		
+		expectedToken := ""
+		if user.LarkVerificationToken != nil {
+			expectedToken = *user.LarkVerificationToken
+		}
+
+		if token != expectedToken {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Invalid token"})
 			return
 		}
@@ -163,7 +179,11 @@ func LarkWebhook(c *gin.Context) {
 	}
 
 	// 2. Verify Signature for event callbacks
-	if !verifyLarkSignature(c, body) {
+	encryptKey := ""
+	if user.LarkEncryptKey != nil {
+		encryptKey = *user.LarkEncryptKey
+	}
+	if !verifyLarkSignature(c, body, encryptKey) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "invalid signature"})
 		return
 	}
@@ -171,14 +191,14 @@ func LarkWebhook(c *gin.Context) {
 	// 3. Handle Events (V2 Schema)
 	if req.Header.EventType != "" {
 		c.Status(http.StatusOK)
-		go handleLarkEvent(req)
+		go handleLarkEvent(req, user)
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "ok"})
 }
 
-func handleLarkEvent(req dto.LarkWebhookRequest) {
+func handleLarkEvent(req dto.LarkWebhookRequest, user model.User) {
 	ctx := context.Background()
 
 	switch req.Header.EventType {
@@ -192,10 +212,10 @@ func handleLarkEvent(req dto.LarkWebhookRequest) {
 
 		openID := event.Sender.SenderID.OpenID
 		// Send quick ack immediately so user knows bot is alive
-		larkService.SendAck(ctx, openID)
+		larkService.SendAck(ctx, user, openID)
 
 		// Process the message and send full response
-		if err := larkService.HandleIncomingMessage(ctx, event); err != nil {
+		if err := larkService.HandleIncomingMessage(ctx, user, event); err != nil {
 			fmt.Printf("failed to handle incoming lark message: %v\n", err)
 		}
 	default:

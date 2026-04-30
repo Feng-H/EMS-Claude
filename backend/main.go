@@ -417,7 +417,7 @@ func setupMemoryRoutes(router *gin.Engine) {
 	router.GET("/health", v1.HealthCheckMemory)
 
 	// Lark webhook (public)
-	router.POST("/api/v1/lark/webhook", v1.LarkWebhook)
+	router.POST("/api/v1/lark/webhook/:user_id", v1.LarkWebhook)
 }
 
 // setupDatabaseRoutes 设置数据库模式路由
@@ -622,7 +622,7 @@ func setupDatabaseRoutes(router *gin.Engine) {
 	})
 
 	// Lark webhook (public)
-	router.POST("/api/v1/lark/webhook", v1.LarkWebhook)
+	router.POST("/api/v1/lark/webhook/:user_id", v1.LarkWebhook)
 }
 
 // startServer 启动 HTTP 服务器
