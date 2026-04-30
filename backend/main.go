@@ -126,6 +126,7 @@ func runDatabaseMode() {
 		&model.SparePart{},
 		&model.SparePartInventory{},
 		&model.SparePartConsumption{},
+		&model.SparePartTransaction{},
 		&model.KnowledgeArticle{},
 		&model.ManualDocument{},
 		&model.ManualChunk{},
@@ -493,7 +494,11 @@ func setupDatabaseRoutes(router *gin.Engine) {
 				inspection.GET("/templates", v1.ListInspectionTemplates)
 				inspection.GET("/templates/:id", v1.GetInspectionTemplate)
 				inspection.POST("/templates", v1.CreateInspectionTemplate)
+				inspection.PUT("/templates/:id", v1.UpdateInspectionTemplate)
+				inspection.DELETE("/templates/:id", v1.DeleteInspectionTemplate)
 				inspection.POST("/items", v1.CreateInspectionItem)
+				inspection.PUT("/items/:id", v1.UpdateInspectionItem)
+				inspection.DELETE("/items/:id", v1.DeleteInspectionItem)
 
 				inspection.GET("/tasks", v1.ListInspectionTasks)
 				inspection.GET("/tasks/:id", v1.GetInspectionTask)

@@ -162,20 +162,24 @@ func (s *InspectionItemService) Delete(id uint) error {
 
 // InspectionTaskService
 type InspectionTaskService struct {
-	taskRepo    *repository.InspectionTaskRepository
-	recordRepo  *repository.InspectionRecordRepository
-	equipRepo   *repository.EquipmentRepository
-	userRepo    *repository.UserRepository
+	taskRepo     *repository.InspectionTaskRepository
+	recordRepo   *repository.InspectionRecordRepository
+	equipRepo    *repository.EquipmentRepository
+	userRepo     *repository.UserRepository
 	templateRepo *repository.InspectionTemplateRepository
+	repairRepo   *repository.RepairOrderRepository
+	logRepo      *repository.RepairLogRepository
 }
 
 func NewInspectionTaskService() *InspectionTaskService {
 	return &InspectionTaskService{
-		taskRepo:    repository.NewInspectionTaskRepository(),
-		recordRepo:  repository.NewInspectionRecordRepository(),
-		equipRepo:   repository.NewEquipmentRepo(),
-		userRepo:    repository.NewUserRepository(),
+		taskRepo:     repository.NewInspectionTaskRepository(),
+		recordRepo:   repository.NewInspectionRecordRepository(),
+		equipRepo:    repository.NewEquipmentRepo(),
+		userRepo:     repository.NewUserRepository(),
 		templateRepo: repository.NewInspectionTemplateRepository(),
+		repairRepo:   repository.NewRepairOrderRepository(),
+		logRepo:      repository.NewRepairLogRepository(),
 	}
 }
 
@@ -352,6 +356,7 @@ type CompleteInspectionRecord struct {
 }
 
 func (s *InspectionTaskService) CompleteInspection(
+	userID uint,
 	taskID uint,
 	records []CompleteInspectionRecord,
 	latitude *float64,
@@ -369,19 +374,32 @@ func (s *InspectionTaskService) CompleteInspection(
 	// Create records
 	var recordModels []model.InspectionRecord
 	var ngItemIDs []uint
+	var ngDescriptions []string
+	var ngPhotos []string
 
 	for _, r := range records {
 		record := model.InspectionRecord{
-			TaskID:  taskID,
-			ItemID:  r.ItemID,
-			Result:  r.Result,
-			Remark:  r.Remark,
+			TaskID:   taskID,
+			ItemID:   r.ItemID,
+			Result:   r.Result,
+			Remark:   r.Remark,
 			PhotoURL: r.PhotoURL,
 		}
 		recordModels = append(recordModels, record)
 
 		if r.Result == "NG" {
 			ngItemIDs = append(ngItemIDs, r.ItemID)
+			// Get item name for description
+			item, _ := repository.NewInspectionItemRepository().GetByID(r.ItemID)
+			itemName := "Unknown Item"
+			if item != nil {
+				itemName = item.Name
+			}
+			desc := fmt.Sprintf("- %s: %s", itemName, r.Remark)
+			ngDescriptions = append(ngDescriptions, desc)
+			if r.PhotoURL != "" {
+				ngPhotos = append(ngPhotos, r.PhotoURL)
+			}
 		}
 	}
 
@@ -399,6 +417,44 @@ func (s *InspectionTaskService) CompleteInspection(
 
 	if err := s.taskRepo.Update(task); err != nil {
 		return nil, err
+	}
+
+	// Trigger repair workflow if there are NG items
+	if len(ngItemIDs) > 0 {
+		faultDesc := "点检发现异常:\n" + fmt.Sprintf("%v", ngDescriptions)
+		if len(ngDescriptions) > 0 {
+			faultDesc = "点检发现异常:\n"
+			for _, d := range ngDescriptions {
+				faultDesc += d + "\n"
+			}
+		}
+
+		order := &model.RepairOrder{
+			EquipmentID:      task.EquipmentID,
+			FaultDescription: faultDesc,
+			FaultCode:        "INSPECTION_NG",
+			Photos:           ngPhotos,
+			Priority:         2, // Medium
+			ReporterID:       userID,
+			Status:           model.RepairPending,
+		}
+
+		if err := s.repairRepo.Create(order); err == nil {
+			// Update equipment status
+			if equip, err := s.equipRepo.GetByID(task.EquipmentID); err == nil {
+				equip.Status = "maintenance"
+				s.equipRepo.Update(equip)
+			}
+
+			// Create log
+			log := &model.RepairLog{
+				OrderID: order.ID,
+				UserID:  userID,
+				Action:  "created",
+				Content: "通过点检 NG 自动创建",
+			}
+			s.logRepo.Create(log)
+		}
 	}
 
 	// Get total items for count

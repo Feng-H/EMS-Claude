@@ -278,6 +278,52 @@ func (r *SparePartConsumptionRepository) GetStatistics() (map[string]int64, erro
 	return stats, nil
 }
 
+// SparePartTransaction Repository
+type SparePartTransactionRepository struct {
+	db *gorm.DB
+}
+
+func NewSparePartTransactionRepository() *SparePartTransactionRepository {
+	return &SparePartTransactionRepository{db: DB}
+}
+
+func (r *SparePartTransactionRepository) Create(tx *model.SparePartTransaction) error {
+	return r.db.Create(tx).Error
+}
+
+func (r *SparePartTransactionRepository) List(filter TransactionFilter) ([]model.SparePartTransaction, int64, error) {
+	var txs []model.SparePartTransaction
+	var total int64
+
+	query := r.db.Model(&model.SparePartTransaction{})
+
+	if filter.SparePartID != nil {
+		query = query.Where("spare_part_id = ?", *filter.SparePartID)
+	}
+	if filter.FactoryID != nil {
+		query = query.Where("factory_id = ?", *filter.FactoryID)
+	}
+	if filter.Type != "" {
+		query = query.Where("type = ?", filter.Type)
+	}
+
+	// Count total
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Pagination
+	offset := (filter.Page - 1) * filter.PageSize
+	err := query.Preload("SparePart").
+		Preload("Factory").
+		Preload("Operator").
+		Order("created_at DESC").
+		Offset(offset).Limit(filter.PageSize).
+		Find(&txs).Error
+
+	return txs, total, err
+}
+
 // Filter types
 type SparePartFilter struct {
 	Code     string
@@ -300,6 +346,14 @@ type ConsumptionFilter struct {
 	TaskID      *uint
 	DateFrom    string
 	DateTo      string
+	Page        int
+	PageSize    int
+}
+
+type TransactionFilter struct {
+	SparePartID *uint
+	FactoryID   *uint
+	Type        string
 	Page        int
 	PageSize    int
 }

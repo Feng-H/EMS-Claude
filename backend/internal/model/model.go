@@ -334,6 +334,20 @@ type SparePartConsumption struct {
 	User        *User      `json:"user,omitempty" gorm:"foreignKey:UserID"`
 }
 
+type SparePartTransaction struct {
+	BaseModel
+	SparePartID uint           `json:"spare_part_id" gorm:"not null;index"`
+	SparePart   *SparePart     `json:"spare_part,omitempty" gorm:"foreignKey:SparePartID"`
+	FactoryID   uint           `json:"factory_id" gorm:"not null;index"`
+	Factory     *Factory       `json:"factory,omitempty" gorm:"foreignKey:FactoryID"`
+	Type        string         `json:"type" gorm:"size:20;not null"` // in, out, adjust
+	Quantity    int            `json:"quantity" gorm:"not null"`
+	OperatorID  uint           `json:"operator_id" gorm:"not null"`
+	Operator    *User          `json:"operator,omitempty" gorm:"foreignKey:OperatorID"`
+	RelatedID   *uint          `json:"related_id"` // can be order_id or task_id
+	Remark      string         `json:"remark" gorm:"type:text"`
+}
+
 // =====================================================
 // Knowledge & Document Models
 // =====================================================

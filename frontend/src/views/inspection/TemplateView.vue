@@ -258,13 +258,22 @@ const createTemplate = async () => {
 // 删除模板
 const deleteTemplate = async (row: InspectionTemplate) => {
   try {
-    await ElMessageBox.confirm('确定要删除该模板吗？', '提示', {
-      type: 'warning'
+    await ElMessageBox.confirm('确定要删除该模板吗？此操作不可恢复。', '提示', {
+      type: 'warning',
+      confirmButtonText: '确定',
+      cancelButtonText: '取消'
     })
-    // TODO: 实现删除API
-    ElMessage.info('删除功能待实现')
-  } catch {
-    // User cancelled
+    await inspectionTemplateApi.deleteTemplate(row.id)
+    ElMessage.success('模板删除成功')
+    if (currentTemplate.value?.id === row.id) {
+      currentTemplate.value = null
+      templateItems.value = []
+    }
+    loadTemplates()
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error(error.response?.data?.error || '删除失败')
+    }
   }
 }
 
@@ -289,8 +298,13 @@ const saveItem = async () => {
     submitting.value = true
     try {
       if (editingItem.value) {
-        // TODO: 实现更新API
-        ElMessage.info('更新功能待实现')
+        await inspectionItemApi.updateItem(editingItem.value.id, {
+          name: itemForm.name,
+          method: itemForm.method,
+          criteria: itemForm.criteria,
+          sequence_order: itemForm.sequence_order
+        })
+        ElMessage.success('更新成功')
       } else {
         await inspectionItemApi.createItem({
           template_id: currentTemplate.value.id,
@@ -306,7 +320,7 @@ const saveItem = async () => {
       // 重新加载模板详情
       selectTemplate(currentTemplate.value)
     } catch (error: any) {
-      ElMessage.error(error.message || '操作失败')
+      ElMessage.error(error.response?.data?.error || '操作失败')
     } finally {
       submitting.value = false
     }
@@ -317,12 +331,19 @@ const saveItem = async () => {
 const deleteItem = async (row: InspectionItem) => {
   try {
     await ElMessageBox.confirm('确定要删除该项目吗？', '提示', {
-      type: 'warning'
+      type: 'warning',
+      confirmButtonText: '确定',
+      cancelButtonText: '取消'
     })
-    // TODO: 实现删除API
-    ElMessage.info('删除功能待实现')
-  } catch {
-    // User cancelled
+    await inspectionItemApi.deleteItem(row.id)
+    ElMessage.success('项目删除成功')
+    if (currentTemplate.value) {
+      selectTemplate(currentTemplate.value)
+    }
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error(error.response?.data?.error || '删除失败')
+    }
   }
 }
 

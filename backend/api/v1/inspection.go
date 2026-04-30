@@ -127,6 +127,66 @@ func CreateInspectionTemplate(c *gin.Context) {
 	})
 }
 
+// UpdateInspectionTemplate updates a template
+// @Summary Update inspection template
+// @Tags inspection
+// @Router /inspection/templates/:id [put]
+func UpdateInspectionTemplate(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		return
+	}
+
+	var req dto.InspectionTemplateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if role, _ := middleware.GetUserRole(c); role != "admin" && role != "engineer" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient permissions"})
+		return
+	}
+
+	template, err := inspectionTemplateService.Update(uint(id), req.Name, req.EquipmentTypeID)
+	if err != nil {
+		handleInspectionServiceError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.InspectionTemplateResponse{
+		ID:              template.ID,
+		Name:            template.Name,
+		EquipmentTypeID: template.EquipmentTypeID,
+		CreatedAt:       template.CreatedAt,
+	})
+}
+
+// DeleteInspectionTemplate deletes a template
+// @Summary Delete inspection template
+// @Tags inspection
+// @Router /inspection/templates/:id [delete]
+func DeleteInspectionTemplate(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		return
+	}
+
+	if role, _ := middleware.GetUserRole(c); role != "admin" && role != "engineer" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient permissions"})
+		return
+	}
+
+	if err := inspectionTemplateService.Delete(uint(id)); err != nil {
+		handleInspectionServiceError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Deleted successfully"})
+}
+
 // =====================================================
 // Inspection Item APIs
 // =====================================================
@@ -167,6 +227,68 @@ func CreateInspectionItem(c *gin.Context) {
 		Criteria:      item.Criteria,
 		SequenceOrder: item.SequenceOrder,
 	})
+}
+
+// UpdateInspectionItem updates an item
+// @Summary Update inspection item
+// @Tags inspection
+// @Router /inspection/items/:id [put]
+func UpdateInspectionItem(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		return
+	}
+
+	var req dto.InspectionItemRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if role, _ := middleware.GetUserRole(c); role != "admin" && role != "engineer" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient permissions"})
+		return
+	}
+
+	item, err := inspectionItemService.Update(uint(id), req.Name, req.Method, req.Criteria, req.SequenceOrder)
+	if err != nil {
+		handleInspectionServiceError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.InspectionItemResponse{
+		ID:            item.ID,
+		TemplateID:    item.TemplateID,
+		Name:          item.Name,
+		Method:        item.Method,
+		Criteria:      item.Criteria,
+		SequenceOrder: item.SequenceOrder,
+	})
+}
+
+// DeleteInspectionItem deletes an item
+// @Summary Delete inspection item
+// @Tags inspection
+// @Router /inspection/items/:id [delete]
+func DeleteInspectionItem(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		return
+	}
+
+	if role, _ := middleware.GetUserRole(c); role != "admin" && role != "engineer" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient permissions"})
+		return
+	}
+
+	if err := inspectionItemService.Delete(uint(id)); err != nil {
+		handleInspectionServiceError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Deleted successfully"})
 }
 
 // =====================================================
@@ -418,6 +540,7 @@ func CompleteInspection(c *gin.Context) {
 	}
 
 	result, err := inspectionTaskService.CompleteInspection(
+		userID,
 		req.TaskID,
 		records,
 		req.Latitude,
@@ -426,12 +549,6 @@ func CompleteInspection(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
-	}
-
-	// TODO: If there are NG items, trigger repair workflow
-	if result.NGCount > 0 {
-		// Create repair order for NG items
-		// This will be implemented in the repair module
 	}
 
 	c.JSON(http.StatusOK, dto.CompleteInspectionResponse{
@@ -498,6 +615,24 @@ func inspectionTaskToResponse(task *model.InspectionTask) dto.InspectionTaskResp
 	// Count items
 	r.ItemCount = len(task.Template.Items)
 	r.CompletedCount = len(task.Records)
+
+	if len(task.Records) > 0 {
+		r.Records = make([]dto.InspectionRecordResponse, len(task.Records))
+		for i, rec := range task.Records {
+			r.Records[i] = dto.InspectionRecordResponse{
+				ID:        rec.ID,
+				TaskID:    rec.TaskID,
+				ItemID:    rec.ItemID,
+				Result:    rec.Result,
+				Remark:    rec.Remark,
+				PhotoURL:  rec.PhotoURL,
+				CreatedAt: rec.CreatedAt,
+			}
+			if rec.Item != nil {
+				r.Records[i].ItemName = rec.Item.Name
+			}
+		}
+	}
 
 	return r
 }

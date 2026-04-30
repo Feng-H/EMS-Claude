@@ -139,6 +139,15 @@
             >
               执行
             </el-button>
+            <el-button
+              v-if="row.status === 'closed' || row.status === 'audited'"
+              type="info"
+              size="small"
+              link
+              @click="openConvertDialog(row)"
+            >
+              转知识库
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -259,6 +268,39 @@
         <el-button type="primary" @click="confirmAssign" :loading="assigning">确定</el-button>
       </template>
     </el-dialog>
+
+    <!-- 转知识库对话框 -->
+    <el-dialog v-model="convertDialogVisible" title="转入知识库" width="600px">
+      <el-form :model="convertForm" :rules="convertRules" ref="convertFormRef" label-width="100px">
+        <el-form-item label="标题" prop="title">
+          <el-input v-model="convertForm.title" placeholder="输入知识库条目标题" />
+        </el-form-item>
+        <el-form-item label="故障现象" prop="fault_phenomenon">
+          <el-input v-model="convertForm.fault_phenomenon" type="textarea" :rows="3" />
+        </el-form-item>
+        <el-form-item label="原因分析" prop="cause_analysis">
+          <el-input v-model="convertForm.cause_analysis" type="textarea" :rows="3" />
+        </el-form-item>
+        <el-form-item label="标签">
+          <el-select
+            v-model="convertForm.tags"
+            multiple
+            filterable
+            allow-create
+            default-first-option
+            placeholder="请输入标签"
+          >
+            <el-option label="机械故障" value="机械故障" />
+            <el-option label="电气故障" value="电气故障" />
+            <el-option label="软件异常" value="软件异常" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="convertDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="confirmConvert" :loading="converting">确定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -277,6 +319,7 @@ import {
   type RepairStatistics,
   type AssignRepairRequest
 } from '@/api/repair'
+import { convertFromRepair } from '@/api/knowledge'
 
 const router = useRouter()
 
@@ -298,6 +341,22 @@ const dateRange = ref<[string, string] | null>(null)
 const showDetailDialog = ref(false)
 const assignDialogVisible = ref(false)
 const assigning = ref(false)
+
+const convertDialogVisible = ref(false)
+const converting = ref(false)
+const convertFormRef = ref<FormInstance>()
+const convertForm = reactive({
+  order_id: 0,
+  title: '',
+  fault_phenomenon: '',
+  cause_analysis: '',
+  tags: [] as string[]
+})
+
+const convertRules: FormRules = {
+  title: [{ required: true, message: '请输入标题', trigger: 'blur' }],
+  fault_phenomenon: [{ required: true, message: '请输入故障现象', trigger: 'blur' }]
+}
 
 const filterForm = reactive({
   status: '',
@@ -384,6 +443,33 @@ const openAssignDialog = (order: RepairOrder) => {
   currentOrder.value = order
   assignForm.assign_to = undefined as unknown as number
   assignDialogVisible.value = true
+}
+
+const openConvertDialog = (order: RepairOrder) => {
+  currentOrder.value = order
+  convertForm.order_id = order.id
+  convertForm.title = `${order.equipment_name} 故障处理记录 - ${order.id}`
+  convertForm.fault_phenomenon = order.fault_description
+  convertForm.cause_analysis = ''
+  convertForm.tags = []
+  convertDialogVisible.value = true
+}
+
+const confirmConvert = async () => {
+  if (!convertFormRef.value) return
+  await convertFormRef.value.validate(async (valid) => {
+    if (!valid) return
+    converting.value = true
+    try {
+      await convertFromRepair(convertForm)
+      ElMessage.success('成功转入知识库')
+      convertDialogVisible.value = false
+    } catch (error: any) {
+      ElMessage.error(error.response?.data?.error || '转换失败')
+    } finally {
+      converting.value = false
+    }
+  })
 }
 
 const confirmAssign = async () => {
