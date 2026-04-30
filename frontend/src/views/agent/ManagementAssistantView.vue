@@ -342,7 +342,7 @@ async function handleSaveConfig() {
   try {
     await authApi.updateLarkConfig(larkForm.value)
     ElMessage.success('配置已保存')
-    await authStore.fetchUserInfo()
+    await authStore.getUserInfo()
     await fetchLarkConfig()
     bindStep.value = 1
   } catch (e) {
