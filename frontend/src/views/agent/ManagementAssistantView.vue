@@ -230,16 +230,26 @@
           <p class="step-tip">请前往 <a href="https://open.feishu.cn/app" target="_blank">飞书开放平台</a> 创建企业自建应用，并开启“机器人”能力。</p>
           <el-form :model="larkForm" label-position="top" size="default">
             <el-form-item label="App ID" required>
-              <el-input v-model="larkForm.lark_app_id" placeholder="cli_xxxxxxxx" />
+              <el-input v-model="larkForm.app_id" placeholder="cli_xxxxxxxx" />
             </el-form-item>
             <el-form-item label="App Secret" required>
-              <el-input v-model="larkForm.lark_app_secret" type="password" show-password placeholder="密钥" />
+              <el-input 
+                v-model="larkForm.app_secret" 
+                type="password" 
+                show-password 
+                :placeholder="hasAppSecret ? '******** (已保存)' : '密钥'" 
+              />
             </el-form-item>
             <el-form-item label="Verification Token (选填)">
-              <el-input v-model="larkForm.lark_verify_token" placeholder="用于事件订阅校验" />
+              <el-input v-model="larkForm.verification_token" placeholder="用于事件订阅校验" />
             </el-form-item>
             <el-form-item label="Encrypt Key (选填)">
-              <el-input v-model="larkForm.lark_encrypt_key" placeholder="用于消息加解密" />
+              <el-input 
+                v-model="larkForm.encrypt_key" 
+                type="password" 
+                show-password 
+                :placeholder="hasEncryptKey ? '******** (已保存)' : '用于消息加解密'" 
+              />
             </el-form-item>
             <div class="webhook-guide">
               <p class="label">事件订阅 Webhook 地址:</p>
@@ -294,24 +304,45 @@ const showLarkDialog = ref(false)
 const isLarkBound = computed(() => !!authStore.userInfo?.lark_openid)
 const bindStep = ref(0)
 const savingConfig = ref(false)
+const backendWebhookUrl = ref('')
+const hasAppSecret = ref(false)
+const hasEncryptKey = ref(false)
+
 const larkForm = ref({
-  lark_app_id: authStore.userInfo?.lark_app_id || '',
-  lark_app_secret: authStore.userInfo?.lark_app_secret || '',
-  lark_verify_token: authStore.userInfo?.lark_verify_token || '',
-  lark_encrypt_key: authStore.userInfo?.lark_encrypt_key || ''
+  app_id: '',
+  app_secret: '',
+  verification_token: '',
+  encrypt_key: ''
 })
 
-const webhookUrl = computed(() => window.location.origin + '/api/v1/lark/webhook')
+const webhookUrl = computed(() => backendWebhookUrl.value || (window.location.origin + '/api/v1/lark/webhook'))
+
+async function fetchLarkConfig() {
+  try {
+    const res = await authApi.getLarkConfig()
+    larkForm.value.app_id = res.app_id
+    larkForm.value.verification_token = res.verification_token
+    backendWebhookUrl.value = res.webhook_url
+    hasAppSecret.value = res.has_app_secret
+    hasEncryptKey.value = res.has_encrypt_key
+    // Reset local secrets
+    larkForm.value.app_secret = ''
+    larkForm.value.encrypt_key = ''
+  } catch (err) {
+    console.error('Failed to fetch lark config', err)
+  }
+}
 
 async function handleSaveConfig() {
-  if (!larkForm.value.lark_app_id || !larkForm.value.lark_app_secret) {
-    return ElMessage.warning('请填写 App ID 和 App Secret')
+  if (!larkForm.value.app_id) {
+    return ElMessage.warning('请填写 App ID')
   }
   savingConfig.value = true
   try {
     await authApi.updateLarkConfig(larkForm.value)
     ElMessage.success('配置已保存')
     await authStore.fetchUserInfo()
+    await fetchLarkConfig()
     bindStep.value = 1
   } catch (e) {
     ElMessage.error('配置保存失败')
@@ -503,6 +534,7 @@ onMounted(async () => {
   loadConversations()
   loadDrafts()
   loadPrediction(1)
+  fetchLarkConfig()
 })
 </script>
 
