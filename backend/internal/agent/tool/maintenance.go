@@ -1,6 +1,7 @@
 package tool
 
 import (
+	"fmt"
 	"github.com/ems/backend/internal/model"
 	"github.com/ems/backend/pkg/memory"
 	"github.com/ems/backend/pkg/config"
@@ -27,7 +28,33 @@ func NewMaintenanceTool() *MaintenanceTool {
 	}
 }
 
-func (t *MaintenanceTool) GetMaintenanceCompliance(equipmentID uint) (map[string]interface{}, error) {
+func (t *MaintenanceTool) checkPermission(equipmentID uint, user model.User) error {
+	if user.Role == "admin" || user.FactoryID == nil {
+		return nil
+	}
+
+	if config.Cfg.Storage.Mode == "memory" {
+		store := memory.GetStore()
+		e := store.FindEquipment(equipmentID)
+		if e == nil { return fmt.Errorf("equipment not found") }
+		w, ok := store.Workshops[e.WorkshopID]
+		if !ok || w.FactoryID != *user.FactoryID {
+			return fmt.Errorf("access denied: equipment belongs to another factory")
+		}
+		return nil
+	}
+
+	repo := repository.NewEquipmentRepo()
+	e, err := repo.GetByID(equipmentID)
+	if err != nil { return err }
+	if e.Workshop.FactoryID != *user.FactoryID {
+		return fmt.Errorf("access denied: equipment belongs to another factory")
+	}
+	return nil
+}
+
+func (t *MaintenanceTool) GetMaintenanceCompliance(equipmentID uint, user model.User) (map[string]interface{}, error) {
+	if err := t.checkPermission(equipmentID, user); err != nil { return nil, err }
 	if config.Cfg.Storage.Mode == "memory" {
 		store := memory.GetStore()
 		completed := 0

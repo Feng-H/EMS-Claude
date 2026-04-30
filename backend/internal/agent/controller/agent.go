@@ -8,6 +8,8 @@ import (
 	"github.com/ems/backend/internal/agent/dto"
 	"github.com/ems/backend/internal/agent/service"
 	"github.com/ems/backend/internal/middleware"
+	"github.com/ems/backend/internal/model"
+	"github.com/ems/backend/pkg/database"
 	"github.com/ems/backend/pkg/trace"
 	"github.com/gin-gonic/gin"
 )
@@ -48,11 +50,16 @@ func (ctrl *AgentController) RecommendMaintenance(c *gin.Context) {
 		})
 		return
 	}
-	userID, role, ok := requireAuth(c)
+	userID, _, ok := requireAuth(c)
 	if !ok {
 		return
 	}
-	result, err := ctrl.agentService.RecommendMaintenance(userID, role, &req)
+	var user model.User
+	if err := database.GetDB().First(&user, userID).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "User not found"})
+		return
+	}
+	result, err := ctrl.agentService.RecommendMaintenance(user, &req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
 			Success: false,
@@ -75,11 +82,16 @@ func (ctrl *AgentController) AuditRepair(c *gin.Context) {
 		})
 		return
 	}
-	userID, role, ok := requireAuth(c)
+	userID, _, ok := requireAuth(c)
 	if !ok {
 		return
 	}
-	result, err := ctrl.agentService.AuditRepair(userID, role, &req)
+	var user model.User
+	if err := database.GetDB().First(&user, userID).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "User not found"})
+		return
+	}
+	result, err := ctrl.agentService.AuditRepair(user, &req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
 			Success: false,
@@ -98,11 +110,16 @@ func (ctrl *AgentController) AuditMaintenance(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	userID, role, ok := requireAuth(c)
+	userID, _, ok := requireAuth(c)
 	if !ok {
 		return
 	}
-	result, err := ctrl.agentService.AuditMaintenance(userID, role, &req)
+	var user model.User
+	if err := database.GetDB().First(&user, userID).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "User not found"})
+		return
+	}
+	result, err := ctrl.agentService.AuditMaintenance(user, &req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -117,11 +134,16 @@ func (ctrl *AgentController) Analyze(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	userID, role, ok := requireAuth(c)
+	userID, _, ok := requireAuth(c)
 	if !ok {
 		return
 	}
-	result, err := ctrl.agentService.Analyze(userID, role, &req)
+	var user model.User
+	if err := database.GetDB().First(&user, userID).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "User not found"})
+		return
+	}
+	result, err := ctrl.agentService.Analyze(user, &req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -220,14 +242,20 @@ func (ctrl *AgentController) Chat(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	userID, role, ok := requireAuth(c)
+	userID, _, ok := requireAuth(c)
 	if !ok {
 		return
 	}
 
 	log.Printf("[AgentController] Chat request from User:%d, Message: %s", userID, req.Message)
-	
-	result, err := ctrl.agentService.Chat(userID, role, &req)
+
+	var user model.User
+	if err := database.GetDB().First(&user, userID).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user context"})
+		return
+	}
+
+	result, err := ctrl.agentService.Chat(user, &req)
 	if err != nil {
 		log.Printf("[AgentController] Chat service error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

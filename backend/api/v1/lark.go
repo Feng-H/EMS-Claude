@@ -6,22 +6,24 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/ems/backend/internal/dto"
 	"github.com/ems/backend/internal/middleware"
+	"github.com/ems/backend/internal/model"
 	"github.com/ems/backend/internal/service"
 	"github.com/ems/backend/pkg/config"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 var (
 	larkService *service.LarkService
-	db          *gorm.DB
 )
 
 func InitLark(database *gorm.DB) {
+	// db is already declared in auth.go (same package v1)
 	db = database
 	larkService = service.NewLarkService()
 }
@@ -211,10 +213,7 @@ func handleLarkEvent(req dto.LarkWebhookRequest, user model.User) {
 	}
 }
 
-// BindLark handles account binding from H5
-// @Summary Bind Lark account
-// @Tags auth
-// @Router /auth/bind-lark [post]
+// BindLark handles manual Lark binding from H5
 func BindLark(c *gin.Context) {
 	userID, exists := middleware.GetUserID(c)
 	if !exists {

@@ -236,8 +236,8 @@ func applyEnvOverrides(cfg *Config) error {
 	overrideString(&cfg.LLM.APIKey, "EMS_LLM_API_KEY", "LLM_API_KEY")
 	overrideString(&cfg.LLM.Model, "EMS_LLM_MODEL", "LLM_MODEL")
 
-	return cfg, nil
-	}
+	return nil
+}
 func overrideString(target *string, keys ...string) {
 	for _, key := range keys {
 		if value, ok := os.LookupEnv(key); ok {

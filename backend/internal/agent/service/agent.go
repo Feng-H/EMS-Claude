@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"time"
+	"strings"
 	"github.com/ems/backend/internal/agent/analyzer"
 	"github.com/ems/backend/internal/agent/dto"
 	"github.com/ems/backend/internal/agent/policy"
@@ -71,11 +72,11 @@ func NewAgentService() *AgentService {
 	}
 }
 
-func (s *AgentService) RecommendMaintenance(userID uint, role string, req *dto.MaintenanceRecommendRequest) (*dto.AgentResponseEnvelope, error) {
+func (s *AgentService) RecommendMaintenance(user model.User, req *dto.MaintenanceRecommendRequest) (*dto.AgentResponseEnvelope, error) {
 	startTime := time.Now()
 	traceID := trace.GenerateTraceID()
 	
-	agentCtx, err := s.policy.DeriveAgentContext(userID, role, req.Language)
+	agentCtx, err := s.policy.DeriveAgentContext(user.ID, string(user.Role), req.Language)
 	if err != nil { return nil, err }
 
 	targetFactoryID := req.FactoryID
@@ -87,7 +88,7 @@ func (s *AgentService) RecommendMaintenance(userID uint, role string, req *dto.M
 		return nil, err
 	}
 
-	analysisResult, err := s.maintenanceAnalyzer.Analyze(req)
+	analysisResult, err := s.maintenanceAnalyzer.Analyze(req, user)
 	if err != nil { return nil, err }
 
 	summary := "建议缩短保养周期，以提高设备可用性。"
@@ -114,7 +115,7 @@ func (s *AgentService) RecommendMaintenance(userID uint, role string, req *dto.M
 	inputSnap, _ := json.Marshal(req)
 	resultJSON, _ := json.Marshal(analysisResult)
 	session := &model.AgentSession{
-		UserID: userID, Scenario: "maintenance_recommendation", FactoryID: &targetFactoryID,
+		UserID: user.ID, Scenario: "maintenance_recommendation", FactoryID: &targetFactoryID,
 		Language: agentCtx.Language, InputSnapshot: string(inputSnap), TraceID: traceID, Status: "completed",
 	}
 	if err := s.repo.CreateSession(session); err != nil {
@@ -146,15 +147,15 @@ func (s *AgentService) RecommendMaintenance(userID uint, role string, req *dto.M
 		Summary: summary, RiskLevel: "medium", ArtifactID: artifact.ID,
 		EvidenceCount: len(analysisResult.Evidence), Data: analysisResult,
 	}
-	s.logUsage(session.ID, userID, "maintenance_recommendation", startTime)
+	s.logUsage(session.ID, user.ID, "maintenance_recommendation", startTime)
 	return res, nil
 }
 
-func (s *AgentService) AuditRepair(userID uint, role string, req *dto.RepairAuditRequest) (*dto.AgentResponseEnvelope, error) {
+func (s *AgentService) AuditRepair(user model.User, req *dto.RepairAuditRequest) (*dto.AgentResponseEnvelope, error) {
 	startTime := time.Now()
 	traceID := trace.GenerateTraceID()
 	
-	agentCtx, err := s.policy.DeriveAgentContext(userID, role, req.Language)
+	agentCtx, err := s.policy.DeriveAgentContext(user.ID, string(user.Role), req.Language)
 	if err != nil { return nil, err }
 
 	targetFactoryID := req.FactoryID
@@ -166,7 +167,7 @@ func (s *AgentService) AuditRepair(userID uint, role string, req *dto.RepairAudi
 		return nil, err
 	}
 
-	analysisResult, err := s.repairAuditAnalyzer.Analyze(req)
+	analysisResult, err := s.repairAuditAnalyzer.Analyze(req, user)
 	if err != nil { return nil, err }
 
 	summary := "发现维修异常，建议复核维修质量。"
@@ -195,7 +196,7 @@ func (s *AgentService) AuditRepair(userID uint, role string, req *dto.RepairAudi
 	inputSnap, _ := json.Marshal(req)
 	resultJSON, _ := json.Marshal(analysisResult)
 	session := &model.AgentSession{
-		UserID: userID, Scenario: "repair_audit", FactoryID: &targetFactoryID,
+		UserID: user.ID, Scenario: "repair_audit", FactoryID: &targetFactoryID,
 		Language: agentCtx.Language, InputSnapshot: string(inputSnap), TraceID: traceID, Status: "completed",
 	}
 	if err := s.repo.CreateSession(session); err != nil {
@@ -227,11 +228,11 @@ func (s *AgentService) AuditRepair(userID uint, role string, req *dto.RepairAudi
 		Summary: summary, RiskLevel: "high", ArtifactID: artifact.ID,
 		EvidenceCount: len(analysisResult.Evidence), Data: analysisResult,
 	}
-	s.logUsage(session.ID, userID, "repair_audit", startTime)
+	s.logUsage(session.ID, user.ID, "repair_audit", startTime)
 	return res, nil
 }
 
-func (s *AgentService) AuditMaintenance(userID uint, role string, req *dto.MaintenanceAuditRequest) (*dto.AgentResponseEnvelope, error) {
+func (s *AgentService) AuditMaintenance(user model.User, req *dto.MaintenanceAuditRequest) (*dto.AgentResponseEnvelope, error) {
 	traceID := trace.GenerateTraceID()
 	return &dto.AgentResponseEnvelope{
 		Success: true, TraceID: traceID, Language: "zh-CN", Scenario: "maintenance_audit",
@@ -239,7 +240,7 @@ func (s *AgentService) AuditMaintenance(userID uint, role string, req *dto.Maint
 	}, nil
 }
 
-func (s *AgentService) Analyze(userID uint, role string, req *dto.AnalyzeRequest) (*dto.AgentResponseEnvelope, error) {
+func (s *AgentService) Analyze(user model.User, req *dto.AnalyzeRequest) (*dto.AgentResponseEnvelope, error) {
 	traceID := trace.GenerateTraceID()
 	return &dto.AgentResponseEnvelope{
 		Success: true, TraceID: traceID, Language: "zh-CN", Scenario: "analysis",
@@ -301,7 +302,7 @@ func (s *AgentService) ListKnowledges(status string) ([]model.AgentKnowledge, er
 // Phase 2: Chat & Conversational Logic
 // =====================================================
 
-func (s *AgentService) Chat(userID uint, role string, req *dto.ChatRequest) (*dto.ChatResponse, error) {
+func (s *AgentService) Chat(user model.User, req *dto.ChatRequest) (*dto.ChatResponse, error) {
 	startTime := time.Now()
 	traceID := trace.GenerateTraceID()
 
@@ -314,7 +315,7 @@ func (s *AgentService) Chat(userID uint, role string, req *dto.ChatRequest) (*dt
 			title = string(runes[:27]) + "..."
 		}
 		newConv := &model.AgentConversation{
-			UserID: userID,
+			UserID: user.ID,
 			Title:  title,
 		}
 		if err := s.repo.CreateConversation(newConv); err != nil {
@@ -328,7 +329,7 @@ func (s *AgentService) Chat(userID uint, role string, req *dto.ChatRequest) (*dt
 	_ = s.repo.CreateMessage(&model.AgentMessage{ConversationID: convID, Role: "user", Content: req.Message})
 
 	// 3. 注入用户个性化经验 (Milestone P)
-	activeExps, _ := s.repo.ListActiveExperiences(userID)
+	activeExps, _ := s.repo.ListActiveExperiences(user.ID)
 	expContext := ""
 	if len(activeExps) > 0 {
 		expContext = "\n### 用户偏好与历史经验反馈\n"
@@ -343,7 +344,7 @@ func (s *AgentService) Chat(userID uint, role string, req *dto.ChatRequest) (*dt
 	if len(matchedSkills) > 0 {
 		skill := matchedSkills[0]
 		skillID = fmt.Sprintf("%d", skill.ID)
-		res, err := s.ExecuteSkill(userID, &skill, req)
+		res, err := s.ExecuteSkill(user, &skill, req)
 		if err == nil { reply = res.Summary + expContext }
 	}
 
@@ -375,10 +376,10 @@ func (s *AgentService) Chat(userID uint, role string, req *dto.ChatRequest) (*dt
 	_ = s.repo.CreateMessage(&model.AgentMessage{ConversationID: convID, Role: "assistant", Content: reply, SkillID: skillID})
 
 	// 7. 异步触发反思与学习 (Milestone L, O & P)
-	go s.ReflectAndLearn(convID, userID)
+	go s.ReflectAndLearn(convID, user.ID)
 
 	// 8. 记录使用情况
-	s.logUsage(convID, userID, "chat", startTime)
+	s.logUsage(convID, user.ID, "chat", startTime)
 
 	return &dto.ChatResponse{
 		ConversationID: convID, Reply: reply, TraceID: traceID,
@@ -396,6 +397,32 @@ func (s *AgentService) ListConversations(userID uint, limit int) ([]dto.Conversa
 		}
 	}
 	return results, nil
+}
+
+func (s *AgentService) extractEquipmentID(message string, user model.User) uint {
+	if config.Cfg.Storage.Mode == "memory" {
+		return 1 // Fallback for memory mode demo
+	}
+	
+	var equipments []model.Equipment
+	// Load all equipment for context matching. In a real system, use semantic search or NER.
+	// Filter by factory at query level for efficiency
+	query := database.GetDB().Joins("JOIN workshops ON workshops.id = equipment.workshop_id")
+	if user.Role != "admin" && user.FactoryID != nil {
+		query = query.Where("workshops.factory_id = ?", *user.FactoryID)
+	}
+	
+	if err := query.Find(&equipments).Error; err != nil {
+		return 1
+	}
+
+	for _, eq := range equipments {
+		if strings.Contains(message, eq.Code) || (eq.Name != "" && strings.Contains(message, eq.Name)) {
+			return eq.ID
+		}
+	}
+	
+	return 1 // Default fallback
 }
 
 func (s *AgentService) GetConversation(id uint) (*dto.ConversationResponse, error) {
@@ -436,39 +463,42 @@ func (s *AgentService) ListSkills(status string) ([]dto.SkillResponse, error) {
 	return results, nil
 }
 
-func (s *AgentService) ExecuteSkill(userID uint, skill *model.AgentSkill, req *dto.ChatRequest) (*dto.AgentResponseEnvelope, error) {
+func (s *AgentService) ExecuteSkill(user model.User, skill *model.AgentSkill, req *dto.ChatRequest) (*dto.AgentResponseEnvelope, error) {
 	var steps []struct {
 		Step   int    `json:"step"`
 		Action string `json:"action"`
 		Tool   string `json:"tool"`
 	}
 	_ = json.Unmarshal([]byte(skill.Steps), &steps)
+	
+	eqID := s.extractEquipmentID(req.Message, user)
+	
 	evidence := []dto.EvidenceItem{}
 	for _, step := range steps {
 		switch step.Tool {
 		case "get_equipment_profile":
-			if res, err := s.retrievalTool.GetEquipmentProfile(1); err == nil {
+			if res, err := s.retrievalTool.GetEquipmentProfile(eqID, user); err == nil {
 				resJSON, _ := json.Marshal(res)
 				evidence = append(evidence, dto.EvidenceItem{
 					EvidenceType: "equipment_profile", Title: "设备基础信息", Excerpt: string(resJSON), Score: 1.0,
 				})
 			}
 		case "get_failure_stats":
-			if res, err := s.repairTool.GetFailureStats(1); err == nil {
+			if res, err := s.repairTool.GetFailureStats(eqID, user); err == nil {
 				resJSON, _ := json.Marshal(res)
 				evidence = append(evidence, dto.EvidenceItem{
 					EvidenceType: "failure_stats", Title: "故障统计分析", Excerpt: string(resJSON), Score: 0.95,
 				})
 			}
 		case "get_cost_analysis":
-			if res, err := s.repairTool.GetCostAnalysis(1); err == nil {
+			if res, err := s.repairTool.GetCostAnalysis(eqID, user); err == nil {
 				resJSON, _ := json.Marshal(res)
 				evidence = append(evidence, dto.EvidenceItem{
 					EvidenceType: "cost_analysis", Title: "维修成本分析", Excerpt: string(resJSON), Score: 0.9,
 				})
 			}
 		case "get_maintenance_compliance":
-			if res, err := s.maintenanceTool.GetMaintenanceCompliance(1); err == nil {
+			if res, err := s.maintenanceTool.GetMaintenanceCompliance(eqID, user); err == nil {
 				resJSON, _ := json.Marshal(res)
 				evidence = append(evidence, dto.EvidenceItem{
 					EvidenceType: "maintenance_compliance", Title: "保养合规性评估", Excerpt: string(resJSON), Score: 0.85,
@@ -476,48 +506,47 @@ func (s *AgentService) ExecuteSkill(userID uint, skill *model.AgentSkill, req *d
 			}
 		case "get_failure_distribution":
 			auditReq := &dto.RepairAuditRequest{EquipmentTypeID: 12}
-			res, err := s.repairAuditAnalyzer.Analyze(auditReq)
+			res, err := s.repairAuditAnalyzer.Analyze(auditReq, user)
 			if err == nil { evidence = append(evidence, res.Evidence...) }
 		case "search_manual_knowledge":
-			res, err := s.retrievalTool.SearchManualKnowledge(req.Message, nil)
+			res, err := s.retrievalTool.SearchManualKnowledge(req.Message, nil, user)
 			if err == nil {
 				evidence = append(evidence, res...)
 			}
 		case "predict_remaining_life":
-			// 默认针对 ID 1 进行预测 (Demo 逻辑)
-			if res, err := s.predictiveAnalyzer.PredictRUL(1); err == nil {
+			if res, err := s.predictiveAnalyzer.PredictRUL(eqID, user); err == nil {
 				resJSON, _ := json.Marshal(res)
 				evidence = append(evidence, dto.EvidenceItem{
 					EvidenceType: "prediction", Title: "RUL 剩余健康寿命预测",
 					Excerpt: string(resJSON), Score: 0.98,
 				})
-				}
-				case "detect_symptoms":
-					if res, err := s.predictiveAnalyzer.DetectSymptoms(1); err == nil {
-						resJSON, _ := json.Marshal(res)
-						evidence = append(evidence, dto.EvidenceItem{
-							EvidenceType: "symptoms", Title: "设备亚健康征兆识别",
-							Excerpt: string(resJSON), Score: 0.92,
-						})
-					}
-				case "get_tco_analysis":
-					if res, err := s.predictiveAnalyzer.CalculateTCO(1); err == nil {
-						resJSON, _ := json.Marshal(res)
-						evidence = append(evidence, dto.EvidenceItem{
-							EvidenceType: "tco", Title: "资产总持有成本(TCO)分析",
-							Excerpt: string(resJSON), Score: 0.95,
-						})
-					}
-				case "get_retirement_recommendation":
-					if res, err := s.predictiveAnalyzer.EvaluateRetirement(1); err == nil {
-						resJSON, _ := json.Marshal(res)
-						evidence = append(evidence, dto.EvidenceItem{
-							EvidenceType: "retirement", Title: "资产退役与投资决策建议",
-							Excerpt: string(resJSON), Score: 0.99,
-						})
-					}
-				}
-				}
+			}
+		case "detect_symptoms":
+			if res, err := s.predictiveAnalyzer.DetectSymptoms(eqID, user); err == nil {
+				resJSON, _ := json.Marshal(res)
+				evidence = append(evidence, dto.EvidenceItem{
+					EvidenceType: "symptoms", Title: "设备亚健康征兆识别",
+					Excerpt: string(resJSON), Score: 0.92,
+				})
+			}
+		case "get_tco_analysis":
+			if res, err := s.predictiveAnalyzer.CalculateTCO(eqID, user); err == nil {
+				resJSON, _ := json.Marshal(res)
+				evidence = append(evidence, dto.EvidenceItem{
+					EvidenceType: "tco", Title: "资产总持有成本(TCO)分析",
+					Excerpt: string(resJSON), Score: 0.95,
+				})
+			}
+		case "get_retirement_recommendation":
+			if res, err := s.predictiveAnalyzer.EvaluateRetirement(eqID, user); err == nil {
+				resJSON, _ := json.Marshal(res)
+				evidence = append(evidence, dto.EvidenceItem{
+					EvidenceType: "retirement", Title: "资产退役与投资决策建议",
+					Excerpt: string(resJSON), Score: 0.99,
+				})
+			}
+		}
+	}
 
 	summary := fmt.Sprintf("执行技能【%s】: 已完成 %d 个分析步骤，收集到 %d 条证据。", skill.Name, len(steps), len(evidence))
 	if s.llmClient != nil {
@@ -579,8 +608,8 @@ func (s *AgentService) Subscribe(userID uint, pushType string, enabled bool, sco
 }
 
 func (s *AgentService) NotifyEvent(eventType string, targetID uint, context map[string]interface{}) {
-	// 如果 RUL 过低，主动推送预警
-	prediction, err := s.predictiveAnalyzer.PredictRUL(targetID)
+	// 异步通知逻辑通常需要系统权限，暂不强制隔离
+	prediction, err := s.predictiveAnalyzer.PredictRUL(targetID, model.User{Role: "admin"}) 
 	if err == nil && prediction.EstimatedRULDays < 7 {
 		// 创建一个主动分析 Artifact
 		artifact := &model.AgentArtifact{
@@ -595,9 +624,11 @@ func (s *AgentService) NotifyEvent(eventType string, targetID uint, context map[
 }
 
 func (s *AgentService) GetEquipmentPrediction(equipmentID uint) (map[string]interface{}, error) {
-	rul, _ := s.predictiveAnalyzer.PredictRUL(equipmentID)
-	tco, _ := s.predictiveAnalyzer.CalculateTCO(equipmentID)
-	symptoms, _ := s.predictiveAnalyzer.DetectSymptoms(equipmentID)
+	// Web端调用，默认按管理员权限（已在Controller层校验）
+	admin := model.User{Role: "admin"}
+	rul, _ := s.predictiveAnalyzer.PredictRUL(equipmentID, admin)
+	tco, _ := s.predictiveAnalyzer.CalculateTCO(equipmentID, admin)
+	symptoms, _ := s.predictiveAnalyzer.DetectSymptoms(equipmentID, admin)
 
 	return map[string]interface{}{
 		"rul":      rul,

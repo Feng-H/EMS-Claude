@@ -49,6 +49,7 @@ func (c *Client) GetTenantAccessToken(ctx context.Context) (string, error) {
 		}
 	}
 
+
 	// 2. Fetch from Lark API
 	reqBody, _ := json.Marshal(map[string]string{
 		"app_id":     c.appID,
@@ -77,7 +78,7 @@ func (c *Client) GetTenantAccessToken(ctx context.Context) (string, error) {
 		if expire < 0 {
 			expire = 1 * time.Minute
 		}
-		redis.Client.Set(ctx, redisTokenKey, result.TenantAccessToken, expire)
+		redis.Client.Set(ctx, redisKey, result.TenantAccessToken, expire)
 	}
 
 	return result.TenantAccessToken, nil
@@ -138,12 +139,6 @@ func (c *Client) SendMessage(ctx context.Context, receiveIDType, receiveID, msgT
 	}
 
 	if result.Code != 0 {
-		return fmt.Errorf("lark send message error: %s (code: %d)", result.Msg, result.Code)
-	}
-
-	return nil
-}
-t.Code != 0 {
 		return fmt.Errorf("lark send message error: %s (code: %d)", result.Msg, result.Code)
 	}
 

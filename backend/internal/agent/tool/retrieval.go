@@ -29,12 +29,20 @@ func NewRetrievalTool(agentRepo repository.IAgentRepository) *RetrievalTool {
 }
 
 // GetEquipmentProfile returns basic profile for an equipment
-func (t *RetrievalTool) GetEquipmentProfile(id uint) (map[string]interface{}, error) {
+func (t *RetrievalTool) GetEquipmentProfile(id uint, user model.User) (map[string]interface{}, error) {
 	if config.Cfg.Storage.Mode == "memory" {
 		store := memory.GetStore()
 		e := store.FindEquipment(id)
 		if e == nil { return nil, fmt.Errorf("equipment not found") }
 		
+		// Permission check
+		if user.Role != "admin" && user.FactoryID != nil {
+			workshop, ok := store.Workshops[e.WorkshopID]
+			if !ok || workshop.FactoryID != *user.FactoryID {
+				return nil, fmt.Errorf("access denied: equipment belongs to another factory")
+			}
+		}
+
 		res := map[string]interface{}{
 			"id": e.ID, "code": e.Code, "name": e.Name, "status": e.Status,
 			"purchase_price": e.PurchasePrice,
@@ -60,6 +68,13 @@ func (t *RetrievalTool) GetEquipmentProfile(id uint) (map[string]interface{}, er
 	e, err := repo.GetByID(id)
 	if err != nil { return nil, err }
 	
+	// Permission check
+	if user.Role != "admin" && user.FactoryID != nil {
+		if e.Workshop.FactoryID != *user.FactoryID {
+			return nil, fmt.Errorf("access denied: equipment belongs to another factory")
+		}
+	}
+
 	res := map[string]interface{}{
 		"id": e.ID, "code": e.Code, "name": e.Name, "status": e.Status,
 		"type_name": e.Type.Name,
@@ -70,7 +85,7 @@ func (t *RetrievalTool) GetEquipmentProfile(id uint) (map[string]interface{}, er
 }
 
 // SearchManualKnowledge searches both knowledge articles and manual chunks with weighted ranking
-func (t *RetrievalTool) SearchManualKnowledge(query string, equipmentTypeID *uint) ([]dto.EvidenceItem, error) {
+func (t *RetrievalTool) SearchManualKnowledge(query string, equipmentTypeID *uint, user model.User) ([]dto.EvidenceItem, error) {
 	var results []dto.EvidenceItem
 
 	// 1. 获取候选条目

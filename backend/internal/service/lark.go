@@ -8,6 +8,7 @@ import (
 	agentDto "github.com/ems/backend/internal/agent/dto"
 	agentService "github.com/ems/backend/internal/agent/service"
 	"github.com/ems/backend/internal/dto"
+	"github.com/ems/backend/internal/model"
 	"github.com/ems/backend/internal/repository"
 	"github.com/ems/backend/pkg/config"
 	"github.com/ems/backend/pkg/lark"
@@ -69,7 +70,7 @@ func (s *LarkService) HandleIncomingMessage(ctx context.Context, botUser model.U
 		Message: content.Text,
 	}
 
-	resp, err := s.agentService.Chat(user.ID, string(user.Role), chatReq)
+	resp, err := s.agentService.Chat(*user, chatReq)
 	if err != nil {
 		return client.SendTextMessage(ctx, "open_id", openID, "抱歉，分析过程中出现了点问题："+err.Error())
 	}

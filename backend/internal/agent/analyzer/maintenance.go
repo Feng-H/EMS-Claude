@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/ems/backend/internal/agent/dto"
 	"github.com/ems/backend/internal/agent/tool"
+	"github.com/ems/backend/internal/model"
 )
 
 type MaintenanceAnalyzer struct {
@@ -18,7 +19,7 @@ func NewMaintenanceAnalyzer(retrievalTool *tool.RetrievalTool, maintenanceTool *
 	}
 }
 
-func (a *MaintenanceAnalyzer) Analyze(req *dto.MaintenanceRecommendRequest) (*dto.MaintenanceRecommendData, error) {
+func (a *MaintenanceAnalyzer) Analyze(req *dto.MaintenanceRecommendRequest, user model.User) (*dto.MaintenanceRecommendData, error) {
 	data := &dto.MaintenanceRecommendData{
 		Recommendations: []dto.RecommendationItem{},
 		ExpectedBenefits: []string{
@@ -41,7 +42,7 @@ func (a *MaintenanceAnalyzer) Analyze(req *dto.MaintenanceRecommendRequest) (*dt
 	}
 
 	// 2. Search for evidence in knowledge base/manuals
-	evidence, err := a.retrievalTool.SearchManualKnowledge("保养周期 维护项", &req.EquipmentTypeID)
+	evidence, err := a.retrievalTool.SearchManualKnowledge("保养周期 维护项", &req.EquipmentTypeID, user)
 	if err == nil {
 		data.Evidence = evidence
 	}
