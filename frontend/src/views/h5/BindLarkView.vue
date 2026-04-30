@@ -103,7 +103,20 @@ const goToLogin = () => {
   })
 }
 
-onMounted(() => {
+// 初始化：检查登录状态并获取用户信息
+const initializeAuth = async () => {
+  const tokenInStorage = localStorage.getItem('ems_token')
+  if (tokenInStorage && !authStore.user) {
+    try {
+      await authStore.getUserInfo()
+    } catch (error) {
+      authStore.logout()
+    }
+  }
+}
+
+onMounted(async () => {
+  await initializeAuth()
   if (!openID.value) {
     showToast('参数错误')
   }

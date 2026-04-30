@@ -364,7 +364,7 @@ function resetLarkConfig() {
 }
 
 async function handleGoToLarkBind() {
-  window.open('/bind-lark?openid=demo_openid_' + Math.floor(Math.random() * 1000), '_blank')
+  window.open('/h5/bind-lark?openid=demo_openid_' + Math.floor(Math.random() * 1000), '_blank')
 }
 
 // 状态
