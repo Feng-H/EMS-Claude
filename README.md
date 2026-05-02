@@ -147,6 +147,10 @@ docker compose up -d --build
 
 - **后端**: Go 1.23 + Gin + GORM + PostgreSQL + Redis
 - **前端**: Vue 3 + TypeScript + Vite + Element Plus (PC) + Vant 4 (H5)
+- **H5 移动端**: 
+  - **全屏体验**: 独立于 PC 端的全屏移动端布局，专为手机操作优化。
+  - **响应式适配**: 智能网格布局，适配从 iPhone SE 到大屏旗舰的所有机型。
+  - **主题感知**: 深度集成系统设计系统，完美支持浅色与深色模式自动切换。
 - **AI**: OpenAI 兼容接口（支持 DeepSeek、SiliconFlow 等）
 - **部署**: Docker + Nginx
 

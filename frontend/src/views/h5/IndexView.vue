@@ -51,7 +51,7 @@
           <span class="action-label">保养任务</span>
         </div>
         <div class="action-item" @click="navigateTo('/h5/repair/execute')">
-          <van-icon name="tool-job-o" size="32" color="#ee0a24" />
+          <van-icon name="setting-o" size="32" color="#ee0a24" />
           <span class="action-label">维修执行</span>
         </div>
       </div>
@@ -194,12 +194,14 @@ onMounted(async () => {
 /* 统计卡片优化 */
 .stats-overview {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-md);
   margin-bottom: var(--space-xl);
 }
 
 .stats-card {
   flex: 1;
+  min-width: 80px;
   background: var(--color-bg-card);
   padding: var(--space-lg) var(--space-sm);
   border-radius: var(--radius-very);
@@ -243,9 +245,9 @@ onMounted(async () => {
 /* 快捷操作网格 */
 .action-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
   gap: var(--space-md);
-  padding: var(--space-xl) var(--space-md);
+  padding: var(--space-lg) var(--space-sm);
   background: var(--color-bg-card);
   border-radius: var(--radius-very);
   margin-bottom: var(--space-xl);

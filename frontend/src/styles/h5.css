@@ -154,7 +154,7 @@
 /* H5 统计卡片 */
 .h5-stats-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: var(--space-md);
   padding: var(--space-lg);
 }

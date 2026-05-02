@@ -362,14 +362,16 @@ onMounted(() => {
 
 .stats-cards {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   padding: 16px;
 }
 
 .stat-card {
   flex: 1;
+  min-width: 90px;
   padding: 12px 8px;
-  border-radius: var(--radius-high);
+  border-radius: var(--radius-generous);
   text-align: center;
   color: #fff;
   box-shadow: var(--shadow-sm);

@@ -276,9 +276,14 @@ onMounted(() => {
 .card-footer {
   display: flex;
   justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 8px;
   border-top: 1px solid var(--color-border);
   padding-top: 12px;
+}
+
+.card-footer :deep(.van-button) {
+  min-width: 80px;
 }
 
 .qr-popup-content {

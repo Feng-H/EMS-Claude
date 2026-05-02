@@ -69,44 +69,25 @@ const onClickRight = () => {
 
 <style scoped>
 :deep(.van-nav-bar) {
-  background: rgba(250, 249, 245, 0.95);
+  --van-nav-bar-background: var(--color-bg-secondary);
+  --van-nav-bar-title-text-color: var(--color-text-primary);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--color-border);
 }
 
 :deep(.van-nav-bar__title) {
   font-size: 17px;
-  font-weight: 500;
-  color: var(--color-text-primary);
+  font-weight: 600;
   font-family: var(--font-serif);
 }
 
-:deep(.van-nav-bar__text) {
-  color: var(--color-terracotta);
-  font-size: 15px;
-  font-weight: 500;
+/* 深色模式适配 */
+[data-theme="dark"] :deep(.van-nav-bar) {
+  --van-nav-bar-background: var(--color-bg-card);
+  --van-nav-bar-title-text-color: var(--color-text-primary);
 }
 
-:deep(.van-icon) {
-  color: var(--color-text-secondary);
-}
-
-@media (prefers-color-scheme: dark) {
-  :deep(.van-nav-bar) {
-    background: rgba(26, 26, 19, 0.95);
-    border-bottom-color: var(--color-border);
-  }
-
-  :deep(.van-nav-bar__title) {
-    color: var(--color-text-primary);
-  }
-
-  :deep(.van-nav-bar__text) {
-    color: var(--color-terracotta);
-  }
-
-  :deep(.van-icon) {
-    color: var(--color-text-tertiary);
-  }
+[data-theme="dark"] :deep(.van-icon) {
+  color: var(--color-text-tertiary);
 }
 </style>

@@ -19,7 +19,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/h5',
     component: () => import('@/views/layout/MobileLayout.vue'),
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, layout: 'full-screen' },
     children: [
       {
         path: '',

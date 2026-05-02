@@ -30,15 +30,20 @@ const active = ref(0)
 }
 
 :deep(.van-tabbar) {
-  background: rgba(250, 249, 245, 0.95);
+  background: var(--color-bg-secondary) !important;
   backdrop-filter: blur(10px);
   height: 60px;
   border-top: 1px solid var(--color-border);
 }
 
+:root[data-theme="dark"] :deep(.van-tabbar) {
+  background: var(--color-bg-card) !important;
+}
+
 :deep(.van-tabbar-item) {
   font-family: var(--font-serif);
   font-weight: 500;
+  background: transparent !important;
 }
 
 :deep(.van-tabbar-item__icon) {
