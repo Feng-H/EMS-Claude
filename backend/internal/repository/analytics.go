@@ -48,7 +48,7 @@ func (r *AnalyticsRepository) GetMTTRMTBF(factoryID *uint) (map[string]float64, 
 
 	var repairTime RepairTimeResult
 	r.db.Raw(`
-		SELECT COALESCE(SUM(EXTRACT(EPOCH FROM (completed_at - created_at))/3600), 0) as total_hours,
+		SELECT COALESCE(SUM(GREATEST(EXTRACT(EPOCH FROM (completed_at - created_at))/3600, 0)), 0) as total_hours,
 		       COUNT(*) as count
 		FROM repair_orders
 		WHERE status = 'closed' AND completed_at IS NOT NULL
@@ -154,7 +154,7 @@ func (r *AnalyticsRepository) GetTrendData(startDate, endDate string) ([]map[str
 
 	query := `
 		SELECT
-			date::text as date,
+			d.date::text as date,
 			COALESCE(inspections, 0) as inspection_tasks,
 			COALESCE(maintenances, 0) as maintenance_tasks,
 			COALESCE(repairs, 0) as repair_orders
@@ -183,7 +183,7 @@ func (r *AnalyticsRepository) GetTrendData(startDate, endDate string) ([]map[str
 			WHERE completed_at >= ?::date AND completed_at < ?::date + interval '1 day'
 			GROUP BY DATE(completed_at)
 		) r ON d.date = r.date
-		ORDER BY date
+		ORDER BY d.date
 	`
 
 	err := r.db.Raw(query, startDate, endDate, startDate, endDate, startDate, endDate, startDate, endDate).
@@ -202,7 +202,7 @@ func (r *AnalyticsRepository) GetFailureAnalysis(limit int) ([]map[string]interf
 			et.name as equipment_type_name,
 			COUNT(ro.id) as failure_count,
 			COALESCE(SUM(
-				EXTRACT(EPOCH FROM (COALESCE(ro.completed_at, NOW()) - ro.created_at))/3600
+				GREATEST(EXTRACT(EPOCH FROM (COALESCE(ro.completed_at, NOW()) - ro.created_at))/3600, 0)
 			), 0) as total_downtime
 		FROM equipment_types et
 		LEFT JOIN equipment e ON e.type_id = et.id
@@ -230,10 +230,10 @@ func (r *AnalyticsRepository) GetTopFailureEquipment(limit int) ([]map[string]in
 			e.name as equipment_name,
 			COUNT(ro.id) as failure_count,
 			COALESCE(SUM(
-				EXTRACT(EPOCH FROM (COALESCE(ro.completed_at, NOW()) - ro.created_at))/3600
+				GREATEST(EXTRACT(EPOCH FROM (COALESCE(ro.completed_at, NOW()) - ro.created_at))/3600, 0)
 			), 0) as downtime_hours,
 			COALESCE(AVG(
-				EXTRACT(EPOCH FROM (COALESCE(ro.completed_at, NOW()) - ro.created_at))/3600
+				GREATEST(EXTRACT(EPOCH FROM (COALESCE(ro.completed_at, NOW()) - ro.created_at))/3600, 0)
 			), 0) as mttr
 		FROM equipment e
 		INNER JOIN repair_orders ro ON ro.equipment_id = e.id

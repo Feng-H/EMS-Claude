@@ -387,7 +387,7 @@ const updateRepair = async (nextStatus: string) => {
     await repairOrderApi.updateRepair(order.value.id, {
       ...updateForm,
       photos: repairPhotos.value,
-      next_status
+      next_status: nextStatus
     })
     showToast('操作成功')
     loadOrder()

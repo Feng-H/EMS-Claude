@@ -70,6 +70,13 @@
           @click="navigateTo('/h5/knowledge')"
         />
         <van-cell
+          title="统计分析"
+          label="关键指标与趋势"
+          is-link
+          icon="chart-trending-o"
+          @click="navigateTo('/h5/analytics')"
+        />
+        <van-cell
           title="我的设备"
           label="快速搜索与查看设备"
           is-link

@@ -109,9 +109,9 @@ func (s *AnalyticsService) GetTrendData(startDate, endDate string) ([]TrendData,
 	for i, r := range results {
 		trends[i] = TrendData{
 			Date:            r["date"].(string),
-			InspectionTasks:  int(r["inspection_tasks"].(int64)),
-			MaintenanceTasks: int(r["maintenance_tasks"].(int64)),
-			RepairOrders:     int(r["repair_orders"].(int64)),
+			InspectionTasks:  int(toInt64(r["inspection_tasks"])),
+			MaintenanceTasks: int(toInt64(r["maintenance_tasks"])),
+			RepairOrders:     int(toInt64(r["repair_orders"])),
 			DowntimeHours:    0, // Can be calculated from repair orders
 		}
 	}
@@ -129,10 +129,10 @@ func (s *AnalyticsService) GetFailureAnalysis(limit int) ([]FailureAnalysis, err
 	analysis := make([]FailureAnalysis, len(results))
 	for i, r := range results {
 		analysis[i] = FailureAnalysis{
-			EquipmentTypeID:   uint(r["equipment_type_id"].(int64)),
+			EquipmentTypeID:   uint(toInt64(r["equipment_type_id"])),
 			EquipmentTypeName: r["equipment_type_name"].(string),
-			FailureCount:      r["failure_count"].(int64),
-			TotalDowntime:     r["total_downtime"].(int64),
+			FailureCount:      toInt64(r["failure_count"]),
+			TotalDowntime:     toInt64(r["total_downtime"]),
 		}
 	}
 
@@ -149,16 +149,56 @@ func (s *AnalyticsService) GetTopFailureEquipment(limit int) ([]TopFailureEquipm
 	equipment := make([]TopFailureEquipment, len(results))
 	for i, r := range results {
 		equipment[i] = TopFailureEquipment{
-			EquipmentID:   uint(r["equipment_id"].(int64)),
+			EquipmentID:   uint(toInt64(r["equipment_id"])),
 			EquipmentCode: r["equipment_code"].(string),
 			EquipmentName: r["equipment_name"].(string),
-			FailureCount:  r["failure_count"].(int64),
-			DowntimeHours: r["downtime_hours"].(int64),
-			MTTR:          r["mttr"].(float64),
+			FailureCount:  toInt64(r["failure_count"]),
+			DowntimeHours: toInt64(r["downtime_hours"]),
+			MTTR:          toFloat64(r["mttr"]),
 		}
 	}
 
 	return equipment, nil
+}
+
+func toInt64(v interface{}) int64 {
+	if v == nil {
+		return 0
+	}
+	switch val := v.(type) {
+	case int64:
+		return val
+	case int32:
+		return int64(val)
+	case int:
+		return int64(val)
+	case float64:
+		return int64(val)
+	case float32:
+		return int64(val)
+	default:
+		return 0
+	}
+}
+
+func toFloat64(v interface{}) float64 {
+	if v == nil {
+		return 0
+	}
+	switch val := v.(type) {
+	case float64:
+		return val
+	case float32:
+		return float64(val)
+	case int64:
+		return float64(val)
+	case int32:
+		return float64(val)
+	case int:
+		return float64(val)
+	default:
+		return 0
+	}
 }
 
 // Types

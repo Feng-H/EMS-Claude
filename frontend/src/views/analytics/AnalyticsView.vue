@@ -6,7 +6,7 @@
 
     <!-- Overview Cards -->
     <el-row :gutter="16" class="overview-row">
-      <el-col :span="6">
+      <el-col :xs="24" :sm="12" :md="6">
         <el-card class="stat-card equipment">
           <div class="stat-icon"><el-icon><Box /></el-icon></div>
           <div class="stat-content">
@@ -14,13 +14,12 @@
             <div class="stat-label">设备总数</div>
             <div class="stat-detail">
               运行: {{ overview.equipment?.running_equipment || 0 }} |
-              停机: {{ overview.equipment?.stopped_equipment || 0 }} |
-              维修: {{ overview.equipment?.maintenance_equipment || 0 }}
+              停机: {{ overview.equipment?.stopped_equipment || 0 }}
             </div>
           </div>
         </el-card>
       </el-col>
-      <el-col :span="6">
+      <el-col :xs="24" :sm="12" :md="6">
         <el-card class="stat-card mttr">
           <div class="stat-icon"><el-icon><Timer /></el-icon></div>
           <div class="stat-content">
@@ -30,7 +29,7 @@
           </div>
         </el-card>
       </el-col>
-      <el-col :span="6">
+      <el-col :xs="24" :sm="12" :md="6">
         <el-card class="stat-card availability">
           <div class="stat-icon"><el-icon><CircleCheck /></el-icon></div>
           <div class="stat-content">
@@ -39,7 +38,7 @@
           </div>
         </el-card>
       </el-col>
-      <el-col :span="6">
+      <el-col :xs="24" :sm="12" :md="6">
         <el-card class="stat-card completion">
           <div class="stat-icon"><el-icon><DataAnalysis /></el-icon></div>
           <div class="stat-content">
@@ -56,7 +55,7 @@
 
     <!-- Pending Tasks -->
     <el-row :gutter="16" class="pending-row">
-      <el-col :span="8">
+      <el-col :xs="24" :sm="8">
         <el-card class="pending-card warning">
           <div class="pending-item">
             <span class="pending-label">待执行点检</span>
@@ -64,7 +63,7 @@
           </div>
         </el-card>
       </el-col>
-      <el-col :span="8">
+      <el-col :xs="24" :sm="8">
         <el-card class="pending-card info">
           <div class="pending-item">
             <span class="pending-label">待执行保养</span>
@@ -72,7 +71,7 @@
           </div>
         </el-card>
       </el-col>
-      <el-col :span="8">
+      <el-col :xs="24" :sm="8">
         <el-card class="pending-card danger">
           <div class="pending-item">
             <span class="pending-label">待处理维修</span>
@@ -84,7 +83,7 @@
 
     <!-- Charts -->
     <el-row :gutter="16" class="charts-row">
-      <el-col :span="16">
+      <el-col :xs="24" :lg="16">
         <el-card>
           <template #header>
             <span>任务趋势 (近30天)</span>
@@ -92,7 +91,7 @@
           <div ref="trendChartRef" class="chart-container" v-loading="chartLoading"></div>
         </el-card>
       </el-col>
-      <el-col :span="8">
+      <el-col :xs="24" :lg="8">
         <el-card>
           <template #header>
             <span>故障分析 (按设备类型)</span>

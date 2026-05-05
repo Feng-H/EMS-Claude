@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { isMobile } from '@/utils/device'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -37,9 +38,19 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/h5/EquipmentListView.vue'),
       },
       {
+        path: 'equipment/detail/:id',
+        name: 'H5EquipmentDetail',
+        component: () => import('@/views/h5/EquipmentDetailView.vue'),
+      },
+      {
         path: 'spareparts',
         name: 'H5SparePartList',
         component: () => import('@/views/h5/SparePartListView.vue'),
+      },
+      {
+        path: 'analytics',
+        name: 'H5Analytics',
+        component: () => import('@/views/h5/AnalyticsView.vue'),
       },
       {
         path: 'knowledge',
@@ -50,6 +61,26 @@ const routes: RouteRecordRaw[] = [
         path: 'profile',
         name: 'H5Profile',
         component: () => import('@/views/h5/ProfileView.vue'),
+      },
+      {
+        path: 'inspection',
+        name: 'H5Inspection',
+        component: () => import('@/views/inspection/ExecuteView.vue'),
+      },
+      {
+        path: 'maintenance',
+        name: 'H5Maintenance',
+        component: () => import('@/views/maintenance/ExecuteView.vue'),
+      },
+      {
+        path: 'repair/report',
+        name: 'H5RepairReport',
+        component: () => import('@/views/repair/ReportView.vue'),
+      },
+      {
+        path: 'repair/execute',
+        name: 'H5RepairExecute',
+        component: () => import('@/views/repair/ExecuteView.vue'),
       },
       {
         path: 'bind-lark',
@@ -182,6 +213,22 @@ router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
   const requiresAuth = to.meta?.requiresAuth !== false
   const requiredRoles = to.meta?.roles as string[] | undefined
+
+  // 移动端自动跳转到 H5 路由
+  if (isMobile() && !to.path.startsWith('/h5') && to.name !== 'Login' && to.name !== 'ChangePassword') {
+    const pathMap: Record<string, string> = {
+      '/dashboard': '/h5',
+      '/equipment': '/h5/equipment',
+      '/spareparts': '/h5/spareparts',
+      '/knowledge': '/h5/knowledge',
+      '/inspection/tasks': '/h5/tasks',
+      '/analytics': '/h5/analytics',
+    }
+    
+    const targetH5Path = pathMap[to.path] || '/h5'
+    next(targetH5Path)
+    return
+  }
 
   if (requiresAuth && !authStore.isLoggedIn) {
     next({ name: 'Login', query: { redirect: to.fullPath } })
