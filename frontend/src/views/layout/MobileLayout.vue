@@ -7,7 +7,7 @@
     </router-view>
 
     <!-- 底部导航栏 -->
-    <van-tabbar v-model="active" route active-color="#c96442" inactive-color="#999">
+    <van-tabbar v-model="active" route active-color="#E8753A" inactive-color="#999">
       <van-tabbar-item replace to="/h5" icon="home-o">工作台</van-tabbar-item>
       <van-tabbar-item replace to="/h5/tasks" icon="todo-list-o">我的任务</van-tabbar-item>
       <van-tabbar-item replace to="/h5/profile" icon="user-o">我的</van-tabbar-item>

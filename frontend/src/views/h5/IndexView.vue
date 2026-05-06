@@ -182,7 +182,7 @@ onMounted(async () => {
   border: none;
   font-size: 16px;
   font-weight: 500;
-  box-shadow: 0 8px 24px rgba(201, 100, 66, 0.3);
+  box-shadow: 0 8px 24px rgba(232, 117, 58, 0.3);
   color: #faf9f5;
 }
 

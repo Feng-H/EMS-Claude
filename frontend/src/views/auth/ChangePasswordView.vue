@@ -198,8 +198,8 @@ async function handleSubmit() {
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
+    linear-gradient(rgba(232, 117, 58, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(232, 117, 58, 0.03) 1px, transparent 1px);
   background-size: 60px 60px;
   mask-image: radial-gradient(ellipse 80% 50% at 50% 50%, black, transparent);
   -webkit-mask-image: radial-gradient(ellipse 80% 50% at 50% 50%, black, transparent);
@@ -298,7 +298,7 @@ async function handleSubmit() {
   justify-content: center;
   width: 80px;
   height: 80px;
-  background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(0, 255, 163, 0.1));
+  background: linear-gradient(135deg, rgba(232, 117, 58, 0.1), rgba(0, 255, 163, 0.1));
   border: 2px solid var(--color-primary-dim);
   border-radius: 20px;
   color: var(--color-primary);
@@ -360,7 +360,7 @@ async function handleSubmit() {
   height: 48px;
   font-size: 16px;
   font-weight: 600;
-  background: linear-gradient(135deg, var(--color-primary), #00B8E4);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
   border: none;
   color: #ffffff;
   transition: all var(--transition-base);

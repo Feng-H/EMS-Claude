@@ -7,7 +7,7 @@
         <div class="icon-group">
           <van-icon name="comment-o" size="60" color="#00d100" />
           <van-icon name="exchange" size="30" color="#999" />
-          <van-icon name="apps-o" size="60" color="#c96442" />
+          <van-icon name="apps-o" size="60" color="#E8753A" />
         </div>
         
         <h3 class="title">飞书智能助手绑定</h3>

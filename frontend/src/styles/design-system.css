@@ -1,6 +1,6 @@
 /* ============================================
    EMS 设备管理系统 - 设计系统
-   Claude风格 | 暖陶土色调 | 知性编辑布局
+   Claude风格 | 活力橙色调 | 知性编辑布局
    ============================================ */
 
 /* ==================== 通用变量（所有主题共享） ==================== */
@@ -389,8 +389,8 @@ a:hover {
 /* 网格背景图案 */
 .grid-bg {
   background-image:
-    linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
+    linear-gradient(rgba(232, 117, 58, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(232, 117, 58, 0.03) 1px, transparent 1px);
   background-size: 50px 50px;
 }
 
@@ -402,7 +402,7 @@ a:hover {
 
 /* 点阵背景 */
 .dot-bg {
-  background-image: radial-gradient(rgba(0, 212, 255, 0.1) 1px, transparent 1px);
+  background-image: radial-gradient(rgba(232, 117, 58, 0.1) 1px, transparent 1px);
   background-size: 20px 20px;
 }
 
@@ -436,11 +436,11 @@ a:hover {
 @keyframes pulse-border {
   0%, 100% {
     border-color: var(--color-border);
-    box-shadow: 0 0 0 0 rgba(0, 212, 255, 0);
+    box-shadow: 0 0 0 0 rgba(232, 117, 58, 0);
   }
   50% {
     border-color: var(--color-primary);
-    box-shadow: 0 0 0 4px rgba(0, 212, 255, 0.3);
+    box-shadow: 0 0 0 4px rgba(232, 117, 58, 0.3);
   }
 }
 
@@ -526,8 +526,8 @@ a:hover {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(90deg, transparent 49%, rgba(0, 212, 255, 0.03) 50%, transparent 51%),
-    linear-gradient(transparent 49%, rgba(0, 212, 255, 0.03) 50%, transparent 51%);
+    linear-gradient(90deg, transparent 49%, rgba(232, 117, 58, 0.03) 50%, transparent 51%),
+    linear-gradient(transparent 49%, rgba(232, 117, 58, 0.03) 50%, transparent 51%);
   background-size: 100px 100px;
   pointer-events: none;
 }
@@ -546,12 +546,12 @@ a:hover {
 [data-theme="dark"] {
   /* Element Plus CSS 变量覆盖 */
   --el-color-primary: var(--color-primary);
-  --el-color-primary-light-3: rgba(0, 212, 255, 0.3);
-  --el-color-primary-light-5: rgba(0, 212, 255, 0.15);
-  --el-color-primary-light-7: rgba(0, 212, 255, 0.08);
-  --el-color-primary-light-8: rgba(0, 212, 255, 0.05);
-  --el-color-primary-light-9: rgba(0, 212, 255, 0.03);
-  --el-color-primary-dark-2: #00B8E4;
+  --el-color-primary-light-3: rgba(232, 117, 58, 0.3);
+  --el-color-primary-light-5: rgba(232, 117, 58, 0.15);
+  --el-color-primary-light-7: rgba(232, 117, 58, 0.08);
+  --el-color-primary-light-8: rgba(232, 117, 58, 0.05);
+  --el-color-primary-light-9: rgba(232, 117, 58, 0.03);
+  --el-color-primary-dark-2: #D15F2A;
 
   --el-color-success: var(--color-success);
   --el-color-warning: var(--color-warning);
@@ -690,7 +690,7 @@ a:hover {
   --el-datepicker-border-color: var(--color-border);
   --el-datepicker-inner-border-color: var(--color-border-dim);
   --el-datepicker-inrange-bg-color: var(--color-primary-dim);
-  --el-datepicker-inrange-hover-bg-color: rgba(0, 212, 255, 0.2);
+  --el-datepicker-inrange-hover-bg-color: rgba(232, 117, 58, 0.2);
   --el-datepicker-header-bg-color: var(--color-bg-secondary);
   --el-datepicker-text-color: var(--color-text-primary);
 
@@ -767,13 +767,13 @@ a:hover {
 
 /* 浅色模式下的 Element Plus 变量 */
 [data-theme="light"] {
-  --el-color-primary: #0066CC;
-  --el-color-primary-light-3: rgba(0, 102, 204, 0.3);
-  --el-color-primary-light-5: rgba(0, 102, 204, 0.15);
-  --el-color-primary-light-7: rgba(0, 102, 204, 0.08);
-  --el-color-primary-light-8: rgba(0, 102, 204, 0.05);
-  --el-color-primary-light-9: rgba(0, 102, 204, 0.03);
-  --el-color-primary-dark-2: #0052A3;
+  --el-color-primary: #E8753A;
+  --el-color-primary-light-3: rgba(232, 117, 58, 0.3);
+  --el-color-primary-light-5: rgba(232, 117, 58, 0.15);
+  --el-color-primary-light-7: rgba(232, 117, 58, 0.08);
+  --el-color-primary-light-8: rgba(232, 117, 58, 0.05);
+  --el-color-primary-light-9: rgba(232, 117, 58, 0.03);
+  --el-color-primary-dark-2: #C15322;
 
   --el-bg-color: #FFFFFF;
   --el-bg-color-page: #F5F7FA;

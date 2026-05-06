@@ -1,6 +1,6 @@
 /* ============================================
    EMS PC 端样式
-   Claude风格 | 暖陶土色调 | 知性编辑布局
+   Claude风格 | 活力橙色调 | 知性编辑布局
    ============================================ */
 
 /* 页面容器 */
@@ -188,7 +188,7 @@
 .el-button--primary:hover {
   background: var(--color-primary-hover);
   border-color: var(--color-primary-hover);
-  box-shadow: 0 4px 12px rgba(201, 100, 66, 0.3);
+  box-shadow: 0 4px 12px rgba(232, 117, 58, 0.3);
 }
 
 .el-button--success {

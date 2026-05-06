@@ -11,7 +11,7 @@
     />
 
     <!-- 筛选 -->
-    <van-dropdown-menu active-color="#c96442">
+    <van-dropdown-menu active-color="#E8753A">
       <van-dropdown-item v-model="queryParams.type_id" :options="typeOptions" title="设备类型" @change="onSearch" />
       <van-dropdown-item v-model="queryParams.status" :options="statusOptions" title="设备状态" @change="onSearch" />
     </van-dropdown-menu>

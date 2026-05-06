@@ -104,7 +104,7 @@ const handleLogout = async () => {
   align-items: center;
   margin-bottom: var(--space-xl);
   border-radius: 0 0 30px 30px;
-  box-shadow: 0 4px 12px rgba(201, 100, 66, 0.2);
+  box-shadow: 0 4px 12px rgba(232, 117, 58, 0.2);
 }
 
 .avatar-wrapper {

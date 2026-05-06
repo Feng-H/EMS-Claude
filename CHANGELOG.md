@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.1.0] - 2026-05-06
+
+### 🎨 Visual Design Update
+- **New Brand Identity**: Transitioned from dull terracotta to vibrant orange (#E8753A).
+- **Login Experience**: Completely redesigned login page with improved layout, typography, and depth effects.
+- **UI Enhancements**:
+  - Brighter primary brand color across the entire system.
+  - Improved card shadows and elevation for better visual hierarchy.
+  - Refined input focus states and button styling.
+  - Cleaned up background effects for a more modern look.
+
 ## [1.0.0] - 2026-04-30
 
 ### 🚀 Milestone: Initial Release
