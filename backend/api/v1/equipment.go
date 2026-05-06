@@ -12,6 +12,7 @@ import (
 	"github.com/ems/backend/internal/repository"
 	"github.com/ems/backend/internal/service"
 	"github.com/ems/backend/pkg/qrcode"
+	"github.com/ems/backend/pkg/response"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -49,13 +50,13 @@ func InitEquipment(database *gorm.DB) {
 func ListBases(c *gin.Context) {
 	bases, err := baseService.List()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		response.Error(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	response := make([]dto.BaseResponse, len(bases))
+	resp := make([]dto.BaseResponse, len(bases))
 	for i, b := range bases {
-		response[i] = dto.BaseResponse{
+		resp[i] = dto.BaseResponse{
 			ID:        b.ID,
 			Code:      b.Code,
 			Name:      b.Name,
@@ -64,7 +65,7 @@ func ListBases(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, response)
+	c.JSON(http.StatusOK, resp)
 }
 
 // CreateBase creates a new base
@@ -80,23 +81,19 @@ func ListBases(c *gin.Context) {
 func CreateBase(c *gin.Context) {
 	var req dto.BaseRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		response.Error(c, http.StatusBadRequest, err)
 		return
 	}
 
 	// Check admin permission
 	if role, _ := middleware.GetUserRole(c); role != "admin" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Only admin can create bases"})
+		response.Error(c, http.StatusForbidden, errors.New("Only admin can create bases"))
 		return
 	}
 
 	base, err := baseService.Create(req.Code, req.Name)
 	if err != nil {
-		if err == service.ErrDuplicateCode {
-			c.JSON(http.StatusConflict, gin.H{"error": "Code already exists"})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		handleServiceError(c, err)
 		return
 	}
 
@@ -123,28 +120,24 @@ func CreateBase(c *gin.Context) {
 func UpdateBase(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		response.Error(c, http.StatusBadRequest, errors.New("Invalid ID"))
 		return
 	}
 
 	var req dto.BaseRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		response.Error(c, http.StatusBadRequest, err)
 		return
 	}
 
 	if role, _ := middleware.GetUserRole(c); role != "admin" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Only admin can update bases"})
+		response.Error(c, http.StatusForbidden, errors.New("Only admin can update bases"))
 		return
 	}
 
 	base, err := baseService.Update(uint(id), req.Code, req.Name)
 	if err != nil {
-		if err == service.ErrNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Base not found"})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		handleServiceError(c, err)
 		return
 	}
 
@@ -169,21 +162,17 @@ func UpdateBase(c *gin.Context) {
 func DeleteBase(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		response.Error(c, http.StatusBadRequest, errors.New("Invalid ID"))
 		return
 	}
 
 	if role, _ := middleware.GetUserRole(c); role != "admin" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Only admin can delete bases"})
+		response.Error(c, http.StatusForbidden, errors.New("Only admin can delete bases"))
 		return
 	}
 
 	if err := baseService.Delete(uint(id)); err != nil {
-		if err == service.ErrNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Base not found"})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		handleServiceError(c, err)
 		return
 	}
 
@@ -212,13 +201,13 @@ func ListFactories(c *gin.Context) {
 	}
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		response.Error(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	response := make([]dto.FactoryResponse, len(factories))
+	resp := make([]dto.FactoryResponse, len(factories))
 	for i, f := range factories {
-		response[i] = dto.FactoryResponse{
+		resp[i] = dto.FactoryResponse{
 			ID:        f.ID,
 			BaseID:    f.BaseID,
 			BaseName:  f.Base.Name,
@@ -229,7 +218,7 @@ func ListFactories(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, response)
+	c.JSON(http.StatusOK, resp)
 }
 
 // CreateFactory creates a new factory
@@ -245,26 +234,18 @@ func ListFactories(c *gin.Context) {
 func CreateFactory(c *gin.Context) {
 	var req dto.FactoryRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		response.Error(c, http.StatusBadRequest, err)
 		return
 	}
 
 	if role, _ := middleware.GetUserRole(c); role != "admin" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Only admin can create factories"})
+		response.Error(c, http.StatusForbidden, errors.New("Only admin can create factories"))
 		return
 	}
 
 	factory, err := factoryService.Create(req.BaseID, req.Code, req.Name)
 	if err != nil {
-		if err == service.ErrNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Base not found"})
-			return
-		}
-		if err == service.ErrDuplicateCode {
-			c.JSON(http.StatusConflict, gin.H{"error": "Code already exists in this base"})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		handleServiceError(c, err)
 		return
 	}
 
@@ -285,18 +266,18 @@ func CreateFactory(c *gin.Context) {
 func UpdateFactory(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		response.Error(c, http.StatusBadRequest, errors.New("Invalid ID"))
 		return
 	}
 
 	var req dto.FactoryRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		response.Error(c, http.StatusBadRequest, err)
 		return
 	}
 
 	if role, _ := middleware.GetUserRole(c); role != "admin" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Only admin can update factories"})
+		response.Error(c, http.StatusForbidden, errors.New("Only admin can update factories"))
 		return
 	}
 
@@ -322,12 +303,12 @@ func UpdateFactory(c *gin.Context) {
 func DeleteFactory(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		response.Error(c, http.StatusBadRequest, errors.New("Invalid ID"))
 		return
 	}
 
 	if role, _ := middleware.GetUserRole(c); role != "admin" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Only admin can delete factories"})
+		response.Error(c, http.StatusForbidden, errors.New("Only admin can delete factories"))
 		return
 	}
 
@@ -356,13 +337,13 @@ func ListWorkshops(c *gin.Context) {
 	}
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		response.Error(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	response := make([]dto.WorkshopResponse, len(workshops))
+	resp := make([]dto.WorkshopResponse, len(workshops))
 	for i, w := range workshops {
-		response[i] = dto.WorkshopResponse{
+		resp[i] = dto.WorkshopResponse{
 			ID:          w.ID,
 			FactoryID:   w.FactoryID,
 			FactoryName: w.Factory.Name,
@@ -373,7 +354,7 @@ func ListWorkshops(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, response)
+	c.JSON(http.StatusOK, resp)
 }
 
 // CreateWorkshop creates a new workshop
@@ -383,12 +364,12 @@ func ListWorkshops(c *gin.Context) {
 func CreateWorkshop(c *gin.Context) {
 	var req dto.WorkshopRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		response.Error(c, http.StatusBadRequest, err)
 		return
 	}
 
 	if role, _ := middleware.GetUserRole(c); role != "admin" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Only admin can create workshops"})
+		response.Error(c, http.StatusForbidden, errors.New("Only admin can create workshops"))
 		return
 	}
 
@@ -414,18 +395,18 @@ func CreateWorkshop(c *gin.Context) {
 func UpdateWorkshop(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		response.Error(c, http.StatusBadRequest, errors.New("Invalid ID"))
 		return
 	}
 
 	var req dto.WorkshopRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		response.Error(c, http.StatusBadRequest, err)
 		return
 	}
 
 	if role, _ := middleware.GetUserRole(c); role != "admin" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Only admin can update workshops"})
+		response.Error(c, http.StatusForbidden, errors.New("Only admin can update workshops"))
 		return
 	}
 
@@ -451,12 +432,12 @@ func UpdateWorkshop(c *gin.Context) {
 func DeleteWorkshop(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		response.Error(c, http.StatusBadRequest, errors.New("Invalid ID"))
 		return
 	}
 
 	if role, _ := middleware.GetUserRole(c); role != "admin" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Only admin can delete workshops"})
+		response.Error(c, http.StatusForbidden, errors.New("Only admin can delete workshops"))
 		return
 	}
 
@@ -479,13 +460,13 @@ func DeleteWorkshop(c *gin.Context) {
 func ListEquipmentTypes(c *gin.Context) {
 	types, err := equipmentTypeService.List()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		response.Error(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	response := make([]dto.EquipmentTypeResponse, len(types))
+	resp := make([]dto.EquipmentTypeResponse, len(types))
 	for i, t := range types {
-		response[i] = dto.EquipmentTypeResponse{
+		resp[i] = dto.EquipmentTypeResponse{
 			ID:         t.ID,
 			Name:       t.Name,
 			Category:   t.Category,
@@ -494,7 +475,7 @@ func ListEquipmentTypes(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, response)
+	c.JSON(http.StatusOK, resp)
 }
 
 // CreateEquipmentType creates a new equipment type
@@ -504,18 +485,18 @@ func ListEquipmentTypes(c *gin.Context) {
 func CreateEquipmentType(c *gin.Context) {
 	var req dto.EquipmentTypeRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		response.Error(c, http.StatusBadRequest, err)
 		return
 	}
 
 	if role, _ := middleware.GetUserRole(c); role != "admin" && role != "engineer" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient permissions"})
+		response.Error(c, http.StatusForbidden, errors.New("Insufficient permissions"))
 		return
 	}
 
 	equipmentType, err := equipmentTypeService.Create(req.Name, req.Category)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		response.Error(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -538,7 +519,7 @@ func CreateEquipmentType(c *gin.Context) {
 func ListEquipment(c *gin.Context) {
 	var query dto.EquipmentQuery
 	if err := c.ShouldBindQuery(&query); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		response.Error(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -563,18 +544,18 @@ func ListEquipment(c *gin.Context) {
 
 	result, err := equipmentService.List(filter)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		response.Error(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	response := make([]dto.EquipmentResponse, len(result.Items))
+	resp := make([]dto.EquipmentResponse, len(result.Items))
 	for i, e := range result.Items {
-		response[i] = equipmentToResponse(&e)
+		resp[i] = equipmentToResponse(&e)
 	}
 
 	c.JSON(http.StatusOK, dto.EquipmentListResponse{
 		Total: result.Total,
-		Items: response,
+		Items: resp,
 	})
 }
 
@@ -585,17 +566,13 @@ func ListEquipment(c *gin.Context) {
 func GetEquipment(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		response.Error(c, http.StatusBadRequest, errors.New("Invalid ID"))
 		return
 	}
 
 	equipment, err := equipmentService.GetByID(uint(id))
 	if err != nil {
-		if err == service.ErrNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Equipment not found"})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		handleServiceError(c, err)
 		return
 	}
 
@@ -611,11 +588,11 @@ func GetEquipmentByQRCode(c *gin.Context) {
 
 	equipment, err := equipmentService.GetByQRCode(qrCode)
 	if err != nil {
-		if err == service.ErrNotFound || errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Equipment not found"})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			response.Error(c, http.StatusNotFound, service.ErrNotFound)
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		handleServiceError(c, err)
 		return
 	}
 
@@ -630,24 +607,24 @@ func GetEquipmentQRCode(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		response.Error(c, http.StatusBadRequest, errors.New("Invalid ID"))
 		return
 	}
 
 	equipment, err := equipmentService.GetByID(uint(id))
 	if err != nil {
-		if err == service.ErrNotFound || errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Equipment not found"})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			response.Error(c, http.StatusNotFound, service.ErrNotFound)
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		handleServiceError(c, err)
 		return
 	}
 
 	// Generate QR code (using the unique qr_code field)
 	png, err := qrcode.GenerateForQRCode(equipment.QRCode)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate QR code"})
+		response.Error(c, http.StatusInternalServerError, errors.New("Failed to generate QR code"))
 		return
 	}
 
@@ -669,12 +646,12 @@ func GetEquipmentQRCode(c *gin.Context) {
 func CreateEquipment(c *gin.Context) {
 	var req dto.EquipmentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		response.Error(c, http.StatusBadRequest, err)
 		return
 	}
 
 	if role, _ := middleware.GetUserRole(c); role != "admin" && role != "engineer" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient permissions"})
+		response.Error(c, http.StatusForbidden, errors.New("Insufficient permissions"))
 		return
 	}
 
@@ -691,10 +668,6 @@ func CreateEquipment(c *gin.Context) {
 
 	equipment, err := equipmentService.Create(createReq)
 	if err != nil {
-		if err == service.ErrDuplicateCode {
-			c.JSON(http.StatusConflict, gin.H{"error": "Equipment code already exists"})
-			return
-		}
 		handleServiceError(c, err)
 		return
 	}
@@ -709,18 +682,18 @@ func CreateEquipment(c *gin.Context) {
 func UpdateEquipment(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		response.Error(c, http.StatusBadRequest, errors.New("Invalid ID"))
 		return
 	}
 
 	var req dto.EquipmentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		response.Error(c, http.StatusBadRequest, err)
 		return
 	}
 
 	if role, _ := middleware.GetUserRole(c); role != "admin" && role != "engineer" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient permissions"})
+		response.Error(c, http.StatusForbidden, errors.New("Insufficient permissions"))
 		return
 	}
 
@@ -751,21 +724,17 @@ func UpdateEquipment(c *gin.Context) {
 func DeleteEquipment(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		response.Error(c, http.StatusBadRequest, errors.New("Invalid ID"))
 		return
 	}
 
 	if role, _ := middleware.GetUserRole(c); role != "admin" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Only admin can delete equipment"})
+		response.Error(c, http.StatusForbidden, errors.New("Only admin can delete equipment"))
 		return
 	}
 
 	if err := equipmentService.Delete(uint(id)); err != nil {
-		if err == service.ErrNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Equipment not found"})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		handleServiceError(c, err)
 		return
 	}
 
@@ -779,7 +748,7 @@ func DeleteEquipment(c *gin.Context) {
 func GetEquipmentStatistics(c *gin.Context) {
 	stats, err := equipmentService.GetStatistics()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		response.Error(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -836,5 +805,5 @@ func handleServiceError(c *gin.Context, err error) {
 	} else if err == service.ErrDuplicateCode {
 		status = http.StatusConflict
 	}
-	c.JSON(status, gin.H{"error": err.Error()})
+	response.Error(c, status, err)
 }
