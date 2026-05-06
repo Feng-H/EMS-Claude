@@ -98,25 +98,41 @@
     <!-- 扫码对话框 -->
     <van-dialog
       v-model:show="showScanDialog"
-      title="扫码选择设备"
+      title="选择设备"
       :show-cancel-button="true"
-      confirm-button-text="确定"
+      confirm-button-text="手动确认"
       @confirm="confirmScan"
     >
       <div class="scan-dialog">
-        <van-field
-          v-model="manualCode"
-          label="二维码"
-          placeholder="请输入设备二维码"
-          :border="false"
-        />
+        <div v-if="isScanning" class="scanner-wrapper">
+          <mobile-q-r-scanner
+            :active="isScanning"
+            @success="onScanSuccess"
+            @error="(msg) => { showToast(msg); isScanning = false; }"
+          />
+          <van-button block size="small" type="default" @click="isScanning = false">
+            取消扫码
+          </van-button>
+        </div>
+        <div v-else class="manual-input-wrapper">
+          <van-button block type="primary" icon="scan" @click="isScanning = true" style="margin-bottom: 16px">
+            点击开始扫码
+          </van-button>
+          
+          <van-field
+            v-model="manualCode"
+            label="设备编号"
+            placeholder="请输入设备编号"
+            :border="false"
+          />
+        </div>
 
         <div class="manual-input-hint">
-          <div class="hint-text">或手动输入设备编号搜索</div>
+          <div class="hint-text">或搜索设备名称</div>
           <van-field
             v-model="equipmentSearch"
-            label="设备编号"
-            placeholder="输入设备编号搜索"
+            label="搜索名称"
+            placeholder="输入设备名称搜索"
             :border="false"
           >
             <template #button>
@@ -159,6 +175,7 @@ import { equipmentApi, type Equipment } from '@/api/equipment'
 import { useAuthStore } from '@/stores/auth'
 import MobileHeader from '@/components/mobile/MobileHeader.vue'
 import MobileActionBar from '@/components/mobile/MobileActionBar.vue'
+import MobileQRScanner from '@/components/mobile/MobileQRScanner.vue'
 
 interface PhotoFile {
   url: string
@@ -177,6 +194,7 @@ const equipmentSearch = ref('')
 const searchResults = ref<Equipment[]>([])
 const photoFiles = ref<PhotoFile[]>([])
 const previewIndex = ref(0)
+const isScanning = ref(false)
 
 const formData = reactive<CreateRepairRequest & { photos: string[] }>({
   equipment_id: 0,
@@ -186,19 +204,39 @@ const formData = reactive<CreateRepairRequest & { photos: string[] }>({
   priority: 2
 })
 
-const confirmScan = async () => {
-  if (!manualCode.value.trim()) {
-    showToast('请输入二维码内容')
-    return
-  }
-
+const onScanSuccess = async (content: string) => {
+  isScanning.value = false
   try {
-    const equipment = await equipmentApi.getByQRCode(manualCode.value.trim())
-    selectEquipment(equipment)
-    manualCode.value = ''
-    showScanDialog.value = false
+    // 1. 先尝试通过 QR 内容匹配
+    let targetEquipment: Equipment | null = null
+    try {
+      const response = await equipmentApi.getByQRCode(content)
+      targetEquipment = response.data
+    } catch (e) {
+      // 2. 尝试通过设备编号匹配
+      const listResponse = await equipmentApi.getList({ code: content })
+      if (listResponse.data && listResponse.data.items && listResponse.data.items.length > 0) {
+        targetEquipment = listResponse.data.items[0]
+      }
+    }
+
+    if (targetEquipment) {
+      selectEquipment(targetEquipment)
+      showScanDialog.value = false
+    } else {
+      showToast('未找到对应设备')
+    }
   } catch (error: any) {
-    showToast('未找到对应设备')
+    showToast('识别设备失败')
+  }
+}
+
+const confirmScan = () => {
+  if (manualCode.value.trim()) {
+    onScanSuccess(manualCode.value.trim())
+    manualCode.value = ''
+  } else {
+    showToast('请输入设备编号')
   }
 }
 
@@ -347,6 +385,14 @@ const submitReport = async () => {
 
 .scan-dialog {
   padding: 16px;
+}
+
+.scanner-wrapper {
+  margin-bottom: 16px;
+}
+
+.manual-input-wrapper {
+  margin-bottom: 16px;
 }
 
 .manual-input-hint {

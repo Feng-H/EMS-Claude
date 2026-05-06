@@ -812,13 +812,13 @@ func equipmentToResponse(e *model.Equipment) dto.EquipmentResponse {
 		UpdatedAt:               e.UpdatedAt,
 	}
 
-	if e.Type.ID > 0 {
+	if e.Type != nil {
 		r.TypeName = e.Type.Name
 	}
-	if e.Workshop.ID > 0 {
+	if e.Workshop != nil {
 		r.WorkshopName = e.Workshop.Name
 		r.FactoryID = e.Workshop.FactoryID
-		if e.Workshop.Factory.ID > 0 {
+		if e.Workshop.Factory != nil {
 			r.FactoryName = e.Workshop.Factory.Name
 		}
 	}

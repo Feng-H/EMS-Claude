@@ -219,7 +219,8 @@ func (r *EquipmentRepository) GetByID(id uint) (*model.Equipment, error) {
 
 func (r *EquipmentRepository) GetByQRCode(qrCode string) (*model.Equipment, error) {
 	var equipment model.Equipment
-	err := r.db.Preload("Type").Where("qr_code = ? OR code = ?", qrCode, qrCode).First(&equipment).Error
+	err := r.db.Preload("Type").Preload("Workshop").Preload("Workshop.Factory").Preload("Workshop.Factory.Base").
+		Preload("DedicatedMaintenance").Where("qr_code = ? OR code = ?", qrCode, qrCode).First(&equipment).Error
 	if err != nil {
 		return nil, err
 	}
@@ -228,7 +229,8 @@ func (r *EquipmentRepository) GetByQRCode(qrCode string) (*model.Equipment, erro
 
 func (r *EquipmentRepository) GetByCode(code string) (*model.Equipment, error) {
 	var equipment model.Equipment
-	err := r.db.Preload("Type").Where("code = ?", code).First(&equipment).Error
+	err := r.db.Preload("Type").Preload("Workshop").Preload("Workshop.Factory").Preload("Workshop.Factory.Base").
+		Preload("DedicatedMaintenance").Where("code = ?", code).First(&equipment).Error
 	if err != nil {
 		return nil, err
 	}

@@ -15,8 +15,12 @@
             <van-icon name="scan" size="64" color="#409eff" />
             <p>点击开始扫码</p>
           </div>
-          <video v-show="scanning" ref="videoRef" class="scan-video" autoplay playsinline></video>
-          <canvas v-show="scanning" ref="canvasRef" class="scan-canvas"></canvas>
+          <mobile-q-r-scanner
+            v-else
+            :active="scanning"
+            @success="onScanSuccess"
+            @error="onScanError"
+          />
         </div>
 
         <van-button type="primary" plain block @click="manualInput">
@@ -247,6 +251,7 @@ import { equipmentApi } from '@/api/equipment'
 import { useAuthStore } from '@/stores/auth'
 import MobileHeader from '@/components/mobile/MobileHeader.vue'
 import MobileActionBar from '@/components/mobile/MobileActionBar.vue'
+import MobileQRScanner from '@/components/mobile/MobileQRScanner.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -255,9 +260,6 @@ const authStore = useAuthStore()
 const step = ref<'scan' | 'inspect'>('scan')
 const scanning = ref(false)
 const submitting = ref(false)
-const videoRef = ref<HTMLVideoElement>()
-const canvasRef = ref<HTMLCanvasElement>()
-const scanStreamRef = ref<MediaStream | null>(null)
 
 const myTasks = ref<InspectionTask[]>([])
 const equipment = ref<Equipment | null>(null)
@@ -337,65 +339,46 @@ const loadMyTasks = async () => {
 }
 
 // 启动扫码
-const startScan = async () => {
-  try {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      showToast('当前浏览器不支持扫码，请使用手动输入')
-      return
-    }
-
-    scanning.value = true
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment' }
-    })
-    scanStreamRef.value = stream
-
-    if (videoRef.value) {
-      videoRef.value.srcObject = stream
-      videoRef.value.onloadedmetadata = () => {
-        startScanLoop()
-      }
-    }
-  } catch (error: any) {
-    showToast(error.message || '无法访问摄像头')
-    scanning.value = false
-  }
+const startScan = () => {
+  scanning.value = true
 }
 
 // 停止扫码
 const stopScan = () => {
-  if (scanStreamRef.value) {
-    scanStreamRef.value.getTracks().forEach(track => track.stop())
-    scanStreamRef.value = null
-  }
   scanning.value = false
 }
 
-// 扫码循环
-let scanInterval: number | null = null
-const startScanLoop = () => {
-  if (scanInterval) clearInterval(scanInterval)
-  scanInterval = window.setInterval(() => {
-    // 实际项目中应集成 jsQR 或 html5-qrcode 库
-    // 这里简化处理
-  }, 500)
+const onScanError = (msg: string) => {
+  showToast(msg)
+  scanning.value = false
 }
 
 // 扫码成功处理
-const onScanSuccess = async (qrCode: string) => {
+const onScanSuccess = async (content: string) => {
   stopScan()
   try {
-    // 先获取设备信息拿到ID
-    const response = await equipmentApi.getByQRCode(qrCode)
-    if (response.data && response.data.id) {
-      await startInspection(qrCode, response.data.id)
-    } else {
-      await startInspection(qrCode)
+    // 1. 先尝试直接通过 QR 内容匹配设备
+    let targetEquipment: Equipment | null = null
+    try {
+      const response = await equipmentApi.getByQRCode(content)
+      targetEquipment = response.data
+    } catch (e) {
+      // 2. 如果 QR 内容没找到，尝试通过设备编号匹配 (处理用户手动输入编号的情况)
+      const listResponse = await equipmentApi.getList({ code: content })
+      if (listResponse.data && listResponse.data.items && listResponse.data.items.length > 0) {
+        targetEquipment = listResponse.data.items[0]
+      }
     }
-  } catch (error) {
-    // 如果获取失败，仍然尝试启动，让后端处理错误
-    console.warn('获取设备信息失败:', error)
-    await startInspection(qrCode)
+
+    if (targetEquipment) {
+      // 如果找到了设备，使用找到的设备信息启动点检
+      await startInspection(targetEquipment.qr_code, targetEquipment.id)
+    } else {
+      // 如果都没找到，最后尝试一次原始逻辑（由后端根据 content 决定是 QR 还是 Code）
+      await startInspection(content)
+    }
+  } catch (error: any) {
+    showToast(error.message || '识别设备失败')
   }
 }
 
