@@ -98,7 +98,7 @@ func (s *KnowledgeService) ConvertFromRepair(orderID uint, title, faultPhenomeno
 
 	article := &model.KnowledgeArticle{
 		Title:           title,
-		EquipmentTypeID: nil, // Can be derived from equipment
+		EquipmentTypeID: &repair.Equipment.TypeID, // Inherit from equipment
 		FaultPhenomenon: faultPhenomenon,
 		CauseAnalysis:   causeAnalysis,
 		Solution:        solution,
