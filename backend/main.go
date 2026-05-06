@@ -270,11 +270,6 @@ func setupMemoryRoutes(router *gin.Engine) {
 			equipment := protected.Group("/equipment")
 			{
 				equipment.GET("", v1.ListEquipmentMemory)
-				equipment.GET("/:id", v1.GetEquipmentMemory)
-				equipment.GET("/qr/:code", v1.GetEquipmentByQRCodeMemory)
-				equipment.POST("", v1.CreateEquipmentMemory)
-				equipment.PUT("/:id", v1.UpdateEquipmentMemory)
-				equipment.DELETE("/:id", v1.DeleteEquipmentMemory)
 				equipment.GET("/statistics", v1.GetEquipmentStatisticsMemory)
 
 				// Equipment types
@@ -282,6 +277,12 @@ func setupMemoryRoutes(router *gin.Engine) {
 				equipment.POST("/types", v1.CreateEquipmentTypeMemory)
 				equipment.PUT("/types/:id", v1.UpdateEquipmentTypeMemory)
 				equipment.DELETE("/types/:id", v1.DeleteEquipmentTypeMemory)
+
+				equipment.GET("/:id", v1.GetEquipmentMemory)
+				equipment.GET("/qr/:code", v1.GetEquipmentByQRCodeMemory)
+				equipment.POST("", v1.CreateEquipmentMemory)
+				equipment.PUT("/:id", v1.UpdateEquipmentMemory)
+				equipment.DELETE("/:id", v1.DeleteEquipmentMemory)
 			}
 
 			// Inspection routes
@@ -378,12 +379,12 @@ func setupMemoryRoutes(router *gin.Engine) {
 			knowledge := protected.Group("/knowledge")
 			{
 				knowledge.GET("", v1.ListKnowledgeArticlesMemory)
+				knowledge.GET("/search", v1.SearchKnowledgeArticlesMemory)
+				knowledge.POST("/convert-repair", v1.ConvertFromRepairMemory)
 				knowledge.GET("/:id", v1.GetKnowledgeArticleMemory)
 				knowledge.POST("", v1.CreateKnowledgeArticleMemory)
 				knowledge.PUT("/:id", v1.UpdateKnowledgeArticleMemory)
 				knowledge.DELETE("/:id", v1.DeleteKnowledgeArticleMemory)
-				knowledge.GET("/search", v1.SearchKnowledgeArticlesMemory)
-				knowledge.POST("/convert-repair", v1.ConvertFromRepairMemory)
 			}
 
 			// Agent routes
@@ -481,17 +482,18 @@ func setupDatabaseRoutes(router *gin.Engine) {
 			equipment := protected.Group("/equipment")
 			{
 				equipment.GET("", v1.ListEquipment)
+				equipment.GET("/statistics", v1.GetEquipmentStatistics)
+
+				// Equipment types
+				equipment.GET("/types", v1.ListEquipmentTypes)
+				equipment.POST("/types", v1.CreateEquipmentType)
+
 				equipment.GET("/:id", v1.GetEquipment)
 				equipment.GET("/:id/qrcode", v1.GetEquipmentQRCode)
 				equipment.GET("/qr/:code", v1.GetEquipmentByQRCode)
 				equipment.POST("", v1.CreateEquipment)
 				equipment.PUT("/:id", v1.UpdateEquipment)
 				equipment.DELETE("/:id", v1.DeleteEquipment)
-				equipment.GET("/statistics", v1.GetEquipmentStatistics)
-
-				// Equipment types
-				equipment.GET("/types", v1.ListEquipmentTypes)
-				equipment.POST("/types", v1.CreateEquipmentType)
 			}
 
 			// Inspection routes
@@ -590,12 +592,12 @@ func setupDatabaseRoutes(router *gin.Engine) {
 			knowledge := protected.Group("/knowledge")
 			{
 				knowledge.GET("", v1.ListKnowledgeArticles)
+				knowledge.GET("/search", v1.SearchKnowledgeArticles)
+				knowledge.POST("/convert-repair", v1.ConvertFromRepair)
 				knowledge.GET("/:id", v1.GetKnowledgeArticle)
 				knowledge.POST("", v1.CreateKnowledgeArticle)
 				knowledge.PUT("/:id", v1.UpdateKnowledgeArticle)
 				knowledge.DELETE("/:id", v1.DeleteKnowledgeArticle)
-				knowledge.GET("/search", v1.SearchKnowledgeArticles)
-				knowledge.POST("/convert-repair", v1.ConvertFromRepair)
 			}
 
 			// Agent routes
