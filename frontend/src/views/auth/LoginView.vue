@@ -6,9 +6,7 @@
       <div class="floating-orbs">
         <div class="orb orb-1"></div>
         <div class="orb orb-2"></div>
-        <div class="orb orb-3"></div>
       </div>
-      <div class="scanline"></div>
     </div>
 
     <!-- 登录卡片 -->
@@ -248,7 +246,10 @@
               <span>提交后需要等待管理员审核</span>
             </div>
             <div class="apply-link">
-              <span @click="toggleMode">{{ isLoginMode ? '没有账号？立即申请' : '已有账号？返回登录' }}</span>
+              <span @click="toggleMode">
+                <span class="text-weak">{{ isLoginMode ? '没有账号？' : '已有账号？' }}</span>
+                <span class="text-primary">{{ isLoginMode ? '立即申请' : '返回登录' }}</span>
+              </span>
             </div>
           </div>
         </div>
@@ -413,8 +414,8 @@ onMounted(() => {
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
+    linear-gradient(rgba(232, 117, 58, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(232, 117, 58, 0.03) 1px, transparent 1px);
   background-size: 60px 60px;
   mask-image: radial-gradient(ellipse 80% 50% at 50% 50%, black, transparent);
   -webkit-mask-image: radial-gradient(ellipse 80% 50% at 50% 50%, black, transparent);
@@ -535,7 +536,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(0, 255, 163, 0.1));
+  background: linear-gradient(135deg, rgba(232, 117, 58, 0.1), rgba(0, 255, 163, 0.1));
   border: 2px solid var(--color-primary-dim);
   border-radius: 24px;
   color: var(--color-primary);
@@ -704,7 +705,7 @@ onMounted(() => {
   height: 48px;
   font-size: 16px;
   font-weight: 600;
-  background: linear-gradient(135deg, var(--color-primary), #00B8E4);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
   border: none;
   color: #ffffff;
   transition: all var(--transition-base);
