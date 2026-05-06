@@ -5,7 +5,7 @@
         <div class="card-header">
           <span>维修工单管理</span>
           <div class="header-actions">
-            <el-button type="primary" @click="$router.push('/repair/create')">
+            <el-button type="primary" @click="ElMessage.warning('请使用 H5 端或移动端提交报修申请')">
               <el-icon><Plus /></el-icon>
               报修申请
             </el-button>

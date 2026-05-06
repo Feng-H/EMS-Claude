@@ -44,11 +44,11 @@
           <el-icon><Grid /></el-icon>
           查看二维码
         </el-button>
-        <el-button @click="$router.push('/inspection')">
+        <el-button @click="$router.push('/inspection/tasks')">
           <el-icon><CircleCheck /></el-icon>
           点检记录
         </el-button>
-        <el-button @click="$router.push('/repair')">
+        <el-button @click="$router.push('/repair/orders')">
           <el-icon><Tools /></el-icon>
           维修记录
         </el-button>

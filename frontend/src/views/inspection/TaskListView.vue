@@ -232,7 +232,6 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import {
@@ -243,7 +242,6 @@ import {
 } from '@/api/inspection'
 import { useAuthStore } from '@/stores/auth'
 
-const router = useRouter()
 const authStore = useAuthStore()
 
 const loading = ref(false)
@@ -397,10 +395,7 @@ const viewPhoto = (url: string) => {
 }
 
 const executeTask = (task: InspectionTask) => {
-  router.push({
-    name: 'H5Inspection',
-    query: { taskId: task.id }
-  })
+  ElMessage.warning('PC端不支持执行点检，请在移动设备上操作')
 }
 
 onMounted(() => {
