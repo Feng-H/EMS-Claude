@@ -13,9 +13,9 @@
   --font-numbers: 'DIN Alternate', 'Oswald', 'Roboto Condensed', var(--font-sans);
 
   /* Claude 品牌色 */
-  --color-terracotta: #c96442;
-  --color-terracotta-light: #d97757;
-  --color-coral: #d97757;
+  --color-terracotta: #e8753a;
+  --color-terracotta-light: #ff7849;
+  --color-coral: #ff7849;
 
   /* 状态色 - 暖色调 */
   --color-success: #6b8e23;
@@ -52,11 +52,11 @@
 }
 
 [data-theme="dark"] {
-  /* 主色调 - 暖陶土色 */
-  --color-primary: #c96442;
-  --color-primary-dim: rgba(201, 100, 66, 0.15);
-  --color-primary-glow: rgba(201, 100, 66, 0.4);
-  --color-primary-hover: #d97757;
+  /* 主色调 - 活力橙色 */
+  --color-primary: #e8753a;
+  --color-primary-dim: rgba(232, 117, 58, 0.15);
+  --color-primary-glow: rgba(232, 117, 58, 0.4);
+  --color-primary-hover: #ff7849;
 
   /* 状态色 */
   --color-success: #00FFA3;
@@ -128,7 +128,7 @@
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.25);
   --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.3);
-  --shadow-glow: 0 0 20px rgba(201, 100, 66, 0.3);
+  --shadow-glow: 0 0 20px rgba(232, 117, 58, 0.3);
   --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.35);
 
   /* Ring阴影 - Claude特色 */
@@ -139,11 +139,11 @@
 
 /* ==================== 浅色主题 ==================== */
 [data-theme="light"] {
-  /* 主色调 - 暖陶土色 */
-  --color-primary: #c96442;
-  --color-primary-dim: rgba(201, 100, 66, 0.1);
-  --color-primary-glow: rgba(201, 100, 66, 0.2);
-  --color-primary-hover: #d97757;
+  /* 主色调 - 活力橙色 */
+  --color-primary: #e8753a;
+  --color-primary-dim: rgba(232, 117, 58, 0.1);
+  --color-primary-glow: rgba(232, 117, 58, 0.2);
+  --color-primary-hover: #ff7849;
 
   /* 背景色 - Claude浅色主题 */
   --color-bg-primary: #f5f4ed;
@@ -169,7 +169,7 @@
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.08);
-  --shadow-glow: 0 0 20px rgba(201, 100, 66, 0.2);
+  --shadow-glow: 0 0 20px rgba(232, 117, 58, 0.2);
   --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.05);
 
   /* Ring阴影 - Claude特色 */
