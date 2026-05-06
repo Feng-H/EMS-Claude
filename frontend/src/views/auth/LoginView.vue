@@ -438,7 +438,7 @@ onMounted(() => {
 .orb-1 {
   width: 400px;
   height: 400px;
-  background: var(--color-primary);
+  background: #E8753A;
   top: -200px;
   right: -100px;
   animation-delay: 0s;
@@ -447,20 +447,10 @@ onMounted(() => {
 .orb-2 {
   width: 300px;
   height: 300px;
-  background: var(--color-success);
+  background: #2A6B5A;
   bottom: -150px;
   left: -50px;
   animation-delay: -3s;
-}
-
-.orb-3 {
-  width: 200px;
-  height: 200px;
-  background: var(--color-warning);
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  animation-delay: -5s;
 }
 
 @keyframes float {
@@ -472,34 +462,6 @@ onMounted(() => {
   }
   66% {
     transform: translate(-20px, 20px) scale(0.9);
-  }
-}
-
-.scanline {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
-  opacity: 0.5;
-  animation: scan 4s linear infinite;
-}
-
-@keyframes scan {
-  0% {
-    top: 0;
-    opacity: 0;
-  }
-  10% {
-    opacity: 1;
-  }
-  90% {
-    opacity: 1;
-  }
-  100% {
-    top: 100%;
-    opacity: 0;
   }
 }
 
@@ -556,7 +518,7 @@ onMounted(() => {
   display: block;
   font-size: 48px;
   font-weight: 800;
-  letter-spacing: 8px;
+  letter-spacing: 10px;
   background: linear-gradient(135deg, var(--color-primary), var(--color-success));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -629,11 +591,12 @@ onMounted(() => {
 
 .form-card {
   background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 24px;
   padding: 40px;
   position: relative;
   overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
 
 .form-card::before {
@@ -655,7 +618,7 @@ onMounted(() => {
   font-size: 24px;
   font-weight: 600;
   color: var(--color-text-primary);
-  margin-bottom: 8px;
+  margin-bottom: 32px;
 }
 
 .form-header p {
@@ -686,9 +649,14 @@ onMounted(() => {
 }
 
 .input-group :deep(.el-input__wrapper) {
+  height: 48px;
   padding-left: 48px;
   background: var(--color-bg-secondary);
   border-color: var(--color-border);
+}
+
+.input-group :deep(.el-input__inner::placeholder) {
+  color: rgba(250, 249, 245, 0.35);
 }
 
 .input-group :deep(.el-input__wrapper:hover) {
@@ -696,8 +664,8 @@ onMounted(() => {
 }
 
 .input-group :deep(.el-input__wrapper.is-focus) {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-dim);
+  border-color: #E8753A;
+  box-shadow: 0 0 0 3px rgba(232, 117, 58, 0.15);
 }
 
 .login-btn {
@@ -705,15 +673,18 @@ onMounted(() => {
   height: 48px;
   font-size: 16px;
   font-weight: 600;
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
+  background: #E8753A;
   border: none;
+  border-radius: 12px;
   color: #ffffff;
+  box-shadow: 0 0 20px rgba(232, 117, 58, 0.3);
   transition: all var(--transition-base);
 }
 
 .login-btn:hover {
+  background: #FF7849;
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px var(--color-primary-glow);
+  box-shadow: 0 8px 25px rgba(232, 117, 58, 0.4);
 }
 
 .form-footer {
@@ -764,14 +735,21 @@ onMounted(() => {
 
 .apply-link span {
   font-size: 13px;
-  color: var(--color-primary);
   cursor: pointer;
   transition: all var(--transition-fast);
 }
 
-.apply-link span:hover {
-  color: var(--color-success);
+.apply-link span.text-weak {
+  color: rgba(250, 249, 245, 0.5);
+}
+
+.apply-link span.text-primary {
+  color: #E8753A;
   text-decoration: underline;
+}
+
+.apply-link span.text-primary:hover {
+  color: #FF7849;
 }
 
 /* 响应式 */
@@ -815,7 +793,7 @@ onMounted(() => {
     font-size: 36px;
   }
 
-  .orb-1, .orb-2, .orb-3 {
+  .orb-1, .orb-2 {
     display: none;
   }
 }
