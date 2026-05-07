@@ -302,7 +302,7 @@ func AuditRepair(c *gin.Context) {
 		return
 	}
 
-	if err := repairOrderService.AuditRepair(uint(id), userID, req.Approved, req.Comment, &req.ActualHours); err != nil {
+	if err := repairOrderService.AuditRepair(uint(id), userID, &req); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -403,6 +403,14 @@ func orderToResponse(order *model.RepairOrder) dto.RepairOrderResponse {
 		CompletedAt:      order.CompletedAt,
 		ConfirmedAt:      order.ConfirmedAt,
 		AuditedAt:        order.AuditedAt,
+	}
+
+	if order.CostDetail != nil {
+		r.ActualHours = order.CostDetail.ActualHours
+		r.SparePartCost = order.CostDetail.SparePartCost
+		r.LaborCost = order.CostDetail.LaborCost
+		r.OtherCost = order.CostDetail.OtherCost
+		r.DowntimeLoss = order.CostDetail.DowntimeLoss
 	}
 
 	if order.Equipment.ID > 0 {

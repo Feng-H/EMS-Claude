@@ -215,9 +215,11 @@ type RepairOrder struct {
 type RepairCostDetail struct {
 	ID             uint      `json:"id" gorm:"primarykey"`
 	OrderID        uint      `json:"order_id" gorm:"uniqueIndex;not null"`
+	ActualHours    float64   `json:"actual_hours" gorm:"type:decimal(10,2);default:0"`
 	SparePartCost  float64   `json:"spare_part_cost" gorm:"type:decimal(12,2);default:0"`
 	LaborCost      float64   `json:"labor_cost" gorm:"type:decimal(12,2);default:0"`
 	OtherCost      float64   `json:"other_cost" gorm:"type:decimal(12,2);default:0"`
+	DowntimeLoss   float64   `json:"downtime_loss" gorm:"type:decimal(12,2);default:0"`
 	Currency       string    `json:"currency" gorm:"size:10;default:'CNY'"`
 	CreatedAt      time.Time `json:"created_at"`
 	UpdatedAt      time.Time `json:"updated_at"`
@@ -514,4 +516,16 @@ type AgentEvidenceLink struct {
 	SourceID     uint    `json:"source_id"`
 	Excerpt      string  `json:"excerpt" gorm:"type:text"`
 	Score        float64 `json:"score" gorm:"type:decimal(5,4)"`
+}
+
+type UserAPIKey struct {
+	BaseModel
+	UserID      uint       `json:"user_id" gorm:"not null;index"`
+	User        *User      `json:"-" gorm:"foreignKey:UserID"`
+	Key         string     `json:"key" gorm:"size:100;uniqueIndex;not null"`
+	Name        string     `json:"name" gorm:"size:100"`
+	Description string     `json:"description" gorm:"type:text"`
+	LastUsedAt  *time.Time `json:"last_used_at"`
+	ExpiresAt   *time.Time `json:"expires_at"`
+	IsActive    bool       `json:"is_active" gorm:"default:true"`
 }

@@ -143,12 +143,16 @@ func runDatabaseMode() {
 		&model.AgentConversation{},
 		&model.AgentMessage{},
 		&model.AgentPushSubscription{},
+		&model.UserAPIKey{},
 	}
 	for _, m := range models {
 		if err := db.AutoMigrate(m); err != nil {
 			log.Printf("Warning: AutoMigrate error for %T: %v", m, err)
 		}
 	}
+
+	// Initialize middleware with DB
+	middleware.Init(db)
 
 	// Initialize API handlers
 	v1.InitAuth(database.GetDB())
@@ -227,6 +231,9 @@ func setupMemoryRoutes(router *gin.Engine) {
 			auth.POST("/bind-lark", middleware.AuthMiddleware(), v1.BindLark)
 			auth.GET("/lark-config", middleware.AuthMiddleware(), v1.GetLarkConfig)
 			auth.PUT("/lark-config", middleware.AuthMiddleware(), v1.UpdateLarkConfig)
+			auth.GET("/apikeys", middleware.AuthMiddleware(), v1.ListAPIKeys)
+			auth.POST("/apikeys", middleware.AuthMiddleware(), v1.CreateAPIKey)
+			auth.DELETE("/apikeys/:id", middleware.AuthMiddleware(), v1.DeleteAPIKey)
 		}
 
 		// Protected routes
@@ -406,9 +413,14 @@ func setupMemoryRoutes(router *gin.Engine) {
 				agent.PUT("/skills/:id", agentCtrl.UpdateSkill)
 				agent.GET("/equipment/:id/prediction", agentCtrl.GetEquipmentPrediction)
 				agent.POST("/subscribe", agentCtrl.Subscribe)
+				agent.GET("/subscriptions", agentCtrl.ListSubscriptions)
 				agent.GET("/sessions", agentCtrl.ListSessions)
 				agent.GET("/sessions/:id", agentCtrl.GetSession)
 				agent.GET("/artifacts/:id", agentCtrl.GetArtifact)
+
+				// Tool Discovery (P2)
+				agent.GET("/tools", agentCtrl.ListTools)
+				agent.POST("/tools/call", agentCtrl.CallTool)
 			}
 		}
 	}
@@ -439,6 +451,9 @@ func setupDatabaseRoutes(router *gin.Engine) {
 			auth.POST("/bind-lark", middleware.AuthMiddleware(), v1.BindLark)
 			auth.GET("/lark-config", middleware.AuthMiddleware(), v1.GetLarkConfig)
 			auth.PUT("/lark-config", middleware.AuthMiddleware(), v1.UpdateLarkConfig)
+			auth.GET("/apikeys", middleware.AuthMiddleware(), v1.ListAPIKeys)
+			auth.POST("/apikeys", middleware.AuthMiddleware(), v1.CreateAPIKey)
+			auth.DELETE("/apikeys/:id", middleware.AuthMiddleware(), v1.DeleteAPIKey)
 		}
 
 		// Protected routes
@@ -494,6 +509,9 @@ func setupDatabaseRoutes(router *gin.Engine) {
 				equipment.POST("", v1.CreateEquipment)
 				equipment.PUT("/:id", v1.UpdateEquipment)
 				equipment.DELETE("/:id", v1.DeleteEquipment)
+				equipment.POST("/:id/scrap", v1.ScrapEquipment)
+				equipment.POST("/:id/seal", v1.SealEquipment)
+				equipment.POST("/:id/enable", v1.EnableEquipment)
 			}
 
 			// Inspection routes
@@ -586,6 +604,9 @@ func setupDatabaseRoutes(router *gin.Engine) {
 				analytics.GET("/trends", v1.GetTrendData)
 				analytics.GET("/failures", v1.GetFailureAnalysis)
 				analytics.GET("/top-failures", v1.GetTopFailureEquipment)
+				analytics.GET("/rankings/mtbf", v1.GetMTBFRanking)
+				analytics.GET("/rankings/downtime", v1.GetDowntimeRanking)
+				analytics.GET("/rankings/performance", v1.GetPerformanceRanking)
 			}
 
 			// Knowledge base routes
@@ -619,9 +640,14 @@ func setupDatabaseRoutes(router *gin.Engine) {
 				agent.PUT("/skills/:id", agentCtrl.UpdateSkill)
 				agent.GET("/equipment/:id/prediction", agentCtrl.GetEquipmentPrediction)
 				agent.POST("/subscribe", agentCtrl.Subscribe)
+				agent.GET("/subscriptions", agentCtrl.ListSubscriptions)
 				agent.GET("/sessions", agentCtrl.ListSessions)
 				agent.GET("/sessions/:id", agentCtrl.GetSession)
 				agent.GET("/artifacts/:id", agentCtrl.GetArtifact)
+
+				// Tool Discovery (P2)
+				agent.GET("/tools", agentCtrl.ListTools)
+				agent.POST("/tools/call", agentCtrl.CallTool)
 			}
 		}
 	}

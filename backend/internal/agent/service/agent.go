@@ -601,10 +601,31 @@ func (s *AgentService) UpdateSkill(id uint, req *dto.UpdateSkillRequest) (*dto.S
 
 func (s *AgentService) Subscribe(userID uint, pushType string, enabled bool, scope any) error {
 	scopeJSON, _ := json.Marshal(scope)
-	sub := &model.AgentPushSubscription{
+	
+	// Check if already exists
+	db := database.GetDB()
+	var sub model.AgentPushSubscription
+	err := db.Where("user_id = ? AND push_type = ?", userID, pushType).First(&sub).Error
+	
+	if err == nil {
+		// Update
+		sub.Enabled = enabled
+		sub.Scope = string(scopeJSON)
+		return db.Save(&sub).Error
+	}
+	
+	// Create
+	sub = model.AgentPushSubscription{
 		UserID: userID, PushType: pushType, Enabled: enabled, Scope: string(scopeJSON),
 	}
-	return s.repo.CreatePushSubscription(sub)
+	return db.Create(&sub).Error
+}
+
+func (s *AgentService) ListSubscriptions(userID uint) ([]model.AgentPushSubscription, error) {
+	db := database.GetDB()
+	var subs []model.AgentPushSubscription
+	err := db.Where("user_id = ?", userID).Find(&subs).Error
+	return subs, err
 }
 
 func (s *AgentService) NotifyEvent(eventType string, targetID uint, context map[string]interface{}) {

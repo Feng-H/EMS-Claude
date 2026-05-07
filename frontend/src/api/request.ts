@@ -41,11 +41,19 @@ request.interceptors.response.use(
         case 404:
           ElMessage.error('请求的资源不存在')
           break
-        case 500:
-          ElMessage.error(error.response.data?.error || error.response.data?.message || '服务器错误，请稍后重试')
+        case 500: {
+          const errorData = error.response.data
+          const errorMsg = (typeof errorData?.error === 'object' ? errorData.error.message : errorData?.error) || 
+                          errorData?.message || '服务器错误，请稍后重试'
+          ElMessage.error(errorMsg)
           break
-        default:
-          ElMessage.error(error.response.data?.error || error.response.data?.message || '请求失败')
+        }
+        default: {
+          const errorData = error.response.data
+          const errorMsg = (typeof errorData?.error === 'object' ? errorData.error.message : errorData?.error) || 
+                          errorData?.message || '请求失败'
+          ElMessage.error(errorMsg)
+        }
       }
     } else {
       ElMessage.error('网络错误，请检查网络连接')

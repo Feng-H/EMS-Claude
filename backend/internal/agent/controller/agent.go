@@ -28,12 +28,20 @@ func NewAgentController() *AgentController {
 func requireAuth(c *gin.Context) (uint, string, bool) {
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		c.JSON(http.StatusUnauthorized, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "UNAUTHORIZED", Message: "User not authenticated"},
+		})
 		return 0, "", false
 	}
 	role, ok := middleware.GetUserRole(c)
 	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User role not found"})
+		c.JSON(http.StatusUnauthorized, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "UNAUTHORIZED", Message: "User role not found"},
+		})
 		return 0, "", false
 	}
 	return userID, role, true
@@ -46,7 +54,7 @@ func (ctrl *AgentController) RecommendMaintenance(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, dto.AgentErrorEnvelope{
 			Success: false,
 			TraceID: trace.GenerateTraceID(),
-			Error: dto.AgentErrDetail{Code: "INVALID_ARGUMENT", Message: err.Error()},
+			Error:   dto.AgentErrDetail{Code: "INVALID_ARGUMENT", Message: err.Error()},
 		})
 		return
 	}
@@ -56,7 +64,11 @@ func (ctrl *AgentController) RecommendMaintenance(c *gin.Context) {
 	}
 	var user model.User
 	if err := database.GetDB().First(&user, userID).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "User not found"})
+		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "INTERNAL_ERROR", Message: "User not found"},
+		})
 		return
 	}
 	result, err := ctrl.agentService.RecommendMaintenance(user, &req)
@@ -64,7 +76,7 @@ func (ctrl *AgentController) RecommendMaintenance(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
 			Success: false,
 			TraceID: trace.GenerateTraceID(),
-			Error: dto.AgentErrDetail{Code: "INTERNAL_ERROR", Message: err.Error()},
+			Error:   dto.AgentErrDetail{Code: "INTERNAL_ERROR", Message: err.Error()},
 		})
 		return
 	}
@@ -78,7 +90,7 @@ func (ctrl *AgentController) AuditRepair(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, dto.AgentErrorEnvelope{
 			Success: false,
 			TraceID: trace.GenerateTraceID(),
-			Error: dto.AgentErrDetail{Code: "INVALID_ARGUMENT", Message: err.Error()},
+			Error:   dto.AgentErrDetail{Code: "INVALID_ARGUMENT", Message: err.Error()},
 		})
 		return
 	}
@@ -88,7 +100,11 @@ func (ctrl *AgentController) AuditRepair(c *gin.Context) {
 	}
 	var user model.User
 	if err := database.GetDB().First(&user, userID).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "User not found"})
+		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "INTERNAL_ERROR", Message: "User not found"},
+		})
 		return
 	}
 	result, err := ctrl.agentService.AuditRepair(user, &req)
@@ -96,7 +112,7 @@ func (ctrl *AgentController) AuditRepair(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
 			Success: false,
 			TraceID: trace.GenerateTraceID(),
-			Error: dto.AgentErrDetail{Code: "INTERNAL_ERROR", Message: err.Error()},
+			Error:   dto.AgentErrDetail{Code: "INTERNAL_ERROR", Message: err.Error()},
 		})
 		return
 	}
@@ -107,7 +123,11 @@ func (ctrl *AgentController) AuditRepair(c *gin.Context) {
 func (ctrl *AgentController) AuditMaintenance(c *gin.Context) {
 	var req dto.MaintenanceAuditRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "INVALID_ARGUMENT", Message: err.Error()},
+		})
 		return
 	}
 	userID, _, ok := requireAuth(c)
@@ -116,12 +136,20 @@ func (ctrl *AgentController) AuditMaintenance(c *gin.Context) {
 	}
 	var user model.User
 	if err := database.GetDB().First(&user, userID).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "User not found"})
+		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "INTERNAL_ERROR", Message: "User not found"},
+		})
 		return
 	}
 	result, err := ctrl.agentService.AuditMaintenance(user, &req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "INTERNAL_ERROR", Message: err.Error()},
+		})
 		return
 	}
 	c.JSON(http.StatusOK, result)
@@ -131,7 +159,11 @@ func (ctrl *AgentController) AuditMaintenance(c *gin.Context) {
 func (ctrl *AgentController) Analyze(c *gin.Context) {
 	var req dto.AnalyzeRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "INVALID_ARGUMENT", Message: err.Error()},
+		})
 		return
 	}
 	userID, _, ok := requireAuth(c)
@@ -140,12 +172,20 @@ func (ctrl *AgentController) Analyze(c *gin.Context) {
 	}
 	var user model.User
 	if err := database.GetDB().First(&user, userID).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "User not found"})
+		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "INTERNAL_ERROR", Message: "User not found"},
+		})
 		return
 	}
 	result, err := ctrl.agentService.Analyze(user, &req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "INTERNAL_ERROR", Message: err.Error()},
+		})
 		return
 	}
 	c.JSON(http.StatusOK, result)
@@ -155,12 +195,20 @@ func (ctrl *AgentController) Analyze(c *gin.Context) {
 func (ctrl *AgentController) GetSession(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		c.JSON(http.StatusBadRequest, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "INVALID_ARGUMENT", Message: "Invalid ID"},
+		})
 		return
 	}
 	result, err := ctrl.agentService.GetSession(uint(id))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "INTERNAL_ERROR", Message: err.Error()},
+		})
 		return
 	}
 	c.JSON(http.StatusOK, result)
@@ -170,12 +218,20 @@ func (ctrl *AgentController) GetSession(c *gin.Context) {
 func (ctrl *AgentController) GetArtifact(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		c.JSON(http.StatusBadRequest, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "INVALID_ARGUMENT", Message: "Invalid ID"},
+		})
 		return
 	}
 	result, err := ctrl.agentService.GetArtifact(uint(id))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "INTERNAL_ERROR", Message: err.Error()},
+		})
 		return
 	}
 	c.JSON(http.StatusOK, result)
@@ -189,7 +245,11 @@ func (ctrl *AgentController) ListSessions(c *gin.Context) {
 	}
 	result, err := ctrl.agentService.ListSessions(userID, 10)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "INTERNAL_ERROR", Message: err.Error()},
+		})
 		return
 	}
 	c.JSON(http.StatusOK, result)
@@ -202,7 +262,11 @@ func (ctrl *AgentController) AuditKnowledge(c *gin.Context) {
 		Status string `json:"status" binding:"required"` // confirmed, rejected
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "INVALID_ARGUMENT", Message: err.Error()},
+		})
 		return
 	}
 
@@ -212,7 +276,11 @@ func (ctrl *AgentController) AuditKnowledge(c *gin.Context) {
 	}
 	err := ctrl.agentService.AuditKnowledge(id, req.Status, userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "INTERNAL_ERROR", Message: err.Error()},
+		})
 		return
 	}
 
@@ -224,7 +292,11 @@ func (ctrl *AgentController) ListKnowledges(c *gin.Context) {
 	status := c.Query("status")
 	result, err := ctrl.agentService.ListKnowledges(status)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "INTERNAL_ERROR", Message: err.Error()},
+		})
 		return
 	}
 	c.JSON(http.StatusOK, result)
@@ -239,7 +311,11 @@ func (ctrl *AgentController) Chat(c *gin.Context) {
 	var req dto.ChatRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Printf("[AgentController] Chat bind JSON error: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "INVALID_ARGUMENT", Message: err.Error()},
+		})
 		return
 	}
 	userID, _, ok := requireAuth(c)
@@ -251,14 +327,22 @@ func (ctrl *AgentController) Chat(c *gin.Context) {
 
 	var user model.User
 	if err := database.GetDB().First(&user, userID).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user context"})
+		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "INTERNAL_ERROR", Message: "Failed to get user context"},
+		})
 		return
 	}
 
 	result, err := ctrl.agentService.Chat(user, &req)
 	if err != nil {
 		log.Printf("[AgentController] Chat service error: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "INTERNAL_ERROR", Message: err.Error()},
+		})
 		return
 	}
 	
@@ -274,7 +358,11 @@ func (ctrl *AgentController) ListConversations(c *gin.Context) {
 	}
 	result, err := ctrl.agentService.ListConversations(userID, 20)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "INTERNAL_ERROR", Message: err.Error()},
+		})
 		return
 	}
 	c.JSON(http.StatusOK, result)
@@ -284,12 +372,20 @@ func (ctrl *AgentController) ListConversations(c *gin.Context) {
 func (ctrl *AgentController) GetConversation(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		c.JSON(http.StatusBadRequest, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "INVALID_ARGUMENT", Message: "Invalid ID"},
+		})
 		return
 	}
 	result, err := ctrl.agentService.GetConversation(uint(id))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "INTERNAL_ERROR", Message: err.Error()},
+		})
 		return
 	}
 	c.JSON(http.StatusOK, result)
@@ -304,7 +400,11 @@ func (ctrl *AgentController) ListSkills(c *gin.Context) {
 	status := c.Query("status")
 	result, err := ctrl.agentService.ListSkills(status)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "INTERNAL_ERROR", Message: err.Error()},
+		})
 		return
 	}
 	c.JSON(http.StatusOK, result)
@@ -314,12 +414,20 @@ func (ctrl *AgentController) ListSkills(c *gin.Context) {
 func (ctrl *AgentController) CreateSkill(c *gin.Context) {
 	var req dto.CreateSkillRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "INVALID_ARGUMENT", Message: err.Error()},
+		})
 		return
 	}
 	result, err := ctrl.agentService.CreateSkill(&req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "INTERNAL_ERROR", Message: err.Error()},
+		})
 		return
 	}
 	c.JSON(http.StatusCreated, result)
@@ -329,12 +437,20 @@ func (ctrl *AgentController) CreateSkill(c *gin.Context) {
 func (ctrl *AgentController) GetSkill(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		c.JSON(http.StatusBadRequest, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "INVALID_ARGUMENT", Message: "Invalid ID"},
+		})
 		return
 	}
 	result, err := ctrl.agentService.GetSkill(uint(id))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "INTERNAL_ERROR", Message: err.Error()},
+		})
 		return
 	}
 	c.JSON(http.StatusOK, result)
@@ -344,17 +460,29 @@ func (ctrl *AgentController) GetSkill(c *gin.Context) {
 func (ctrl *AgentController) UpdateSkill(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		c.JSON(http.StatusBadRequest, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "INVALID_ARGUMENT", Message: "Invalid ID"},
+		})
 		return
 	}
 	var req dto.UpdateSkillRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "INVALID_ARGUMENT", Message: err.Error()},
+		})
 		return
 	}
 	result, err := ctrl.agentService.UpdateSkill(uint(id), &req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "INTERNAL_ERROR", Message: err.Error()},
+		})
 		return
 	}
 	c.JSON(http.StatusOK, result)
@@ -372,7 +500,11 @@ func (ctrl *AgentController) Subscribe(c *gin.Context) {
 		Scope    any    `json:"scope"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "INVALID_ARGUMENT", Message: err.Error()},
+		})
 		return
 	}
 	userID, _, ok := requireAuth(c)
@@ -381,24 +513,122 @@ func (ctrl *AgentController) Subscribe(c *gin.Context) {
 	}
 	err := ctrl.agentService.Subscribe(userID, req.PushType, req.Enabled, req.Scope)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "INTERNAL_ERROR", Message: err.Error()},
+		})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Subscription updated"})
+}
+
+// ListSubscriptions returns user's push configurations
+func (ctrl *AgentController) ListSubscriptions(c *gin.Context) {
+	userID, _, ok := requireAuth(c)
+	if !ok {
+		return
+	}
+	subs, err := ctrl.agentService.ListSubscriptions(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "INTERNAL_ERROR", Message: err.Error()},
+		})
+		return
+	}
+	c.JSON(http.StatusOK, subs)
 }
 
 // GetEquipmentPrediction returns RUL and TCO for a specific equipment
 func (ctrl *AgentController) GetEquipmentPrediction(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		c.JSON(http.StatusBadRequest, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "INVALID_ARGUMENT", Message: "Invalid ID"},
+		})
 		return
 	}
 
 	result, err := ctrl.agentService.GetEquipmentPrediction(uint(id))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "INTERNAL_ERROR", Message: err.Error()},
+		})
 		return
 	}
+	c.JSON(http.StatusOK, result)
+}
+
+// ListTools returns available tools
+func (ctrl *AgentController) ListTools(c *gin.Context) {
+	userID, _, ok := requireAuth(c)
+	if !ok {
+		return
+	}
+	var user model.User
+	if err := database.GetDB().First(&user, userID).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "INTERNAL_ERROR", Message: "User not found"},
+		})
+		return
+	}
+
+	tools, err := ctrl.agentService.ListTools(user)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "INTERNAL_ERROR", Message: err.Error()},
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.ListToolsResponse{Tools: tools})
+}
+
+// CallTool executes a tool call
+func (ctrl *AgentController) CallTool(c *gin.Context) {
+	var req dto.CallToolRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "INVALID_ARGUMENT", Message: err.Error()},
+		})
+		return
+	}
+
+	userID, _, ok := requireAuth(c)
+	if !ok {
+		return
+	}
+	var user model.User
+	if err := database.GetDB().First(&user, userID).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "INTERNAL_ERROR", Message: "User not found"},
+		})
+		return
+	}
+
+	result, err := ctrl.agentService.CallTool(user, &req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "INTERNAL_ERROR", Message: err.Error()},
+		})
+		return
+	}
+
 	c.JSON(http.StatusOK, result)
 }

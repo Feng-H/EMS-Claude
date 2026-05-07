@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"errors"
 	"time"
 
 	"github.com/ems/backend/internal/model"
@@ -24,6 +25,7 @@ func (r *RepairOrderRepository) GetByID(id uint) (*model.RepairOrder, error) {
 	var order model.RepairOrder
 	err := r.db.Preload("Equipment").Preload("Equipment.Type").
 		Preload("Reporter").Preload("Assignee").
+		Preload("CostDetail").
 		First(&order, id).Error
 	if err != nil {
 		return nil, err
@@ -72,6 +74,7 @@ func (r *RepairOrderRepository) List(filter RepairOrderFilter) ([]model.RepairOr
 	offset := (filter.Page - 1) * filter.PageSize
 	err := query.Preload("Equipment").Preload("Equipment.Type").
 		Preload("Reporter").Preload("Assignee").
+		Preload("CostDetail").
 		Order("priority ASC, created_at DESC").
 		Offset(offset).Limit(filter.PageSize).Find(&orders).Error
 
@@ -80,6 +83,19 @@ func (r *RepairOrderRepository) List(filter RepairOrderFilter) ([]model.RepairOr
 
 func (r *RepairOrderRepository) Update(order *model.RepairOrder) error {
 	return r.db.Save(order).Error
+}
+
+func (r *RepairOrderRepository) UpdateCostDetail(cost *model.RepairCostDetail) error {
+	if cost.OrderID == 0 {
+		return errors.New("OrderID is required")
+	}
+	var existing model.RepairCostDetail
+	err := r.db.Where("order_id = ?", cost.OrderID).First(&existing).Error
+	if err == nil {
+		cost.ID = existing.ID
+		return r.db.Save(cost).Error
+	}
+	return r.db.Create(cost).Error
 }
 
 func (r *RepairOrderRepository) Delete(id uint) error {

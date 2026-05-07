@@ -109,3 +109,21 @@ type LarkConfigResp struct {
 	HasEncryptKey     bool   `json:"has_encrypt_key"`
 	WebhookURL        string `json:"webhook_url"`
 }
+
+// API Key DTOs
+type CreateAPIKeyRequest struct {
+	Name        string `json:"name" binding:"required"`
+	Description string `json:"description"`
+	ExpiresIn   int    `json:"expires_in"` // Days, 0 for never
+}
+
+type APIKeyResponse struct {
+	ID          uint    `json:"id"`
+	Key         string  `json:"key,omitempty"` // Only shown on creation
+	Name        string  `json:"name"`
+	Description string  `json:"description"`
+	LastUsedAt  *string `json:"last_used_at"`
+	ExpiresAt   *string `json:"expires_at"`
+	IsActive    bool    `json:"is_active"`
+	CreatedAt   string  `json:"created_at"`
+}

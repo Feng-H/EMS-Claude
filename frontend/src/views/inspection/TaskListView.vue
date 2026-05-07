@@ -232,6 +232,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import {
@@ -243,6 +244,7 @@ import {
 import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
+const router = useRouter()
 
 const loading = ref(false)
 const tasks = ref<InspectionTask[]>([])
@@ -395,7 +397,7 @@ const viewPhoto = (url: string) => {
 }
 
 const executeTask = (task: InspectionTask) => {
-  ElMessage.warning('PC端不支持执行点检，请在移动设备上操作')
+  router.push(`/inspection/execute/${task.id}`)
 }
 
 onMounted(() => {

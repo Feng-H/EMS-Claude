@@ -8,6 +8,7 @@ import (
 	"github.com/ems/backend/pkg/config"
 	"github.com/ems/backend/pkg/memory"
 	internalRepo "github.com/ems/backend/internal/repository"
+	"sort"
 	"strings"
 )
 
@@ -87,18 +88,40 @@ func (t *RetrievalTool) GetEquipmentProfile(id uint, user model.User) (map[strin
 // SearchManualKnowledge searches both knowledge articles and manual chunks with weighted ranking
 func (t *RetrievalTool) SearchManualKnowledge(query string, equipmentTypeID *uint, user model.User) ([]dto.EvidenceItem, error) {
 	var results []dto.EvidenceItem
+	query = strings.TrimSpace(strings.ToLower(query))
+	if query == "" {
+		return results, nil
+	}
 
 	// 1. 获取候选条目
 	articles, _ := t.searchKnowledge(query, equipmentTypeID)
 	chunks, _ := t.agentRepo.SearchManualChunks(query, equipmentTypeID)
 
-	// 2. 混合检索打分逻辑 (Milestone V)
+	// 2. 混合检索打分逻辑
+	// 知识库权重较高，因为是经过人工审核的专家经验
 	for _, art := range articles {
-		score := 0.85
-		// 关键词加成
-		if strings.Contains(strings.ToLower(art.Title), strings.ToLower(query)) {
-			score += 0.1
+		score := 0.70 // 基础分
+		title := strings.ToLower(art.Title)
+		phenom := strings.ToLower(art.FaultPhenomenon)
+		solution := strings.ToLower(art.Solution)
+
+		// 标题完全匹配或包含关键短语
+		if title == query {
+			score += 0.25
+		} else if strings.Contains(title, query) {
+			score += 0.15
 		}
+
+		// 现象描述匹配
+		if strings.Contains(phenom, query) {
+			score += 0.10
+		}
+
+		// 解决方案匹配 (权重略低)
+		if strings.Contains(solution, query) {
+			score += 0.05
+		}
+
 		results = append(results, dto.EvidenceItem{
 			EvidenceType: "knowledge",
 			SourceTable:  "knowledge_articles",
@@ -109,12 +132,18 @@ func (t *RetrievalTool) SearchManualKnowledge(query string, equipmentTypeID *uin
 		})
 	}
 
+	// 技术手册权重居中，覆盖面广但可能冗余
 	for _, chunk := range chunks {
-		score := 0.65
-		// 如果查询词出现在标题中，大幅加分
-		if strings.Contains(strings.ToLower(chunk.SectionTitle), strings.ToLower(query)) {
-			score += 0.2
+		score := 0.50 // 基础分
+		title := strings.ToLower(chunk.SectionTitle)
+		content := strings.ToLower(chunk.Content)
+
+		if strings.Contains(title, query) {
+			score += 0.30
+		} else if strings.Contains(content, query) {
+			score += 0.15
 		}
+
 		results = append(results, dto.EvidenceItem{
 			EvidenceType: "manual",
 			SourceTable:  "equipment_manual_chunks",
@@ -126,7 +155,15 @@ func (t *RetrievalTool) SearchManualKnowledge(query string, equipmentTypeID *uin
 	}
 
 	// 3. 排序：分值最高者优先
-	// (此处略去排序代码，保持简单返回)
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].Score > results[j].Score
+	})
+
+	// 4. 截断：仅返回前 5 条最相关的证据
+	if len(results) > 5 {
+		results = results[:5]
+	}
+
 	return results, nil
 }
 

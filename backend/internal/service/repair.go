@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ems/backend/internal/dto"
 	"github.com/ems/backend/internal/model"
 	"github.com/ems/backend/internal/repository"
 )
@@ -207,11 +208,15 @@ func (s *RepairOrderService) StartRepair(orderID uint, userID uint) error {
 
 // UpdateRepair updates repair progress
 type UpdateRepairRequest struct {
-	Solution    string
-	SpareParts  string
-	ActualHours float64
-	Photos      []string
-	NextStatus  string // testing, confirmed
+	Solution      string
+	SpareParts    string
+	ActualHours   float64
+	SparePartCost float64
+	LaborCost     float64
+	OtherCost     float64
+	DowntimeLoss  float64
+	Photos        []string
+	NextStatus    string // testing, confirmed
 }
 
 func (s *RepairOrderService) UpdateRepair(orderID uint, userID uint, req *UpdateRepairRequest) error {
@@ -227,6 +232,19 @@ func (s *RepairOrderService) UpdateRepair(orderID uint, userID uint, req *Update
 	order.Solution = req.Solution
 	if len(req.Photos) > 0 {
 		order.Photos = req.Photos
+	}
+
+	// Update costs
+	cost := &model.RepairCostDetail{
+		OrderID:       orderID,
+		ActualHours:   req.ActualHours,
+		SparePartCost: req.SparePartCost,
+		LaborCost:     req.LaborCost,
+		OtherCost:     req.OtherCost,
+		DowntimeLoss:  req.DowntimeLoss,
+	}
+	if err := s.orderRepo.UpdateCostDetail(cost); err != nil {
+		return err
 	}
 
 	// Handle status transition
@@ -301,7 +319,7 @@ func (s *RepairOrderService) ConfirmRepair(orderID uint, userID uint, accepted b
 }
 
 // AuditRepair audits a confirmed repair (supervisor/engineer)
-func (s *RepairOrderService) AuditRepair(orderID uint, userID uint, approved bool, comment string, actualHours *float64) error {
+func (s *RepairOrderService) AuditRepair(orderID uint, userID uint, req *dto.AuditRepairRequest) error {
 	order, err := s.orderRepo.GetByID(orderID)
 	if err != nil {
 		return err
@@ -311,13 +329,22 @@ func (s *RepairOrderService) AuditRepair(orderID uint, userID uint, approved boo
 		return errors.New("order is not ready for audit")
 	}
 
-	if approved {
+	if req.Approved {
 		now := time.Now()
 		order.Status = model.RepairClosed
 		order.AuditedAt = &now
-		if actualHours != nil {
-			// Store actual hours in solution field for now
-			order.Solution = fmt.Sprintf("%s (Actual hours: %.1f)", order.Solution, *actualHours)
+
+		// Update costs from audit
+		cost := &model.RepairCostDetail{
+			OrderID:       orderID,
+			ActualHours:   req.ActualHours,
+			SparePartCost: req.SparePartCost,
+			LaborCost:     req.LaborCost,
+			OtherCost:     req.OtherCost,
+			DowntimeLoss:  req.DowntimeLoss,
+		}
+		if err := s.orderRepo.UpdateCostDetail(cost); err != nil {
+			return err
 		}
 
 		// Update equipment status back to running
@@ -331,7 +358,7 @@ func (s *RepairOrderService) AuditRepair(orderID uint, userID uint, approved boo
 		// Reject - send back to in_progress
 		order.Status = model.RepairInProgress
 		order.ConfirmedAt = nil
-		s.createLog(orderID, userID, "audit_rejected", "审核不通过: "+comment)
+		s.createLog(orderID, userID, "audit_rejected", "审核不通过: "+req.Comment)
 	}
 
 	return s.orderRepo.Update(order)

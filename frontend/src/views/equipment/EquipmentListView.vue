@@ -96,6 +96,24 @@
               <el-button size="small" type="primary" link @click="handleEdit(row)" v-if="canEdit">
                 <el-icon><Edit /></el-icon> 编辑
               </el-button>
+              <el-dropdown trigger="click" v-if="canEdit" class="operation-dropdown">
+                <el-button size="small" type="primary" link>
+                  <el-icon><More /></el-icon> 更多
+                </el-button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item v-if="row.status !== 'running'" @click="handleStatusAction(row, 'enable')">
+                      启用设备
+                    </el-dropdown-item>
+                    <el-dropdown-item v-if="row.status === 'running'" @click="handleStatusAction(row, 'seal')">
+                      封存设备
+                    </el-dropdown-item>
+                    <el-dropdown-item v-if="row.status !== 'scrapped'" @click="handleStatusAction(row, 'scrap')" divided>
+                      报废设备
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
               <el-button size="small" type="warning" link @click="handleQRCode(row)">
                 <el-icon><Grid /></el-icon> 码
               </el-button>
@@ -411,6 +429,32 @@ async function handleDelete(row: Equipment) {
   }
 }
 
+async function handleStatusAction(row: Equipment, action: 'scrap' | 'seal' | 'enable') {
+  const actionMap = {
+    scrap: { title: '报废设备', message: `确定要报废设备 "${row.name}" 吗？此操作不可逆。`, success: '设备已报废' },
+    seal: { title: '封存设备', message: `确定要封存设备 "${row.name}" 吗？`, success: '设备已封存' },
+    enable: { title: '启用设备', message: `确定要重新启用设备 "${row.name}" 吗？`, success: '设备已启用' },
+  }
+  const config = actionMap[action]
+
+  try {
+    await ElMessageBox.confirm(config.message, config.title, {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: action === 'scrap' ? 'warning' : 'info',
+    })
+
+    if (action === 'scrap') await equipmentApi.scrap(row.id)
+    else if (action === 'seal') await equipmentApi.seal(row.id)
+    else if (action === 'enable') await equipmentApi.enable(row.id)
+
+    ElMessage.success(config.success)
+    loadData()
+  } catch {
+    // Cancelled
+  }
+}
+
 async function handleQRCode(row: Equipment) {
   currentEquipment.value = row
   showQRDialog.value = true
@@ -563,7 +607,12 @@ onMounted(() => {
 .operation-buttons {
   display: flex;
   justify-content: center;
+  align-items: center;
   gap: 4px;
+}
+
+.operation-dropdown {
+  margin: 0 4px;
 }
 
 .operation-buttons :deep(.el-button) {

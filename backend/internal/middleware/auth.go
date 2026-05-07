@@ -1,10 +1,12 @@
 package middleware
-
 import (
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/ems/backend/pkg/jwt"
+	"github.com/ems/backend/internal/model"
+	"gorm.io/gorm"
 	"github.com/gin-gonic/gin"
 )
 
@@ -13,8 +15,35 @@ const (
 	ContextKeyRole   = "role"
 )
 
+var db *gorm.DB
+
+func Init(database *gorm.DB) {
+	db = database
+}
+
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// 1. Try API Key first (for external Agents)
+		apiKey := c.GetHeader("X-API-KEY")
+		if apiKey != "" {
+			var keyRecord model.UserAPIKey
+			err := db.Preload("User").Where("key = ? AND is_active = ?", apiKey, true).First(&keyRecord).Error
+			if err == nil {
+				// Check expiration
+				if keyRecord.ExpiresAt == nil || keyRecord.ExpiresAt.After(time.Now()) {
+					// Update last used
+					now := time.Now()
+					db.Model(&keyRecord).Update("last_used_at", &now)
+
+					c.Set(ContextKeyUserID, keyRecord.UserID)
+					c.Set(ContextKeyRole, string(keyRecord.User.Role))
+					c.Next()
+					return
+				}
+			}
+		}
+
+		// 2. Try JWT (for Web/H5 users)
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is required"})

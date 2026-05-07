@@ -1,7 +1,16 @@
 <template>
   <div class="analytics-view">
     <div class="header">
-      <h2>统计分析</h2>
+      <div class="header-left">
+        <h2>管理驾驶舱</h2>
+        <span class="header-subtitle">设备运行、维保效率及资产健康度实时分析</span>
+      </div>
+      <div class="header-actions">
+        <el-select v-model="filterFactoryId" placeholder="全工厂" clearable @change="handleFactoryChange" style="width: 200px">
+          <el-option v-for="f in factories" :key="f.id" :label="f.name" :value="f.id" />
+        </el-select>
+        <el-button @click="refreshAll" :icon="Refresh">刷新</el-button>
+      </div>
     </div>
 
     <!-- Overview Cards -->
@@ -101,6 +110,65 @@
       </el-col>
     </el-row>
 
+    <!-- Rankings -->
+    <el-row :gutter="16" class="ranking-row">
+      <el-col :xs="24" :md="8">
+        <el-card>
+          <template #header>
+            <div class="card-header">
+              <span>MTBF 排名 (高 -> 低)</span>
+              <el-tooltip content="平均无故障时间，反映设备可靠性"><el-icon><QuestionFilled /></el-icon></el-tooltip>
+            </div>
+          </template>
+          <el-table :data="mtbfRanking" size="small" stripe @row-click="handleRankingClick" class="clickable-table">
+            <el-table-column type="index" label="#" width="40" />
+            <el-table-column prop="equipment_name" label="设备" show-overflow-tooltip />
+            <el-table-column label="MTBF(h)" width="90" align="right">
+              <template #default="{ row }">{{ formatDecimal(row.value) }}</template>
+            </el-table-column>
+          </el-table>
+        </el-card>
+      </el-col>
+      <el-col :xs="24" :md="8">
+        <el-card>
+          <template #header>
+            <div class="card-header">
+              <span>停机时间排名 (高 -> 低)</span>
+              <el-tooltip content="累计故障停机时长，反映停机损失"><el-icon><QuestionFilled /></el-icon></el-tooltip>
+            </div>
+          </template>
+          <el-table :data="downtimeRanking" size="small" stripe @row-click="handleRankingClick" class="clickable-table">
+            <el-table-column type="index" label="#" width="40" />
+            <el-table-column prop="equipment_name" label="设备" show-overflow-tooltip />
+            <el-table-column label="停机(h)" width="90" align="right">
+              <template #default="{ row }">{{ formatDecimal(row.value) }}</template>
+            </el-table-column>
+          </el-table>
+        </el-card>
+      </el-col>
+      <el-col :xs="24" :md="8">
+        <el-card>
+          <template #header>
+            <div class="card-header">
+              <span>可用性评分排名</span>
+              <el-tooltip content="综合可用性得分，100为最优"><el-icon><QuestionFilled /></el-icon></el-tooltip>
+            </div>
+          </template>
+          <el-table :data="performanceRanking" size="small" stripe @row-click="handleRankingClick" class="clickable-table">
+            <el-table-column type="index" label="#" width="40" />
+            <el-table-column prop="equipment_name" label="设备" show-overflow-tooltip />
+            <el-table-column label="评分" width="80" align="right">
+              <template #default="{ row }">
+                <el-text :type="row.value > 90 ? 'success' : row.value > 70 ? 'warning' : 'danger'">
+                  {{ formatDecimal(row.value) }}
+                </el-text>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-card>
+      </el-col>
+    </el-row>
+
     <!-- Top Failure Equipment -->
     <el-row :gutter="16" class="failure-row">
       <el-col :span="24">
@@ -108,7 +176,7 @@
           <template #header>
             <span>故障TOP10设备</span>
           </template>
-          <el-table :data="topFailures" stripe v-loading="loading">
+          <el-table :data="topFailures" stripe v-loading="loading" @row-click="handleRankingClick" class="clickable-table">
             <el-table-column type="index" label="排名" width="60" align="center" />
             <el-table-column prop="equipment_code" label="设备编号" width="120" />
             <el-table-column prop="equipment_name" label="设备名称" min-width="180" />
@@ -128,7 +196,9 @@
 
 <script setup lang="ts">
 import { ref, onMounted, shallowRef } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { Box, Timer, CircleCheck, DataAnalysis, Refresh, QuestionFilled } from '@element-plus/icons-vue'
 import echarts from '@/utils/echarts'
 import type { EChartsOption } from 'echarts'
 import {
@@ -136,14 +206,23 @@ import {
   getTrendData,
   getFailureAnalysis,
   getTopFailureEquipment,
+  getMTBFRanking,
+  getDowntimeRanking,
+  getPerformanceRanking,
   type DashboardOverview,
   type TrendData,
   type FailureAnalysis,
-  type TopFailureEquipment
+  type TopFailureEquipment,
+  type EquipmentRanking
 } from '@/api/analytics'
+import { equipmentApi, type Factory } from '@/api/equipment'
 
 const loading = ref(false)
 const chartLoading = ref(false)
+const filterFactoryId = ref<number>()
+const factories = ref<Factory[]>([])
+const router = useRouter()
+
 const overview = ref<DashboardOverview>({
   equipment: { total_equipment: 0, running_equipment: 0, stopped_equipment: 0, maintenance_equipment: 0, scrapped_equipment: 0 },
   mttr_mtbf: { mttr: 0, mtbf: 0, availability: 0 },
@@ -157,6 +236,10 @@ const overview = ref<DashboardOverview>({
 const trendChartRef = ref<HTMLElement>()
 const failureChartRef = ref<HTMLElement>()
 const topFailures = ref<TopFailureEquipment[]>([])
+const mtbfRanking = ref<EquipmentRanking[]>([])
+const downtimeRanking = ref<EquipmentRanking[]>([])
+const performanceRanking = ref<EquipmentRanking[]>([])
+
 const trendData = ref<TrendData[]>([])
 const failureAnalysis = ref<FailureAnalysis[]>([])
 
@@ -167,10 +250,36 @@ const formatDecimal = (val: number | undefined) => {
   return val ? val.toFixed(2) : '0.00'
 }
 
+const handleRankingClick = (row: any) => {
+  const id = row.equipment_id || row.id
+  if (id) router.push(`/equipment/detail/${id}`)
+}
+
+const loadFactories = async () => {
+  try {
+    const res = await equipmentApi.getFactories()
+    factories.value = res.data
+  } catch (err) {
+    console.error('Failed to load factories')
+  }
+}
+
+const handleFactoryChange = () => {
+  refreshAll()
+}
+
+const refreshAll = () => {
+  loadOverview()
+  loadTrendData()
+  loadFailureAnalysis()
+  loadTopFailures()
+  loadRankings()
+}
+
 const loadOverview = async () => {
   loading.value = true
   try {
-    const res = await getDashboardOverview()
+    const res = await getDashboardOverview({ factory_id: filterFactoryId.value })
     overview.value = res.data
   } catch (err) {
     ElMessage.error('加载概览数据失败')
@@ -185,13 +294,33 @@ const loadTrendData = async () => {
     const endDate = new Date().toISOString().split('T')[0]
     const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
-    const res = await getTrendData({ start_date: startDate, end_date: endDate })
+    const res = await getTrendData({ 
+      start_date: startDate, 
+      end_date: endDate,
+      factory_id: filterFactoryId.value
+    })
     trendData.value = res.data
     renderTrendChart()
   } catch (err) {
     ElMessage.error('加载趋势数据失败')
   } finally {
     chartLoading.value = false
+  }
+}
+
+const loadRankings = async () => {
+  try {
+    const fId = filterFactoryId.value
+    const [mtbf, down, perf] = await Promise.all([
+      getMTBFRanking({ limit: 5, factory_id: fId }),
+      getDowntimeRanking({ limit: 5, factory_id: fId }),
+      getPerformanceRanking({ limit: 5, factory_id: fId })
+    ])
+    mtbfRanking.value = mtbf.data
+    downtimeRanking.value = down.data
+    performanceRanking.value = perf.data
+  } catch (err) {
+    console.error('Failed to load rankings')
   }
 }
 
@@ -322,10 +451,8 @@ const renderFailureChart = () => {
 }
 
 onMounted(() => {
-  loadOverview()
-  loadTrendData()
-  loadFailureAnalysis()
-  loadTopFailures()
+  loadFactories()
+  refreshAll()
 })
 </script>
 
@@ -335,18 +462,35 @@ onMounted(() => {
 }
 
 .header {
-  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
 }
 
-.header h2 {
+.header-left h2 {
   margin: 0;
-  font-size: 20px;
-  color: #303133;
+  font-size: 24px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.header-subtitle {
+  font-size: 14px;
+  color: #8c8c8c;
+  margin-top: 4px;
+  display: block;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
 }
 
 .overview-row,
 .pending-row,
 .charts-row,
+.ranking-row,
 .failure-row {
   margin-bottom: 20px;
 }
@@ -354,6 +498,9 @@ onMounted(() => {
 .stat-card {
   position: relative;
   overflow: hidden;
+  border-radius: 8px;
+  border: none;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
 }
 
 .stat-card::before {
@@ -370,15 +517,20 @@ onMounted(() => {
 .stat-card.availability::before { background: #67c23a; }
 .stat-card.completion::before { background: #909399; }
 
-.stat-card .el-card__body {
+.stat-card :deep(.el-card__body) {
   display: flex;
   align-items: center;
   gap: 16px;
+  padding: 24px;
 }
 
 .stat-icon {
-  font-size: 48px;
-  opacity: 0.2;
+  font-size: 40px;
+  opacity: 0.8;
+  color: #f0f2f5;
+  background: #fafafa;
+  padding: 12px;
+  border-radius: 50%;
 }
 
 .stat-content {
@@ -386,25 +538,34 @@ onMounted(() => {
 }
 
 .stat-value {
-  font-size: 28px;
-  font-weight: bold;
-  color: #303133;
+  font-size: 24px;
+  font-weight: 700;
+  color: #1f1f1f;
+  line-height: 1.2;
 }
 
 .stat-label {
-  font-size: 14px;
-  color: #909399;
+  font-size: 13px;
+  color: #8c8c8c;
   margin: 4px 0;
 }
 
 .stat-detail {
   font-size: 12px;
-  color: #606266;
+  color: #bfbfbf;
 }
 
-.pending-card.warning .pending-value { color: #e6a23c; font-size: 24px; font-weight: bold; }
-.pending-card.info .pending-value { color: #409eff; font-size: 24px; font-weight: bold; }
-.pending-card.danger .pending-value { color: #f56c6c; font-size: 24px; font-weight: bold; }
+.pending-card {
+  border-radius: 8px;
+}
+
+.pending-card.warning { background-color: #fffbe6; border: 1px solid #ffe58f; }
+.pending-card.info { background-color: #e6f7ff; border: 1px solid #91d5ff; }
+.pending-card.danger { background-color: #fff1f0; border: 1px solid #ffa39e; }
+
+.pending-card.warning .pending-value { color: #faad14; font-size: 24px; font-weight: bold; }
+.pending-card.info .pending-value { color: #1890ff; font-size: 24px; font-weight: bold; }
+.pending-card.danger .pending-value { color: #f5222d; font-size: 24px; font-weight: bold; }
 
 .pending-item {
   display: flex;
@@ -414,10 +575,26 @@ onMounted(() => {
 
 .pending-label {
   font-size: 14px;
-  color: #606266;
+  font-weight: 500;
+  color: #595959;
 }
 
 .chart-container {
-  height: 300px;
+  height: 320px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-header span {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.clickable-table :deep(.el-table__row) {
+  cursor: pointer;
 }
 </style>

@@ -2,7 +2,7 @@
   <div class="sparepart-view">
     <div class="header">
       <h2>备件管理</h2>
-      <el-button type="primary" @click="showCreateDialog = true" v-if="canManage">
+      <el-button type="primary" @click="resetForm(); showCreateDialog = true" v-if="canManage">
         <el-icon><Plus /></el-icon>
         新增备件
       </el-button>
@@ -33,7 +33,7 @@
     </el-row>
 
     <!-- Tabs -->
-    <el-tabs v-model="activeTab" class="tabs">
+    <el-tabs v-model="activeTab" class="tabs" @tab-change="onTabChange">
       <!-- Parts List -->
       <el-tab-pane label="备件列表" name="parts">
         <el-card>
@@ -173,6 +173,16 @@
         <el-form-item label="安全库存">
           <el-input-number v-model="partForm.safety_stock" :min="0" style="width: 100%" />
         </el-form-item>
+        <el-form-item label="所属工厂">
+          <el-select v-model="partForm.factory_id" placeholder="可选：关联默认工厂" clearable style="width: 100%">
+            <el-option
+              v-for="factory in factories"
+              :key="factory.id"
+              :label="factory.name"
+              :value="factory.id"
+            />
+          </el-select>
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="showCreateDialog = false">取消</el-button>
@@ -213,7 +223,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
-import { ElMessage, FormInstance, FormRules } from 'element-plus'
+import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import {
   getSpareParts,
   createSparePart,
@@ -277,7 +287,8 @@ const partForm = reactive<CreateSparePartRequest>({
   name: '',
   specification: '',
   unit: '',
-  safety_stock: 10
+  safety_stock: 10,
+  factory_id: undefined
 })
 
 const stockForm = reactive({
@@ -379,6 +390,25 @@ const loadFactories = async () => {
   }
 }
 
+const onTabChange = (name: any) => {
+  if (name === 'inventory') loadInventory()
+  else if (name === 'consumption') loadConsumptions()
+  else if (name === 'alerts') loadAlerts()
+  else if (name === 'parts') loadParts()
+}
+
+const resetForm = () => {
+  editingPart.value = null
+  Object.assign(partForm, {
+    code: '',
+    name: '',
+    specification: '',
+    unit: '',
+    safety_stock: 10,
+    factory_id: undefined
+  })
+}
+
 const handleSearch = () => {
   pagination.page = 1
   loadParts()
@@ -398,7 +428,8 @@ const handleEdit = (part: SparePart) => {
     name: part.name,
     specification: part.specification || '',
     unit: part.unit || '',
-    safety_stock: part.safety_stock
+    safety_stock: part.safety_stock,
+    factory_id: part.factory_id
   })
   showCreateDialog.value = true
 }
@@ -417,6 +448,7 @@ const handleSave = async () => {
         ElMessage.success('创建成功')
       }
       showCreateDialog.value = false
+      resetForm()
       loadParts()
       loadStats()
     } catch (err: any) {

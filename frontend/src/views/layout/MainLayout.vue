@@ -232,6 +232,18 @@
             </transition>
             <div v-if="!sidebarCollapsed" class="nav-indicator"></div>
           </router-link>
+          <router-link to="/agent/integration" class="nav-item" :class="{ active: isActive('/agent/integration') }">
+            <div class="nav-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101" />
+                <path d="M10.172 13.828a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.102 1.101" />
+              </svg>
+            </div>
+            <transition name="nav-text">
+              <span v-show="!sidebarCollapsed" class="nav-text">Agent 集成</span>
+            </transition>
+            <div v-if="!sidebarCollapsed" class="nav-indicator"></div>
+          </router-link>
           <router-link to="/analytics" class="nav-item" :class="{ active: isActive('/analytics') }">
             <div class="nav-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">

@@ -20,6 +20,10 @@ export interface RepairOrder {
   solution?: string
   spare_parts?: string
   actual_hours?: number
+  spare_part_cost?: number
+  labor_cost?: number
+  other_cost?: number
+  downtime_loss?: number
   created_at: string
   started_at?: string
   completed_at?: string
@@ -67,6 +71,10 @@ export interface UpdateRepairRequest {
   solution?: string
   spare_parts?: string
   actual_hours?: number
+  spare_part_cost?: number
+  labor_cost?: number
+  other_cost?: number
+  downtime_loss?: number
   photos?: string[]
   next_status?: string // testing, confirmed
 }
@@ -81,6 +89,10 @@ export interface AuditRepairRequest {
   approved: boolean
   comment?: string
   actual_hours?: number
+  spare_part_cost?: number
+  labor_cost?: number
+  other_cost?: number
+  downtime_loss?: number
 }
 
 export interface RepairStatistics {

@@ -1,9 +1,9 @@
 <template>
   <el-dialog
-    :model-value="visible"
+    :model-value="modelValue"
     title="报修申请"
     width="500px"
-    @update:model-value="$emit('update:visible', $event)"
+    @update:model-value="$emit('update:modelValue', $event)"
   >
     <el-form :model="form" :rules="rules" ref="formRef" label-width="100px">
       <el-form-item label="设备" prop="equipment_id">
@@ -63,11 +63,11 @@ import { repairOrderApi } from '@/api/repair'
 import { equipmentApi, type Equipment } from '@/api/equipment'
 
 const props = defineProps<{
-  visible: boolean
+  modelValue: boolean
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:visible', value: boolean): void
+  (e: 'update:modelValue', value: boolean): void
   (e: 'success'): void
 }>()
 

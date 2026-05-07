@@ -162,6 +162,10 @@ export const equipmentApi = {
 
   delete: (id: number) => request.delete(`/equipment/${id}`),
 
+  scrap: (id: number) => request.post(`/equipment/${id}/scrap`),
+  seal: (id: number) => request.post(`/equipment/${id}/seal`),
+  enable: (id: number) => request.post(`/equipment/${id}/enable`),
+
   getStatistics: () => request.get<EquipmentStatistics>('/equipment/statistics'),
   getTypes: equipmentTypeApi.getTypes,
 }

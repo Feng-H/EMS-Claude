@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/ems/backend/internal/model"
@@ -17,15 +18,20 @@ func NewAnalyticsRepository() *AnalyticsRepository {
 }
 
 // GetEquipmentStats returns equipment status statistics
-func (r *AnalyticsRepository) GetEquipmentStats() (map[string]int64, error) {
+func (r *AnalyticsRepository) GetEquipmentStats(factoryID *uint) (map[string]int64, error) {
 	stats := make(map[string]int64)
 
+	query := r.db.Model(&model.Equipment{})
+	if factoryID != nil {
+		query = query.Joins("INNER JOIN workshops w ON equipment.workshop_id = w.id").Where("w.factory_id = ?", *factoryID)
+	}
+
 	var total, running, stopped, maintenance, scrapped int64
-	r.db.Model(&model.Equipment{}).Count(&total)
-	r.db.Model(&model.Equipment{}).Where("status = ?", "running").Count(&running)
-	r.db.Model(&model.Equipment{}).Where("status = ?", "stopped").Count(&stopped)
-	r.db.Model(&model.Equipment{}).Where("status = ?", "maintenance").Count(&maintenance)
-	r.db.Model(&model.Equipment{}).Where("status = ?", "scrapped").Count(&scrapped)
+	query.Count(&total)
+	query.Where("status = ?", "running").Count(&running)
+	query.Where("status = ?", "stopped").Count(&stopped)
+	query.Where("status = ?", "maintenance").Count(&maintenance)
+	query.Where("status = ?", "scrapped").Count(&scrapped)
 
 	stats["total"] = total
 	stats["running"] = running
@@ -47,12 +53,21 @@ func (r *AnalyticsRepository) GetMTTRMTBF(factoryID *uint) (map[string]float64, 
 	}
 
 	var repairTime RepairTimeResult
-	r.db.Raw(`
+	query := `
 		SELECT COALESCE(SUM(GREATEST(EXTRACT(EPOCH FROM (completed_at - created_at))/3600, 0)), 0) as total_hours,
 		       COUNT(*) as count
-		FROM repair_orders
-		WHERE status = 'closed' AND completed_at IS NOT NULL
-	`).Scan(&repairTime)
+		FROM repair_orders ro
+		INNER JOIN equipment e ON ro.equipment_id = e.id
+		INNER JOIN workshops w ON e.workshop_id = w.id
+		WHERE ro.status = 'closed' AND ro.completed_at IS NOT NULL
+	`
+	args := []interface{}{}
+	if factoryID != nil {
+		query += " AND w.factory_id = ?"
+		args = append(args, *factoryID)
+	}
+
+	r.db.Raw(query, args...).Scan(&repairTime)
 
 	if repairTime.Count > 0 {
 		stats["mttr"] = repairTime.TotalHours / float64(repairTime.Count)
@@ -60,20 +75,25 @@ func (r *AnalyticsRepository) GetMTTRMTBF(factoryID *uint) (map[string]float64, 
 		stats["mttr"] = 0
 	}
 
-	// MTBF: Mean Time Between Failures = Total running time / Number of failures
-	// Simplified: Days between first and last repair / (number of repairs - 1)
-	// For now, use inverse of failure rate per day
+	// MTBF: Mean Time Between Failures
 	var mtbfData struct {
 		TotalDays int64
 		Failures  int64
 	}
 
-	r.db.Raw(`
-		SELECT COALESCE(EXTRACT(DAY FROM (NOW() - MIN(created_at)))::integer, 30) as total_days,
+	mtbfQuery := `
+		SELECT COALESCE(EXTRACT(DAY FROM (NOW() - MIN(ro.created_at)))::integer, 30) as total_days,
 		       COUNT(*) as failures
-		FROM repair_orders
-		WHERE status = 'closed' AND created_at > NOW() - INTERVAL '1 year'
-	`).Scan(&mtbfData)
+		FROM repair_orders ro
+		INNER JOIN equipment e ON ro.equipment_id = e.id
+		INNER JOIN workshops w ON e.workshop_id = w.id
+		WHERE ro.status = 'closed' AND ro.created_at > NOW() - INTERVAL '1 year'
+	`
+	if factoryID != nil {
+		mtbfQuery += " AND w.factory_id = ?"
+	}
+
+	r.db.Raw(mtbfQuery, args...).Scan(&mtbfData)
 
 	if mtbfData.Failures > 1 && mtbfData.TotalDays > 0 {
 		stats["mtbf"] = float64(mtbfData.TotalDays) / float64(mtbfData.Failures) * 24 // hours
@@ -93,28 +113,97 @@ func (r *AnalyticsRepository) GetMTTRMTBF(factoryID *uint) (map[string]float64, 
 	return stats, nil
 }
 
+// GetMTBFRanking returns equipment ranking by MTBF
+func (r *AnalyticsRepository) GetMTBFRanking(limit int, factoryID *uint) ([]map[string]interface{}, error) {
+	var results []map[string]interface{}
+
+	query := `
+		SELECT
+			e.id as equipment_id,
+			e.code as equipment_code,
+			e.name as equipment_name,
+			COALESCE(EXTRACT(DAY FROM (NOW() - MIN(ro.created_at)))::integer, 30) * 24 / GREATEST(COUNT(ro.id), 1) as mtbf
+		FROM equipment e
+		LEFT JOIN repair_orders ro ON ro.equipment_id = e.id AND ro.status = 'closed'
+		INNER JOIN workshops w ON e.workshop_id = w.id
+		WHERE 1=1
+	`
+	args := []interface{}{}
+	if factoryID != nil {
+		query += " AND w.factory_id = ?"
+		args = append(args, *factoryID)
+	}
+	query += ` GROUP BY e.id, e.code, e.name ORDER BY mtbf DESC LIMIT ?`
+	args = append(args, limit)
+
+	err := r.db.Raw(query, args...).Scan(&results).Error
+	return results, err
+}
+
+// GetDowntimeRanking returns equipment ranking by total downtime
+func (r *AnalyticsRepository) GetDowntimeRanking(limit int, factoryID *uint) ([]map[string]interface{}, error) {
+	var results []map[string]interface{}
+
+	query := `
+		SELECT
+			e.id as equipment_id,
+			e.code as equipment_code,
+			e.name as equipment_name,
+			COALESCE(SUM(GREATEST(EXTRACT(EPOCH FROM (ro.completed_at - ro.created_at))/3600, 0)), 0) as total_downtime
+		FROM equipment e
+		INNER JOIN repair_orders ro ON ro.equipment_id = e.id AND ro.status = 'closed'
+		INNER JOIN workshops w ON e.workshop_id = w.id
+		WHERE 1=1
+	`
+	args := []interface{}{}
+	if factoryID != nil {
+		query += " AND w.factory_id = ?"
+		args = append(args, *factoryID)
+	}
+	query += ` GROUP BY e.id, e.code, e.name ORDER BY total_downtime DESC LIMIT ?`
+	args = append(args, limit)
+
+	err := r.db.Raw(query, args...).Scan(&results).Error
+	return results, err
+}
+
 // GetCompletionRates returns completion rates for different task types
-func (r *AnalyticsRepository) GetCompletionRates() (map[string]int64, error) {
+func (r *AnalyticsRepository) GetCompletionRates(factoryID *uint) (map[string]int64, error) {
 	stats := make(map[string]int64)
 
 	// Inspection completion rate
+	insQuery := r.db.Model(&model.InspectionTask{})
+	if factoryID != nil {
+		insQuery = insQuery.Joins("INNER JOIN equipment e ON inspection_tasks.equipment_id = e.id").
+			Joins("INNER JOIN workshops w ON e.workshop_id = w.id").Where("w.factory_id = ?", *factoryID)
+	}
 	var inspectionTotal, inspectionCompleted int64
-	r.db.Model(&model.InspectionTask{}).Count(&inspectionTotal)
-	r.db.Model(&model.InspectionTask{}).Where("status = ?", "completed").Count(&inspectionCompleted)
+	insQuery.Count(&inspectionTotal)
+	insQuery.Where("inspection_tasks.status = ?", "completed").Count(&inspectionCompleted)
 	stats["inspection_total"] = inspectionTotal
 	stats["inspection_completed"] = inspectionCompleted
 
 	// Maintenance completion rate
+	maintQuery := r.db.Model(&model.MaintenanceTask{})
+	if factoryID != nil {
+		maintQuery = maintQuery.Joins("INNER JOIN equipment e ON maintenance_tasks.equipment_id = e.id").
+			Joins("INNER JOIN workshops w ON e.workshop_id = w.id").Where("w.factory_id = ?", *factoryID)
+	}
 	var maintenanceTotal, maintenanceCompleted int64
-	r.db.Model(&model.MaintenanceTask{}).Count(&maintenanceTotal)
-	r.db.Model(&model.MaintenanceTask{}).Where("status = ?", "completed").Count(&maintenanceCompleted)
+	maintQuery.Count(&maintenanceTotal)
+	maintQuery.Where("maintenance_tasks.status = ?", "completed").Count(&maintenanceCompleted)
 	stats["maintenance_total"] = maintenanceTotal
 	stats["maintenance_completed"] = maintenanceCompleted
 
 	// Repair completion rate
+	repQuery := r.db.Model(&model.RepairOrder{})
+	if factoryID != nil {
+		repQuery = repQuery.Joins("INNER JOIN equipment e ON repair_orders.equipment_id = e.id").
+			Joins("INNER JOIN workshops w ON e.workshop_id = w.id").Where("w.factory_id = ?", *factoryID)
+	}
 	var repairTotal, repairCompleted int64
-	r.db.Model(&model.RepairOrder{}).Count(&repairTotal)
-	r.db.Model(&model.RepairOrder{}).Where("status = ?", "closed").Count(&repairCompleted)
+	repQuery.Count(&repairTotal)
+	repQuery.Where("repair_orders.status = ?", "closed").Count(&repairCompleted)
 	stats["repair_total"] = repairTotal
 	stats["repair_completed"] = repairCompleted
 
@@ -122,24 +211,35 @@ func (r *AnalyticsRepository) GetCompletionRates() (map[string]int64, error) {
 }
 
 // GetPendingTasks returns count of pending tasks
-func (r *AnalyticsRepository) GetPendingTasks() (map[string]int64, error) {
+func (r *AnalyticsRepository) GetPendingTasks(factoryID *uint) (map[string]int64, error) {
 	stats := make(map[string]int64)
 
 	today := time.Now().Format("2006-01-02")
 	weekEnd := time.Now().AddDate(0, 0, 7).Format("2006-01-02")
 
+	insQuery := r.db.Model(&model.InspectionTask{})
+	maintQuery := r.db.Model(&model.MaintenanceTask{})
+	repQuery := r.db.Model(&model.RepairOrder{})
+
+	if factoryID != nil {
+		insQuery = insQuery.Joins("INNER JOIN equipment e ON inspection_tasks.equipment_id = e.id").
+			Joins("INNER JOIN workshops w ON e.workshop_id = w.id").Where("w.factory_id = ?", *factoryID)
+		maintQuery = maintQuery.Joins("INNER JOIN equipment e ON maintenance_tasks.equipment_id = e.id").
+			Joins("INNER JOIN workshops w ON e.workshop_id = w.id").Where("w.factory_id = ?", *factoryID)
+		repQuery = repQuery.Joins("INNER JOIN equipment e ON repair_orders.equipment_id = e.id").
+			Joins("INNER JOIN workshops w ON e.workshop_id = w.id").Where("w.factory_id = ?", *factoryID)
+	}
+
 	var pendingInspections, pendingMaintenances, pendingRepairs int64
-	r.db.Model(&model.InspectionTask{}).
-		Where("scheduled_date >= ? AND scheduled_date < ? AND status IN ?",
+	insQuery.Where("inspection_tasks.scheduled_date >= ? AND inspection_tasks.scheduled_date < ? AND inspection_tasks.status IN ?",
 			today, weekEnd, []string{"pending", "in_progress"}).
 		Count(&pendingInspections)
 
-	r.db.Model(&model.MaintenanceTask{}).
-		Where("scheduled_date >= ? AND scheduled_date < ? AND status IN ?",
+	maintQuery.Where("maintenance_tasks.scheduled_date >= ? AND maintenance_tasks.scheduled_date < ? AND maintenance_tasks.status IN ?",
 			today, weekEnd, []string{"pending", "in_progress"}).
 		Count(&pendingMaintenances)
 
-	r.db.Model(&model.RepairOrder{}).Where("status IN ?", []string{"pending", "assigned"}).Count(&pendingRepairs)
+	repQuery.Where("repair_orders.status IN ?", []string{"pending", "assigned"}).Count(&pendingRepairs)
 
 	stats["pending_inspections"] = pendingInspections
 	stats["pending_maintenances"] = pendingMaintenances
@@ -149,15 +249,15 @@ func (r *AnalyticsRepository) GetPendingTasks() (map[string]int64, error) {
 }
 
 // GetTrendData returns daily trend data
-func (r *AnalyticsRepository) GetTrendData(startDate, endDate string) ([]map[string]interface{}, error) {
+func (r *AnalyticsRepository) GetTrendData(startDate, endDate string, factoryID *uint) ([]map[string]interface{}, error) {
 	var results []map[string]interface{}
 
 	query := `
 		SELECT
 			d.date::text as date,
-			COALESCE(inspections, 0) as inspection_tasks,
-			COALESCE(maintenances, 0) as maintenance_tasks,
-			COALESCE(repairs, 0) as repair_orders
+			COALESCE(i.inspections, 0) as inspection_tasks,
+			COALESCE(m.maintenances, 0) as maintenance_tasks,
+			COALESCE(rep.repairs, 0) as repair_orders
 		FROM (
 			SELECT generate_series(
 				?::date,
@@ -166,29 +266,92 @@ func (r *AnalyticsRepository) GetTrendData(startDate, endDate string) ([]map[str
 			) as date
 		) d
 		LEFT JOIN (
-			SELECT DATE(completed_at) as date, COUNT(*) as inspections
-			FROM inspection_tasks
-			WHERE completed_at >= ?::date AND completed_at < ?::date + interval '1 day'
-			GROUP BY DATE(completed_at)
+			SELECT DATE(it.completed_at) as date, COUNT(*) as inspections
+			FROM inspection_tasks it
+			INNER JOIN equipment e ON it.equipment_id = e.id
+			INNER JOIN workshops w ON e.workshop_id = w.id
+			WHERE it.completed_at >= ?::date AND it.completed_at < ?::date + interval '1 day'
+			%s
+			GROUP BY DATE(it.completed_at)
 		) i ON d.date = i.date
 		LEFT JOIN (
-			SELECT DATE(completed_at) as date, COUNT(*) as maintenances
-			FROM maintenance_tasks
-			WHERE completed_at >= ?::date AND completed_at < ?::date + interval '1 day'
-			GROUP BY DATE(completed_at)
+			SELECT DATE(mt.completed_at) as date, COUNT(*) as maintenances
+			FROM maintenance_tasks mt
+			INNER JOIN equipment e ON mt.equipment_id = e.id
+			INNER JOIN workshops w ON e.workshop_id = w.id
+			WHERE mt.completed_at >= ?::date AND mt.completed_at < ?::date + interval '1 day'
+			%s
+			GROUP BY DATE(mt.completed_at)
 		) m ON d.date = m.date
 		LEFT JOIN (
-			SELECT DATE(completed_at) as date, COUNT(*) as repairs
-			FROM repair_orders
-			WHERE completed_at >= ?::date AND completed_at < ?::date + interval '1 day'
-			GROUP BY DATE(completed_at)
-		) r ON d.date = r.date
+			SELECT DATE(ro.completed_at) as date, COUNT(*) as repairs
+			FROM repair_orders ro
+			INNER JOIN equipment e ON ro.equipment_id = e.id
+			INNER JOIN workshops w ON e.workshop_id = w.id
+			WHERE ro.completed_at >= ?::date AND ro.completed_at < ?::date + interval '1 day'
+			%s
+			GROUP BY DATE(ro.completed_at)
+		) rep ON d.date = rep.date
 		ORDER BY d.date
 	`
 
-	err := r.db.Raw(query, startDate, endDate, startDate, endDate, startDate, endDate, startDate, endDate).
-		Scan(&results).Error
+	factoryFilter := ""
+	args := []interface{}{startDate, endDate, startDate, endDate, startDate, endDate, startDate, endDate}
+	if factoryID != nil {
+		factoryFilter = " AND w.factory_id = ?"
+		// We need to insert the factoryID for each subquery
+		// Since we have 3 subqueries with 2 date placeholders each, we need to be careful with the order.
+		// Subquery i: DATE(it.completed_at) >= ? AND < ? AND w.factory_id = ?
+		// Subquery m: DATE(mt.completed_at) >= ? AND < ? AND w.factory_id = ?
+		// Subquery rep: DATE(ro.completed_at) >= ? AND < ? AND w.factory_id = ?
+		
+		// Wait, the query string construction with %s is better.
+		query = fmt.Sprintf(query, factoryFilter, factoryFilter, factoryFilter)
+		
+		// New args list:
+		args = []interface{}{
+			startDate, endDate, // generate_series
+			startDate, endDate, *factoryID, // i
+			startDate, endDate, *factoryID, // m
+			startDate, endDate, *factoryID, // rep
+		}
+	} else {
+		query = fmt.Sprintf(query, "", "", "")
+	}
 
+	err := r.db.Raw(query, args...).Scan(&results).Error
+
+	return results, err
+}
+
+// GetEquipmentPerformanceRanking returns equipment ranking by performance (availability)
+func (r *AnalyticsRepository) GetEquipmentPerformanceRanking(limit int, factoryID *uint) ([]map[string]interface{}, error) {
+	var results []map[string]interface{}
+
+	query := `
+		SELECT
+			e.id as equipment_id,
+			e.code as equipment_code,
+			e.name as equipment_name,
+			COALESCE(AVG(CASE WHEN ro.id IS NULL THEN 100 ELSE 
+				(720 - GREATEST(EXTRACT(EPOCH FROM (ro.completed_at - ro.created_at))/3600, 0)) / 720 * 100 
+			END), 100) as performance_score
+		FROM equipment e
+		LEFT JOIN repair_orders ro ON ro.equipment_id = e.id 
+			AND ro.status = 'closed'
+			AND ro.created_at > NOW() - INTERVAL '30 days'
+		INNER JOIN workshops w ON e.workshop_id = w.id
+		WHERE 1=1
+	`
+	args := []interface{}{}
+	if factoryID != nil {
+		query += " AND w.factory_id = ?"
+		args = append(args, *factoryID)
+	}
+	query += ` GROUP BY e.id, e.code, e.name ORDER BY performance_score DESC LIMIT ?`
+	args = append(args, limit)
+
+	err := r.db.Raw(query, args...).Scan(&results).Error
 	return results, err
 }
 

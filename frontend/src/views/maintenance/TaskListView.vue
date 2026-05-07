@@ -219,6 +219,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
   getMaintenanceTasks,
@@ -233,6 +234,7 @@ import {
 import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
+const router = useRouter()
 const loading = ref(false)
 const tasks = ref<MaintenanceTask[]>([])
 const stats = ref<MaintenanceStatistics>({
@@ -363,8 +365,7 @@ const confirmStart = async () => {
 }
 
 const handleComplete = (task: MaintenanceTask) => {
-  // Redirect to mobile execution page or show completion dialog
-  ElMessage.info('请在移动端完成保养任务')
+  router.push(`/maintenance/execute/${task.id}`)
 }
 
 const viewDetail = (task: MaintenanceTask) => {

@@ -139,6 +139,18 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/inspection/TaskListView.vue'),
         meta: { title: '点检任务' },
       },
+      {
+        path: 'inspection/execute',
+        name: 'InspectionExecute',
+        component: () => import('@/views/inspection/ExecuteView.vue'),
+        meta: { title: '执行点检' },
+      },
+      {
+        path: 'inspection/execute/:taskId',
+        name: 'InspectionExecuteDetail',
+        component: () => import('@/views/inspection/ExecuteView.vue'),
+        meta: { title: '执行点检' },
+      },
       // 维修管理路由
       {
         path: 'repair/orders',
@@ -165,6 +177,18 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/maintenance/TaskListView.vue'),
         meta: { title: '保养任务' },
       },
+      {
+        path: 'maintenance/execute',
+        name: 'MaintenanceExecute',
+        component: () => import('@/views/maintenance/ExecuteView.vue'),
+        meta: { title: '执行保养' },
+      },
+      {
+        path: 'maintenance/execute/:taskId',
+        name: 'MaintenanceExecuteDetail',
+        component: () => import('@/views/maintenance/ExecuteView.vue'),
+        meta: { title: '执行保养' },
+      },
       // 备件管理路由
       {
         path: 'spareparts',
@@ -186,15 +210,21 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/knowledge/KnowledgeView.vue'),
         meta: { title: '知识库' },
       },
-      // 智能运维助手 - 暂时移除 roles 限制以确保能打开
+      // 智能运维助手
       {
         path: 'agent/assistant',
-        name: 'ManagementAssistant',
+        name: 'AgentAssistant',
         component: () => import('@/views/agent/ManagementAssistantView.vue'),
         meta: { title: '管理助手' },
       },
       {
-        path: 'agent/lark-config',
+        path: 'agent/integration',
+        name: 'AgentIntegration',
+        component: () => import('@/views/agent/AgentIntegrationView.vue'),
+        meta: { title: 'Agent 集成' },
+      },
+      {
+        path: 'user/lark',
         name: 'LarkIntegration',
         component: () => import('@/views/user/LarkIntegration.vue'),
         meta: { title: '飞书机器人配置' },

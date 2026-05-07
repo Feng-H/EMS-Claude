@@ -46,6 +46,10 @@ type RepairOrderResponse struct {
 	Solution         string       `json:"solution,omitempty"`
 	SpareParts       string       `json:"spare_parts,omitempty"`
 	ActualHours      float64      `json:"actual_hours,omitempty"`
+	SparePartCost    float64      `json:"spare_part_cost,omitempty"`
+	LaborCost        float64      `json:"labor_cost,omitempty"`
+	OtherCost        float64      `json:"other_cost,omitempty"`
+	DowntimeLoss     float64      `json:"downtime_loss,omitempty"`
 	CreatedAt        time.Time    `json:"created_at"`
 	StartedAt        *time.Time   `json:"started_at,omitempty"`
 	CompletedAt      *time.Time   `json:"completed_at,omitempty"`
@@ -86,11 +90,15 @@ type StartRepairRequest struct {
 
 // UpdateRepairRequest updates repair progress
 type UpdateRepairRequest struct {
-	Solution    string   `json:"solution"`
-	SpareParts  string   `json:"spare_parts"`
-	ActualHours float64  `json:"actual_hours"`
-	Photos      []string `json:"photos"`
-	NextStatus  string   `json:"next_status"` // testing, confirmed
+	Solution      string   `json:"solution"`
+	SpareParts    string   `json:"spare_parts"`
+	ActualHours   float64  `json:"actual_hours"`
+	SparePartCost float64  `json:"spare_part_cost"`
+	LaborCost     float64  `json:"labor_cost"`
+	OtherCost     float64  `json:"other_cost"`
+	DowntimeLoss  float64  `json:"downtime_loss"`
+	Photos        []string `json:"photos"`
+	NextStatus    string   `json:"next_status"` // testing, confirmed
 }
 
 // ConfirmRepairRequest confirms a completed repair
@@ -102,9 +110,13 @@ type ConfirmRepairRequest struct {
 
 // AuditRepairRequest audits a confirmed repair
 type AuditRepairRequest struct {
-	Approved   bool   `json:"approved"`
-	Comment    string `json:"comment"`
-	ActualHours float64 `json:"actual_hours,omitempty"`
+	Approved      bool    `json:"approved"`
+	Comment       string  `json:"comment"`
+	ActualHours   float64 `json:"actual_hours,omitempty"`
+	SparePartCost float64 `json:"spare_part_cost,omitempty"`
+	LaborCost     float64 `json:"labor_cost,omitempty"`
+	OtherCost     float64 `json:"other_cost,omitempty"`
+	DowntimeLoss  float64 `json:"downtime_loss,omitempty"`
 }
 
 // =====================================================

@@ -110,4 +110,34 @@ export const agentApi = {
   // 预测性分析 (Phase 3 补充)
   getEquipmentPrediction: (equipmentId: number) =>
     request.get<any>(`/agent/equipment/${equipmentId}/prediction`),
+
+  // =====================================================
+  // API Key Management (P2)
+  // =====================================================
+  listAPIKeys: () =>
+    request.get<any[]>('/auth/apikeys'),
+  
+  createAPIKey: (data: { name: string; description?: string; expires_in?: number }) =>
+    request.post<any>('/auth/apikeys', data),
+  
+  deleteAPIKey: (id: number) =>
+    request.delete(`/auth/apikeys/${id}`),
+
+  // =====================================================
+  // Tool Discovery (P2)
+  // =====================================================
+  listTools: () =>
+    request.get<{ tools: any[] }>('/agent/tools'),
+  
+  callTool: (data: { name: string; arguments: any }) =>
+    request.post<any>('/agent/tools/call', data),
+
+  // =====================================================
+  // Proactive Push (P2)
+  // =====================================================
+  listSubscriptions: () =>
+    request.get<any[]>('/agent/subscriptions'),
+
+  subscribe: (data: { push_type: string; enabled: boolean; scope?: any }) =>
+    request.post('/agent/subscribe', data),
 }

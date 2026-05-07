@@ -495,6 +495,45 @@ func (s *EquipmentService) Delete(id uint) error {
 	return s.repo.Delete(id)
 }
 
+func (s *EquipmentService) Scrap(id uint) error {
+	equipment, err := s.repo.GetByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ErrNotFound
+		}
+		return err
+	}
+
+	equipment.Status = "scrapped"
+	return s.repo.Update(equipment)
+}
+
+func (s *EquipmentService) Seal(id uint) error {
+	equipment, err := s.repo.GetByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ErrNotFound
+		}
+		return err
+	}
+
+	equipment.Status = "stopped" // 'stopped' represents sealed/deactivated
+	return s.repo.Update(equipment)
+}
+
+func (s *EquipmentService) Enable(id uint) error {
+	equipment, err := s.repo.GetByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ErrNotFound
+		}
+		return err
+	}
+
+	equipment.Status = "running"
+	return s.repo.Update(equipment)
+}
+
 func (s *EquipmentService) GetStatistics() (*EquipmentStatistics, error) {
 	stats, err := s.repo.GetStatistics()
 	if err != nil {

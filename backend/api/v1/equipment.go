@@ -741,6 +741,78 @@ func DeleteEquipment(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
+// ScrapEquipment marks equipment as scrapped
+// @Summary Scrap equipment
+// @Tags equipment
+// @Router /equipment/{id}/scrap [post]
+func ScrapEquipment(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, errors.New("Invalid ID"))
+		return
+	}
+
+	if role, _ := middleware.GetUserRole(c); role != "admin" && role != "engineer" {
+		response.Error(c, http.StatusForbidden, errors.New("Insufficient permissions"))
+		return
+	}
+
+	if err := equipmentService.Scrap(uint(id)); err != nil {
+		handleServiceError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Equipment scrapped successfully"})
+}
+
+// SealEquipment marks equipment as stopped/sealed
+// @Summary Seal equipment
+// @Tags equipment
+// @Router /equipment/{id}/seal [post]
+func SealEquipment(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, errors.New("Invalid ID"))
+		return
+	}
+
+	if role, _ := middleware.GetUserRole(c); role != "admin" && role != "engineer" {
+		response.Error(c, http.StatusForbidden, errors.New("Insufficient permissions"))
+		return
+	}
+
+	if err := equipmentService.Seal(uint(id)); err != nil {
+		handleServiceError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Equipment sealed successfully"})
+}
+
+// EnableEquipment marks equipment as running
+// @Summary Enable equipment
+// @Tags equipment
+// @Router /equipment/{id}/enable [post]
+func EnableEquipment(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, errors.New("Invalid ID"))
+		return
+	}
+
+	if role, _ := middleware.GetUserRole(c); role != "admin" && role != "engineer" {
+		response.Error(c, http.StatusForbidden, errors.New("Insufficient permissions"))
+		return
+	}
+
+	if err := equipmentService.Enable(uint(id)); err != nil {
+		handleServiceError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Equipment enabled successfully"})
+}
+
 // GetEquipmentStatistics returns equipment statistics
 // @Summary Get equipment statistics
 // @Tags equipment

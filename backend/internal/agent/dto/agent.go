@@ -272,3 +272,27 @@ type RULPrediction struct {
 	RiskFactors      []string  `json:"risk_factors"`
 	Recommendation   string    `json:"recommendation"`
 }
+
+// =====================================================
+// Tool Discovery (P2)
+// =====================================================
+
+type ToolDefinition struct {
+	Name        string      `json:"name"`
+	Description string      `json:"description"`
+	InputSchema interface{} `json:"input_schema"`
+}
+
+type ListToolsResponse struct {
+	Tools []ToolDefinition `json:"tools"`
+}
+
+type CallToolRequest struct {
+	Name      string                 `json:"name"`
+	Arguments map[string]interface{} `json:"arguments"`
+}
+
+type CallToolResponse struct {
+	Content interface{} `json:"content"`
+	IsError bool        `json:"is_error"`
+}

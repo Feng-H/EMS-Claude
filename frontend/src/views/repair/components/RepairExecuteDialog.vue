@@ -1,9 +1,9 @@
 <template>
   <el-dialog
-    :model-value="visible"
+    :model-value="modelValue"
     title="维修执行"
     width="600px"
-    @update:model-value="$emit('update:visible', $event)"
+    @update:model-value="$emit('update:modelValue', $event)"
   >
     <div v-if="order">
       <div v-if="order.status === 'assigned'" class="start-section">
@@ -17,10 +17,35 @@
         </el-form-item>
         <el-form-item label="实际工时" prop="actual_hours">
           <el-input-number v-model="form.actual_hours" :precision="1" :step="0.5" :min="0" />
+          <span class="unit">小时</span>
         </el-form-item>
-        <el-form-item label="使用备件" prop="spare_parts">
+        <el-form-item label="备件消耗" prop="spare_parts">
           <el-input v-model="form.spare_parts" placeholder="请输入备件名称及数量" />
         </el-form-item>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="备件费用" prop="spare_part_cost">
+              <el-input-number v-model="form.spare_part_cost" :precision="2" :min="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="人工费用" prop="labor_cost">
+              <el-input-number v-model="form.labor_cost" :precision="2" :min="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="其他费用" prop="other_cost">
+              <el-input-number v-model="form.other_cost" :precision="2" :min="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="停机损失" prop="downtime_loss">
+              <el-input-number v-model="form.downtime_loss" :precision="2" :min="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
         <el-form-item label="后续状态" prop="next_status">
           <el-select v-model="form.next_status">
             <el-option label="待测试 (维修完成，需验证)" value="testing" />
@@ -45,12 +70,12 @@ import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { repairOrderApi, type RepairOrder } from '@/api/repair'
 
 const props = defineProps<{
-  visible: boolean
+  modelValue: boolean
   order: RepairOrder | null
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:visible', value: boolean): void
+  (e: 'update:modelValue', value: boolean): void
   (e: 'success'): void
 }>()
 
@@ -61,6 +86,10 @@ const form = reactive({
   solution: '',
   actual_hours: 1,
   spare_parts: '',
+  spare_part_cost: 0,
+  labor_cost: 0,
+  other_cost: 0,
+  downtime_loss: 0,
   next_status: 'testing'
 })
 
@@ -74,6 +103,10 @@ watch(() => props.order, (newOrder) => {
     form.solution = newOrder.solution || ''
     form.actual_hours = newOrder.actual_hours || 1
     form.spare_parts = newOrder.spare_parts || ''
+    form.spare_part_cost = newOrder.spare_part_cost || 0
+    form.labor_cost = newOrder.labor_cost || 0
+    form.other_cost = newOrder.other_cost || 0
+    form.downtime_loss = newOrder.downtime_loss || 0
   }
 }, { immediate: true })
 
@@ -101,6 +134,10 @@ const submit = async () => {
         solution: form.solution,
         actual_hours: form.actual_hours,
         spare_parts: form.spare_parts,
+        spare_part_cost: form.spare_part_cost,
+        labor_cost: form.labor_cost,
+        other_cost: form.other_cost,
+        downtime_loss: form.downtime_loss,
         next_status: form.next_status
       })
       ElMessage.success('维修记录已更新')

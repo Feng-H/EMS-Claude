@@ -5,7 +5,7 @@
         <div class="card-header">
           <span>维修工单管理</span>
           <div class="header-actions">
-            <el-button type="primary" @click="ElMessage.warning('请使用 H5 端或移动端提交报修申请')">
+            <el-button type="primary" @click="reportVisible = true">
               <el-icon><Plus /></el-icon>
               报修申请
             </el-button>
@@ -135,9 +135,18 @@
               type="success"
               size="small"
               link
-              @click="executeOrder(row)"
+              @click="openExecuteDialog(row)"
             >
               执行
+            </el-button>
+            <el-button
+              v-if="row.status === 'testing' || row.status === 'confirmed'"
+              type="warning"
+              size="small"
+              link
+              @click="openAuditDialog(row)"
+            >
+              审核
             </el-button>
             <el-button
               v-if="row.status === 'closed' || row.status === 'audited'"
@@ -217,6 +226,14 @@
           <el-descriptions-item label="实际工时" v-if="currentOrder.actual_hours">
             {{ currentOrder.actual_hours }} 小时
           </el-descriptions-item>
+          <el-descriptions-item label="费用统计" :span="2">
+            <el-space spacer="|">
+              <span v-if="currentOrder.spare_part_cost">备件: ¥{{ currentOrder.spare_part_cost }}</span>
+              <span v-if="currentOrder.labor_cost">人工: ¥{{ currentOrder.labor_cost }}</span>
+              <span v-if="currentOrder.other_cost">其他: ¥{{ currentOrder.other_cost }}</span>
+              <span v-if="currentOrder.downtime_loss" class="text-danger">停机损失: ¥{{ currentOrder.downtime_loss }}</span>
+            </el-space>
+          </el-descriptions-item>
         </el-descriptions>
 
         <!-- 照片 -->
@@ -269,38 +286,11 @@
       </template>
     </el-dialog>
 
-    <!-- 转知识库对话框 -->
-    <el-dialog v-model="convertDialogVisible" title="转入知识库" width="600px">
-      <el-form :model="convertForm" :rules="convertRules" ref="convertFormRef" label-width="100px">
-        <el-form-item label="标题" prop="title">
-          <el-input v-model="convertForm.title" placeholder="输入知识库条目标题" />
-        </el-form-item>
-        <el-form-item label="故障现象" prop="fault_phenomenon">
-          <el-input v-model="convertForm.fault_phenomenon" type="textarea" :rows="3" />
-        </el-form-item>
-        <el-form-item label="原因分析" prop="cause_analysis">
-          <el-input v-model="convertForm.cause_analysis" type="textarea" :rows="3" />
-        </el-form-item>
-        <el-form-item label="标签">
-          <el-select
-            v-model="convertForm.tags"
-            multiple
-            filterable
-            allow-create
-            default-first-option
-            placeholder="请输入标签"
-          >
-            <el-option label="机械故障" value="机械故障" />
-            <el-option label="电气故障" value="电气故障" />
-            <el-option label="软件异常" value="软件异常" />
-          </el-select>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="convertDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="confirmConvert" :loading="converting">确定</el-button>
-      </template>
-    </el-dialog>
+    <!-- 维修操作对话框 -->
+    <RepairReportDialog v-model="reportVisible" @success="loadOrders" />
+    <RepairExecuteDialog v-model="executeVisible" :order="currentOrder!" @success="loadOrders" />
+    <RepairAuditDialog v-model="auditVisible" :order="currentOrder!" @success="loadOrders" />
+    <RepairToKnowledgeDialog v-model="convertVisible" :order="currentOrder!" @success="loadOrders" />
   </div>
 </template>
 
@@ -319,7 +309,11 @@ import {
   type RepairStatistics,
   type AssignRepairRequest
 } from '@/api/repair'
-import { convertFromRepair } from '@/api/knowledge'
+import { userApi } from '@/api/user'
+import RepairReportDialog from './components/RepairReportDialog.vue'
+import RepairExecuteDialog from './components/RepairExecuteDialog.vue'
+import RepairAuditDialog from './components/RepairAuditDialog.vue'
+import RepairToKnowledgeDialog from './components/RepairToKnowledgeDialog.vue'
 
 const router = useRouter()
 
@@ -342,21 +336,11 @@ const showDetailDialog = ref(false)
 const assignDialogVisible = ref(false)
 const assigning = ref(false)
 
-const convertDialogVisible = ref(false)
-const converting = ref(false)
-const convertFormRef = ref<FormInstance>()
-const convertForm = reactive({
-  order_id: 0,
-  title: '',
-  fault_phenomenon: '',
-  cause_analysis: '',
-  tags: [] as string[]
-})
-
-const convertRules: FormRules = {
-  title: [{ required: true, message: '请输入标题', trigger: 'blur' }],
-  fault_phenomenon: [{ required: true, message: '请输入故障现象', trigger: 'blur' }]
-}
+// Dialog visibility
+const reportVisible = ref(false)
+const executeVisible = ref(false)
+const auditVisible = ref(false)
+const convertVisible = ref(false)
 
 const filterForm = reactive({
   status: '',
@@ -380,12 +364,19 @@ const assignRules: FormRules = {
   assign_to: [{ required: true, message: '请选择维修工', trigger: 'change' }]
 }
 
-// 模拟维修工列表
-const technicians = ref([
-  { id: 1, name: '维修工1' },
-  { id: 2, name: '维修工2' },
-  { id: 3, name: '维修工3' },
-])
+const technicians = ref<{id: number, name: string}[]>([])
+
+const loadTechnicians = async () => {
+  try {
+    const response = await userApi.getUsers()
+    // 过滤具有维修权限的角色
+    technicians.value = response.data
+      .filter(u => ['admin', 'engineer', 'maintenance'].includes(u.role))
+      .map(u => ({ id: u.id, name: u.name || u.username }))
+  } catch (error) {
+    console.error('加载维修工列表失败', error)
+  }
+}
 
 const formatDateTime = (dateStr: string) => {
   return new Date(dateStr).toLocaleString('zh-CN')
@@ -445,31 +436,19 @@ const openAssignDialog = (order: RepairOrder) => {
   assignDialogVisible.value = true
 }
 
-const openConvertDialog = (order: RepairOrder) => {
+const openExecuteDialog = (order: RepairOrder) => {
   currentOrder.value = order
-  convertForm.order_id = order.id
-  convertForm.title = `${order.equipment_name} 故障处理记录 - ${order.id}`
-  convertForm.fault_phenomenon = order.fault_description
-  convertForm.cause_analysis = ''
-  convertForm.tags = []
-  convertDialogVisible.value = true
+  executeVisible.value = true
 }
 
-const confirmConvert = async () => {
-  if (!convertFormRef.value) return
-  await convertFormRef.value.validate(async (valid) => {
-    if (!valid) return
-    converting.value = true
-    try {
-      await convertFromRepair(convertForm)
-      ElMessage.success('成功转入知识库')
-      convertDialogVisible.value = false
-    } catch (error: any) {
-      ElMessage.error(error.response?.data?.error || '转换失败')
-    } finally {
-      converting.value = false
-    }
-  })
+const openAuditDialog = (order: RepairOrder) => {
+  currentOrder.value = order
+  auditVisible.value = true
+}
+
+const openConvertDialog = (order: RepairOrder) => {
+  currentOrder.value = order
+  convertVisible.value = true
 }
 
 const confirmAssign = async () => {
@@ -491,16 +470,10 @@ const confirmAssign = async () => {
   })
 }
 
-const executeOrder = (order: RepairOrder) => {
-  router.push({
-    name: 'repair-execute',
-    params: { orderId: order.id }
-  })
-}
-
 onMounted(() => {
   loadOrders()
   loadStatistics()
+  loadTechnicians()
 })
 </script>
 

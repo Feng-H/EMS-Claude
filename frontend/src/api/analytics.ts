@@ -58,12 +58,19 @@ export interface TopFailureEquipment {
   mttr: number
 }
 
+export interface EquipmentRanking {
+  equipment_id: number
+  equipment_code: string
+  equipment_name: string
+  value: number
+}
+
 // =====================================================
 // API Functions
 // =====================================================
 
-export const getDashboardOverview = () => {
-  return request.get<DashboardOverview>('/analytics/dashboard')
+export const getDashboardOverview = (params?: { factory_id?: number }) => {
+  return request.get<DashboardOverview>('/analytics/dashboard', { params })
 }
 
 export const getMTTRMTBF = (params?: { factory_id?: number }) => {
@@ -73,6 +80,7 @@ export const getMTTRMTBF = (params?: { factory_id?: number }) => {
 export const getTrendData = (params: {
   start_date?: string
   end_date?: string
+  factory_id?: number
 }) => {
   return request.get<TrendData[]>('/analytics/trends', { params })
 }
@@ -83,4 +91,16 @@ export const getFailureAnalysis = (params?: { limit?: number }) => {
 
 export const getTopFailureEquipment = (params?: { limit?: number }) => {
   return request.get<TopFailureEquipment[]>('/analytics/top-failures', { params })
+}
+
+export const getMTBFRanking = (params?: { limit?: number; factory_id?: number }) => {
+  return request.get<EquipmentRanking[]>('/analytics/rankings/mtbf', { params })
+}
+
+export const getDowntimeRanking = (params?: { limit?: number; factory_id?: number }) => {
+  return request.get<EquipmentRanking[]>('/analytics/rankings/downtime', { params })
+}
+
+export const getPerformanceRanking = (params?: { limit?: number; factory_id?: number }) => {
+  return request.get<EquipmentRanking[]>('/analytics/rankings/performance', { params })
 }

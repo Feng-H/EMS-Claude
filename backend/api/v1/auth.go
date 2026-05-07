@@ -1,7 +1,10 @@
 package v1
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/ems/backend/internal/dto"
@@ -297,4 +300,106 @@ func UpdateUser(c *gin.Context) {
 	u.FactoryID = req.FactoryID
 	db.Save(&u)
 	c.JSON(200, gin.H{"message": "用户更新成功"})
+}
+
+// =====================================================
+// API Key Management
+// =====================================================
+
+// CreateAPIKey creates a new API key for the current user
+func CreateAPIKey(c *gin.Context) {
+	userID, _ := middleware.GetUserID(c)
+	var req dto.CreateAPIKeyRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Generate key: ems_ + 32 random chars
+	bytes := make([]byte, 16)
+	if _, err := rand.Read(bytes); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate key"})
+		return
+	}
+	key := "ems_" + hex.EncodeToString(bytes)
+
+	var expiresAt *time.Time
+	if req.ExpiresIn > 0 {
+		t := time.Now().AddDate(0, 0, req.ExpiresIn)
+		expiresAt = &t
+	}
+
+	apiKey := model.UserAPIKey{
+		UserID:      userID,
+		Key:         key,
+		Name:        req.Name,
+		Description: req.Description,
+		ExpiresAt:   expiresAt,
+		IsActive:    true,
+	}
+
+	if err := db.Create(&apiKey).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save API key"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, dto.APIKeyResponse{
+		ID:          apiKey.ID,
+		Key:         apiKey.Key, // Only shown once
+		Name:        apiKey.Name,
+		Description: apiKey.Description,
+		ExpiresAt:   formatTimePtr(apiKey.ExpiresAt),
+		IsActive:    apiKey.IsActive,
+		CreatedAt:   apiKey.CreatedAt.Format("2006-01-02 15:04:05"),
+	})
+}
+
+// ListAPIKeys lists API keys for the current user
+func ListAPIKeys(c *gin.Context) {
+	userID, _ := middleware.GetUserID(c)
+	var keys []model.UserAPIKey
+	if err := db.Where("user_id = ?", userID).Find(&keys).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch API keys"})
+		return
+	}
+
+	response := make([]dto.APIKeyResponse, len(keys))
+	for i, k := range keys {
+		response[i] = dto.APIKeyResponse{
+			ID:          k.ID,
+			Name:        k.Name,
+			Description: k.Description,
+			LastUsedAt:  formatTimePtr(k.LastUsedAt),
+			ExpiresAt:   formatTimePtr(k.ExpiresAt),
+			IsActive:    k.IsActive,
+			CreatedAt:   k.CreatedAt.Format("2006-01-02 15:04:05"),
+		}
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// DeleteAPIKey deletes an API key
+func DeleteAPIKey(c *gin.Context) {
+	userID, _ := middleware.GetUserID(c)
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		return
+	}
+
+	if err := db.Where("id = ? AND user_id = ?", uint(id), userID).Delete(&model.UserAPIKey{}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete API key"})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
+func formatTimePtr(t *time.Time) *string {
+	if t == nil {
+		return nil
+	}
+	s := t.Format("2006-01-02 15:04:05")
+	return &s
 }

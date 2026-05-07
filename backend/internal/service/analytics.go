@@ -16,32 +16,32 @@ func NewAnalyticsService() *AnalyticsService {
 }
 
 // GetDashboardOverview returns the dashboard overview data
-func (s *AnalyticsService) GetDashboardOverview() (*DashboardOverview, error) {
+func (s *AnalyticsService) GetDashboardOverview(factoryID *uint) (*DashboardOverview, error) {
 	// Get equipment stats
-	equipmentStats, err := s.analyticsRepo.GetEquipmentStats()
+	equipmentStats, err := s.analyticsRepo.GetEquipmentStats(factoryID)
 	if err != nil {
 		return nil, err
 	}
 
 	// Get MTTR/MTBF
-	mttrMtbf, err := s.analyticsRepo.GetMTTRMTBF(nil)
+	mttrMtbf, err := s.analyticsRepo.GetMTTRMTBF(factoryID)
 	if err != nil {
 		return nil, err
 	}
 
 	// Get completion rates
-	completionRates, err := s.analyticsRepo.GetCompletionRates()
+	completionRates, err := s.analyticsRepo.GetCompletionRates(factoryID)
 	if err != nil {
 		return nil, err
 	}
 
 	// Get pending tasks
-	pendingTasks, err := s.analyticsRepo.GetPendingTasks()
+	pendingTasks, err := s.analyticsRepo.GetPendingTasks(factoryID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Get low stock count
+	// Get low stock count (Low stock is usually factory-independent or we filter it later)
 	lowStockCount, err := s.analyticsRepo.GetLowStockCount()
 	if err != nil {
 		return nil, err
@@ -99,8 +99,8 @@ func (s *AnalyticsService) GetMTTRMTBF(factoryID *uint) (*MTTRMTBF, error) {
 }
 
 // GetTrendData returns trend data for the specified date range
-func (s *AnalyticsService) GetTrendData(startDate, endDate string) ([]TrendData, error) {
-	results, err := s.analyticsRepo.GetTrendData(startDate, endDate)
+func (s *AnalyticsService) GetTrendData(startDate, endDate string, factoryID *uint) ([]TrendData, error) {
+	results, err := s.analyticsRepo.GetTrendData(startDate, endDate, factoryID)
 	if err != nil {
 		return nil, err
 	}
@@ -117,6 +117,66 @@ func (s *AnalyticsService) GetTrendData(startDate, endDate string) ([]TrendData,
 	}
 
 	return trends, nil
+}
+
+// GetMTBFRanking returns equipment ranking by MTBF
+func (s *AnalyticsService) GetMTBFRanking(limit int, factoryID *uint) ([]EquipmentRanking, error) {
+	results, err := s.analyticsRepo.GetMTBFRanking(limit, factoryID)
+	if err != nil {
+		return nil, err
+	}
+
+	ranking := make([]EquipmentRanking, len(results))
+	for i, r := range results {
+		ranking[i] = EquipmentRanking{
+			EquipmentID:   uint(toInt64(r["equipment_id"])),
+			EquipmentCode: r["equipment_code"].(string),
+			EquipmentName: r["equipment_name"].(string),
+			Value:         toFloat64(r["mtbf"]),
+		}
+	}
+
+	return ranking, nil
+}
+
+// GetDowntimeRanking returns equipment ranking by total downtime
+func (s *AnalyticsService) GetDowntimeRanking(limit int, factoryID *uint) ([]EquipmentRanking, error) {
+	results, err := s.analyticsRepo.GetDowntimeRanking(limit, factoryID)
+	if err != nil {
+		return nil, err
+	}
+
+	ranking := make([]EquipmentRanking, len(results))
+	for i, r := range results {
+		ranking[i] = EquipmentRanking{
+			EquipmentID:   uint(toInt64(r["equipment_id"])),
+			EquipmentCode: r["equipment_code"].(string),
+			EquipmentName: r["equipment_name"].(string),
+			Value:         toFloat64(r["total_downtime"]),
+		}
+	}
+
+	return ranking, nil
+}
+
+// GetPerformanceRanking returns equipment ranking by performance (availability)
+func (s *AnalyticsService) GetPerformanceRanking(limit int, factoryID *uint) ([]EquipmentRanking, error) {
+	results, err := s.analyticsRepo.GetEquipmentPerformanceRanking(limit, factoryID)
+	if err != nil {
+		return nil, err
+	}
+
+	ranking := make([]EquipmentRanking, len(results))
+	for i, r := range results {
+		ranking[i] = EquipmentRanking{
+			EquipmentID:   uint(toInt64(r["equipment_id"])),
+			EquipmentCode: r["equipment_code"].(string),
+			EquipmentName: r["equipment_name"].(string),
+			Value:         toFloat64(r["performance_score"]),
+		}
+	}
+
+	return ranking, nil
 }
 
 // GetFailureAnalysis returns failure analysis by equipment type
@@ -254,4 +314,11 @@ type TopFailureEquipment struct {
 	FailureCount  int64   `json:"failure_count"`
 	DowntimeHours int64   `json:"downtime_hours"`
 	MTTR          float64 `json:"mttr"`
+}
+
+type EquipmentRanking struct {
+	EquipmentID   uint    `json:"equipment_id"`
+	EquipmentCode string  `json:"equipment_code"`
+	EquipmentName string  `json:"equipment_name"`
+	Value         float64 `json:"value"`
 }

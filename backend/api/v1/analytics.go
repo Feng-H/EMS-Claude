@@ -23,7 +23,15 @@ func InitAnalytics() {
 // @Tags analytics
 // @Router /analytics/dashboard [get]
 func GetDashboardOverview(c *gin.Context) {
-	overview, err := analyticsService.GetDashboardOverview()
+	var factoryID *uint
+	if fid := c.Query("factory_id"); fid != "" {
+		if parsed, err := strconv.ParseUint(fid, 10, 32); err == nil {
+			id := uint(parsed)
+			factoryID = &id
+		}
+	}
+
+	overview, err := analyticsService.GetDashboardOverview(factoryID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -51,7 +59,6 @@ func GetMTTRMTBF(c *gin.Context) {
 
 	c.JSON(http.StatusOK, mttrMtbf)
 }
-
 // GetTrendData returns trend data
 // @Summary Get trend data
 // @Tags analytics
@@ -59,6 +66,13 @@ func GetMTTRMTBF(c *gin.Context) {
 func GetTrendData(c *gin.Context) {
 	startDate := c.Query("start_date")
 	endDate := c.Query("end_date")
+	var factoryID *uint
+	if fid := c.Query("factory_id"); fid != "" {
+		if parsed, err := strconv.ParseUint(fid, 10, 32); err == nil {
+			id := uint(parsed)
+			factoryID = &id
+		}
+	}
 
 	if startDate == "" {
 		startDate = time.Now().AddDate(0, 0, -30).Format("2006-01-02")
@@ -67,13 +81,97 @@ func GetTrendData(c *gin.Context) {
 		endDate = time.Now().Format("2006-01-02")
 	}
 
-	trends, err := analyticsService.GetTrendData(startDate, endDate)
+	trends, err := analyticsService.GetTrendData(startDate, endDate, factoryID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, trends)
+}
+
+// GetMTBFRanking returns MTBF ranking
+// @Summary Get MTBF ranking
+// @Tags analytics
+// @Router /analytics/rankings/mtbf [get]
+func GetMTBFRanking(c *gin.Context) {
+	limit := 10
+	if l := c.Query("limit"); l != "" {
+		if parsed, err := strconv.ParseUint(l, 10, 32); err == nil && parsed > 0 {
+			limit = int(parsed)
+		}
+	}
+	var factoryID *uint
+	if fid := c.Query("factory_id"); fid != "" {
+		if parsed, err := strconv.ParseUint(fid, 10, 32); err == nil {
+			id := uint(parsed)
+			factoryID = &id
+		}
+	}
+
+	ranking, err := analyticsService.GetMTBFRanking(limit, factoryID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, ranking)
+}
+
+// GetDowntimeRanking returns downtime ranking
+// @Summary Get downtime ranking
+// @Tags analytics
+// @Router /analytics/rankings/downtime [get]
+func GetDowntimeRanking(c *gin.Context) {
+	limit := 10
+	if l := c.Query("limit"); l != "" {
+		if parsed, err := strconv.ParseUint(l, 10, 32); err == nil && parsed > 0 {
+			limit = int(parsed)
+		}
+	}
+	var factoryID *uint
+	if fid := c.Query("factory_id"); fid != "" {
+		if parsed, err := strconv.ParseUint(fid, 10, 32); err == nil {
+			id := uint(parsed)
+			factoryID = &id
+		}
+	}
+
+	ranking, err := analyticsService.GetDowntimeRanking(limit, factoryID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, ranking)
+}
+
+// GetPerformanceRanking returns performance ranking
+// @Summary Get performance ranking
+// @Tags analytics
+// @Router /analytics/rankings/performance [get]
+func GetPerformanceRanking(c *gin.Context) {
+	limit := 10
+	if l := c.Query("limit"); l != "" {
+		if parsed, err := strconv.ParseUint(l, 10, 32); err == nil && parsed > 0 {
+			limit = int(parsed)
+		}
+	}
+	var factoryID *uint
+	if fid := c.Query("factory_id"); fid != "" {
+		if parsed, err := strconv.ParseUint(fid, 10, 32); err == nil {
+			id := uint(parsed)
+			factoryID = &id
+		}
+	}
+
+	ranking, err := analyticsService.GetPerformanceRanking(limit, factoryID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, ranking)
 }
 
 // GetFailureAnalysis returns failure analysis

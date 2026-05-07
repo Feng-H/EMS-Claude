@@ -141,7 +141,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { orgApi, type Base, Factory, Workshop } from '@/api/equipment'
+import { orgApi, type Base, type Factory, type Workshop } from '@/api/equipment'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 
 const bases = ref<Base[]>([])
