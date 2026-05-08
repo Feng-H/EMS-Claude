@@ -1,10 +1,8 @@
 package service
 
 import (
-	"fmt"
 	"github.com/ems/backend/internal/agent/dto"
 	"github.com/ems/backend/internal/model"
-	"github.com/ems/backend/pkg/database"
 )
 
 // ListTools returns the list of available tools for external Agents
