@@ -14,6 +14,7 @@
 6. [自我进化机制](#6-自我进化机制)
 7. [权限与数据隔离](#7-权限与数据隔离)
 8. [API 参考](#8-api-参考)
+9. [OpenClaw 集成：EMS Skill 接入](#9-openclaw-集成ems-skill-接入)
 
 ---
 
@@ -827,6 +828,87 @@ AgentArtifact (分析报告)
     "Message": "access denied: equipment belongs to another factory"
   }
 }
+```
+
+---
+
+## 9. OpenClaw 集成：EMS Skill 接入
+
+[OpenClaw](https://github.com/siyuan-cn/openclaw) 是一个开源的 AI Agent 平台，支持通过 Skill 文件接入外部系统。EMS 提供了标准的 Agent Skill 文件，可一键接入 OpenClaw。
+
+### 9.1 安装步骤
+
+1. 将 EMS 的 `SKILL.md`（即 `agent-skill.md`）文件复制到 OpenClaw 的 `./agents/skills/` 目录下
+2. 安装路径：`./agents/skills/EMS-Cloud/agent-skill.md`
+
+安装完成后，OpenClaw 会自动识别该技能：
+
+![OpenClaw 技能安装](openclaw接入图1-技能安装.png)
+
+### 9.2 配置参数
+
+使用 EMS 技能前，需要配置以下环境参数：
+
+| 参数 | 说明 | 示例 |
+|------|------|------|
+| `EMS_BASE_URL` | EMS 系统的 API 基础地址 | `https://ems-317316.xyz/api/v1` |
+| `EMS_API_KEY` | EMS 的 API Key（`ems_` 前缀） | `ems_7f8a9b2c...` |
+
+API Key 通过 EMS 前端「AI 集成」页面或 `POST /api/v1/auth/apikeys` 接口创建（参见 [3.1 认证与安全](#31-认证与安全)）。
+
+### 9.3 技能功能
+
+通过 `/ems` 命令触发，支持三大核心功能：
+
+| 功能 | 说明 | 示例查询 |
+|------|------|----------|
+| **设备管理** | 按名称/编号查询设备信息，包括 TCO 总成本、运行状态 | "查询 CNC-001 的设备信息" |
+| **事件管理** | 查询工厂事件，如故障记录、维护记录 | "最近有哪些故障事件" |
+| **健康度管理** | 查询设备健康状态、RUL 预测 | "CNC-001 的健康状态怎么样" |
+
+### 9.4 使用示例
+
+在 OpenClaw 聊天界面中，可以直接用自然语言与 EMS 交互。以下是一个查询备件库存的实际对话：
+
+![OpenClaw 使用示例](openclaw接入图2-使用示例.png)
+
+**对话流程：**
+
+```
+用户: 查备件 SP-001 的库存
+
+EMS Agent (通过 OpenClaw):
+  ✅ 查到了 SP-001 的信息：
+    - 采购单编号: 6205
+    - 工厂: 苏州智威工厂（FAC-SZ）
+    - 当前库存: 87 件
+    - 安全库存: 0 件
+  还需要查询其他备件吗？
+```
+
+### 9.5 接入架构
+
+```
+OpenClaw 用户界面
+    │
+    ├── /ems 命令触发
+    │
+    ▼
+OpenClaw Agent（加载 EMS-Cloud Skill）
+    │
+    ├── 意图识别 → 匹配 Skill 中定义的工具
+    │
+    ▼
+EMS Tool Protocol API
+    │
+    ├── GET  /api/v1/agent/tools          → 工具发现
+    ├── POST /api/v1/agent/tools/call     → 工具调用
+    │
+    ▼
+EMS 后端（认证 + 权限校验 + 数据隔离）
+    │
+    ▼
+返回结果 → OpenClaw 格式化展示
 ```
 
 ---
