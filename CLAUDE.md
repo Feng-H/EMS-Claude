@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-EMS (Equipment Management System) is a unified equipment management platform for group factories. The system manages approximately 50,000 devices across 10+ bases, 40+ factories, and 100+ workshops, serving 10,000+ users. Current version: v0.2.0-beta (~65% complete).
+EMS (Equipment Management System) is a unified equipment management platform for group factories. The system manages approximately 50,000 devices across 10+ bases, 40+ factories, and 100+ workshops, serving 10,000+ users. Current version: v1.0 (stable release).
 
 ### Core Problem Being Solved
 
@@ -13,6 +13,14 @@ EMS (Equipment Management System) is a unified equipment management platform for
 - Slow maintenance response times
 - Data silos between different factory units
 - High concurrent access during shift changes
+
+### Key Highlights (v1.0)
+
+- **Agent Platform**: MCP-compatible tool discovery, API key management, proactive event push
+- **Equipment Lifecycle**: RUL prediction, TCO calculation, retirement evaluation, sub-health detection
+- **Repair Management**: 7-state closed-loop workflow with auto-dispatch and knowledge conversion
+- **Management Dashboard**: Multi-dimensional analytics with MTTR/MTBF and factory-level drill-down
+- **Brand Color**: Orange (#E8753A) - vibrant, professional industrial aesthetic
 
 ## User Roles and Permissions
 
@@ -117,15 +125,16 @@ src/
     auth/            Login, ChangePassword
     equipment/       Equipment list, detail, Organization
     inspection/      Templates, Tasks, Execute
-    repair/          Orders, Execute, Report
+    repair/          Orders, Execute, Report + components/
     maintenance/     Plans, Tasks, Execute
     sparepart/       SparePart list
     analytics/       Charts & statistics
     knowledge/       Knowledge base
-    agent/           AI Management Assistant cockpit
+    agent/           AI Management Assistant cockpit, AgentIntegrationView
     user/            User management
     h5/              Mobile views (Vant-based)
-  components/        Shared: StatItem, MobileHeader, MobileActionBar, SparePartSelector
+  components/        Shared: StatItem, MobileHeader, MobileActionBar, SparePartSelector, MobileQRScanner
+  repair/components/ RepairReportDialog, RepairExecuteDialog, RepairAuditDialog, RepairToKnowledgeDialog
   composables/       useDeviceDetection
   utils/             device.ts (isMobile/isTablet/isDesktop)
   styles/            design-system.css, pc.css, h5.css, utilities.css
@@ -148,12 +157,15 @@ PC and mobile use **separate route trees** and **separate UI libraries**:
 - Auto-generated daily/periodic inspection tasks
 - GPS coordinate recording on inspection start
 - My-tasks and my-stats endpoints for mobile workers
+- **Auto-repair trigger**: NG inspection results automatically create repair orders
 
 ### 3. Repair Management (维修)
 - Full 7-state closed-loop workflow: pending -> assigned -> in_progress -> testing -> confirmed -> audited -> closed
 - Auto-dispatch: priority to equipment-bound maintenance worker, else public pool or engineer assignment
 - Spare parts consumption linked to repair orders with cost tracking
 - Priority levels, repair logs, and cost detail breakdowns
+- **Standalone dialog components**: RepairReportDialog, RepairExecuteDialog, RepairAuditDialog, RepairToKnowledgeDialog
+- **Knowledge conversion**: One-click convert completed repairs to knowledge base entries
 
 ### 4. Maintenance Management (保养)
 - Tiered maintenance levels (Level 1 by operators, Level 2 by maintenance workers)
@@ -166,11 +178,15 @@ PC and mobile use **separate route trees** and **separate UI libraries**:
 - Per-factory inventory management
 - Stock in/out with consumption tracking linked to work orders
 - Low stock alert system
+- **Transaction history**: Detailed in/out records with SparePartTransaction model
 
 ### 6. Analytics (统计分析)
 - Dashboard overview with key metrics
 - MTTR (Mean Time To Repair), MTBF (Mean Time Between Failures)
 - Trend data, failure analysis, top failure equipment
+- **Management Dashboard**: Multi-dimensional analytics with factory-level drill-down
+- **Equipment reliability ranking**: Top 10 failure equipment, downtime loss ranking, availability blacklist
+- **Task trend board**: 30-day inspection, repair, maintenance task trend comparison
 
 ### 7. Knowledge Base (知识库)
 - Articles with fault phenomenon, cause, solution, tags
@@ -187,6 +203,14 @@ PC and mobile use **separate route trees** and **separate UI libraries**:
 - Factory-level data isolation via policy service
 - Frontend cockpit: chat interface, audit mode, knowledge review, real-time equipment health panel
 
+### 10. Agent Platform (External Integration)
+- **MCP-compatible tool discovery**: Standardized JSON Schema for external Agent integration
+- **API Key management**: Secure key generation with lifecycle management (ems_ prefix)
+- **Tool call interface**: `POST /api/v1/agent/tools/call` for executing operations
+- **Proactive event push**: Configurable webhooks for NG inspections, repair requests, low stock alerts
+- **Hybrid RAG retrieval**: Expert knowledge base + technical manual chunking with weighted scoring
+- **Agent Integration UI**: Frontend view for API key management and tool discovery
+
 ### 9. Lark (Feishu) Integration
 - Webhook handler for Lark events (URL verification + message events)
 - Signature verification, auto-cached tenant access token
@@ -201,6 +225,12 @@ All API routes prefixed with `/api/v1`. Base URL configured via `VITE_API_BASE_U
 **Public**: `POST /auth/login`, `POST /auth/refresh`, `POST /auth/apply`, `POST /lark/webhook`
 
 **Protected** (JWT required): `/auth/me`, `/auth/change-password`, `/auth/bind-lark`, `/users/*`, `/organization/*`, `/equipment/*`, `/inspection/*`, `/repair/*`, `/maintenance/*`, `/spareparts/*`, `/analytics/*`, `/knowledge/*`, `/agent/*`
+
+**Agent Platform** (API Key or JWT):
+- `GET /api/v1/agent/tools` - Tool discovery (MCP-compatible schema)
+- `POST /api/v1/agent/tools/call` - Execute tool operations
+- `GET /api/v1/agent/knowledges` - Hybrid RAG knowledge retrieval
+- API Key via `X-API-KEY` header (inherits user role permissions)
 
 ## Common Development Commands
 
@@ -282,6 +312,14 @@ docker-compose logs -f backend
 ./sync-to-prod.sh
 ```
 
+### CI/CD
+```bash
+# GitHub Actions workflow (automatic on push/PR to main)
+# Backend: Go test suite
+# Frontend: Node.js build verification
+# See .github/workflows/ci.yml
+```
+
 ## Key File Locations
 
 ### Backend
@@ -303,6 +341,8 @@ docker-compose logs -f backend
 - **PC layout**: `frontend/src/views/layout/MainLayout.vue`
 - **Mobile layout**: `frontend/src/views/layout/MobileLayout.vue`
 - **AI cockpit**: `frontend/src/views/agent/ManagementAssistantView.vue`
+- **Agent integration**: `frontend/src/views/agent/AgentIntegrationView.vue`
+- **Repair dialogs**: `frontend/src/views/repair/components/*.vue`
 
 ### Infrastructure
 - **DB schema**: `db/schema.sql` (reference only; runtime schema managed by GORM AutoMigrate)
@@ -315,6 +355,8 @@ docker-compose logs -f backend
 ### Documentation
 - **Historical docs**: `docs/archive/` (completed Agent phase docs, old deployment guides, business requirements)
 - **README.md**: Project overview + detailed Feishu bot setup guide
+- **Agent integration guide**: `docs/AGENT_INTEGRATION.md` (MCP-compatible tool discovery, API key management)
+- **Project progress**: `docs/PROJECT_PROGRESS.md` (module completion status)
 
 ## Environment Variables
 
@@ -348,6 +390,22 @@ Key variables (set in `.env`, all prefixed with `EMS_`):
 - Factory-level data isolation is enforced by the Agent policy service
 - All agent conclusions should be backed by traceable evidence from database records
 - When adding new features, implement both `memory` and `database` mode paths
+
+### Agent Platform Architecture
+
+The Agent platform follows MCP (Model Context Protocol) principles:
+- **Tool Discovery**: `GET /api/v1/agent/tools` returns JSON Schema definitions
+- **Tool Execution**: `POST /api/v1/agent/tools/call` with `{name, arguments}` payload
+- **Proactive Push**: Event-driven webhooks for critical alerts (NG inspection, low stock, faults)
+- **Hybrid RAG**: Weighted scoring (1.0 for expert knowledge, 0.8 for manual chunks)
+- **API Key Auth**: `X-API-KEY` header with `ems_` prefix, inherits user role permissions
+
+### Equipment Lifecycle Analytics
+
+- **RUL Prediction**: Remaining Useful Life based on MTBF, load factor, and failure history
+- **TCO Calculation**: Total Cost of Ownership = repair cost + downtime loss + depreciation
+- **Retirement Evaluation**: Maintenance-to-asset ratio thresholds (40% watchlist, 60% retire)
+- **Sub-health Detection**: Micro-stop frequency, PM effectiveness, MTTR drift analysis
 
 ### Important: GORM Column Naming
 
