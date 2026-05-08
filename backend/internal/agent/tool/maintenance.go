@@ -124,3 +124,31 @@ func (t *MaintenanceTool) GetRecentTasksByEquipment(equipmentID uint, limit int,
 	return t.taskRepo.GetByEquipmentID(equipmentID, limit)
 }
 
+func (t *MaintenanceTool) GetTasksByFilter(filter repository.MaintenanceTaskFilter, user model.User) ([]model.MaintenanceTask, int64, error) {
+	// If user is not admin, restrict to their factory
+	if user.Role != "admin" && user.FactoryID != nil {
+		filter.FactoryID = *user.FactoryID
+	}
+
+	if config.Cfg.Storage.Mode == "memory" {
+		var results []model.MaintenanceTask
+		store := memory.GetStore()
+		for _, task := range store.MaintenanceTasks {
+			// Factory isolation in memory
+			if user.Role != "admin" && user.FactoryID != nil {
+				e := store.FindEquipment(task.EquipmentID)
+				if e == nil { continue }
+				w := store.Workshops[e.WorkshopID]
+				if w.FactoryID != *user.FactoryID { continue }
+			}
+
+			if filter.Status != "" && task.Status != filter.Status {
+				continue
+			}
+			results = append(results, *task)
+		}
+		return results, int64(len(results)), nil
+	}
+
+	return t.taskRepo.List(filter)
+}

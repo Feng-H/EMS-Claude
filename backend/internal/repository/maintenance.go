@@ -122,6 +122,7 @@ func (r *MaintenanceTaskRepository) GetByID(id uint) (*model.MaintenanceTask, er
 type MaintenanceTaskFilter struct {
 	Status     string
 	AssignedTo uint
+	FactoryID  uint // Filter by factory
 	DateFrom   time.Time
 	DateTo     time.Time
 	Page       int
@@ -134,17 +135,23 @@ func (r *MaintenanceTaskRepository) List(filter MaintenanceTaskFilter) ([]model.
 
 	query := r.db.Model(&model.MaintenanceTask{})
 
+	if filter.FactoryID > 0 {
+		query = query.Joins("JOIN equipments ON maintenance_tasks.equipment_id = equipments.id").
+			Joins("JOIN workshops ON equipments.workshop_id = workshops.id").
+			Where("workshops.factory_id = ?", filter.FactoryID)
+	}
+
 	if filter.Status != "" {
-		query = query.Where("status = ?", filter.Status)
+		query = query.Where("maintenance_tasks.status = ?", filter.Status)
 	}
 	if filter.AssignedTo > 0 {
-		query = query.Where("assigned_to = ?", filter.AssignedTo)
+		query = query.Where("maintenance_tasks.assigned_to = ?", filter.AssignedTo)
 	}
 	if !filter.DateFrom.IsZero() {
-		query = query.Where("scheduled_date >= ?", filter.DateFrom)
+		query = query.Where("maintenance_tasks.scheduled_date >= ?", filter.DateFrom.Format("2006-01-02"))
 	}
 	if !filter.DateTo.IsZero() {
-		query = query.Where("scheduled_date <= ?", filter.DateTo)
+		query = query.Where("maintenance_tasks.scheduled_date <= ?", filter.DateTo.Format("2006-01-02"))
 	}
 
 	// Count total
@@ -156,7 +163,7 @@ func (r *MaintenanceTaskRepository) List(filter MaintenanceTaskFilter) ([]model.
 	offset := (filter.Page - 1) * filter.PageSize
 	err := query.Preload("Plan").Preload("Equipment").
 		Preload("Assignee").
-		Order("scheduled_date DESC, created_at DESC").
+		Order("maintenance_tasks.scheduled_date DESC, maintenance_tasks.created_at DESC").
 		Offset(offset).Limit(filter.PageSize).Find(&tasks).Error
 
 	return tasks, total, err

@@ -483,8 +483,27 @@ func (s *AgentService) Analyze(user model.User, req *dto.AnalyzeRequest) (*dto.A
 	}
 
 	analysisData := dto.AnalyzeData{
-		KeyFindings: []string{"设备处于次健康状态", "维修成本有上升趋势"},
+		KeyFindings: []string{},
 		Evidence:    []dto.EvidenceItem{},
+	}
+
+	if health, ok := contextMap["equipment_health"].(map[string]interface{}); ok {
+		if rul, ok := health["rul"].(*dto.RULPrediction); ok && rul.EstimatedRULDays < 10 {
+			analysisData.KeyFindings = append(analysisData.KeyFindings, fmt.Sprintf("设备剩余寿命仅剩 %d 天，存在停机风险", rul.EstimatedRULDays))
+			analysisData.Evidence = append(analysisData.Evidence, dto.EvidenceItem{
+				EvidenceType: "prediction", Title: "RUL 预测", Excerpt: fmt.Sprintf("预计剩余寿命: %d天", rul.EstimatedRULDays), Score: 0.95,
+			})
+		}
+	}
+
+	if stats, ok := contextMap["failure_stats"].(map[string]interface{}); ok {
+		if count, ok := stats["repair_count"].(int); ok && count > 5 {
+			analysisData.KeyFindings = append(analysisData.KeyFindings, "近期维修频率较高，建议核查根本原因")
+		}
+	}
+
+	if len(analysisData.KeyFindings) == 0 {
+		analysisData.KeyFindings = append(analysisData.KeyFindings, "设备运行状况平稳", "未发现近期异常趋势")
 	}
 
 	inputSnap, _ := json.Marshal(req)
@@ -943,26 +962,50 @@ func (s *AgentService) ListSubscriptions(userID uint) ([]model.AgentPushSubscrip
 }
 
 func (s *AgentService) NotifyEvent(eventType string, targetID uint, context map[string]interface{}) {
-	// 1. 根据事件类型执行分析 (Demo: 只处理 RUL 风险)
-	prediction, err := s.predictiveAnalyzer.PredictRUL(targetID, model.User{Role: "admin"})
-	if err != nil || prediction.EstimatedRULDays >= 7 { return }
-
-	// 2. 创建一个主动分析 Artifact
-	artifact := &model.AgentArtifact{
-		ArtifactType: "proactive_push",
-		Title:        "设备停机风险预警",
-		Summary:      fmt.Sprintf("Agent 自动巡检发现风险：设备预计剩余健康寿命仅剩 %d 天，建议立即干预。", prediction.EstimatedRULDays),
-		ResultJSON:   "{\"prediction\": \"high_risk\"}",
-		RiskLevel:    "high",
-	}
-	_ = s.repo.CreateArtifact(artifact)
-
-	// 3. 查找相关订阅并投递
+	// 1. 查找所有启用且类型匹配的订阅
 	var subs []model.AgentPushSubscription
-	database.GetDB().Where("push_type = ? AND enabled = ?", "predictive_maintenance", true).Find(&subs)
+	database.GetDB().Preload("User").Where("push_type = ? AND enabled = ?", eventType, true).Find(&subs)
 
 	for _, sub := range subs {
-		// Verify if target belongs to subscriber's scope (simplified for MVP)
+		// 2. 为每个订阅用户执行权限与范围校验
+		user := model.User{}
+		if sub.UserID > 0 {
+			database.GetDB().First(&user, sub.UserID)
+		} else {
+			continue
+		}
+
+		// 检查设备是否属于该用户的工厂范围
+		var equipment model.Equipment
+		if err := database.GetDB().Joins("JOIN workshops ON workshops.id = equipments.workshop_id").First(&equipment, targetID).Error; err != nil {
+			continue
+		}
+		if user.Role != "admin" && user.FactoryID != nil {
+			var workshop model.Workshop
+			database.GetDB().First(&workshop, equipment.WorkshopID)
+			if workshop.FactoryID != *user.FactoryID {
+				continue // 跨工厂，跳过此订阅者
+			}
+		}
+
+		// 3. 在用户上下文中执行分析 (确保 RUL/TCO 等逻辑应用了正确的工厂参数，且报错能被捕捉)
+		prediction, err := s.predictiveAnalyzer.PredictRUL(targetID, user)
+		if err != nil || prediction.EstimatedRULDays >= 7 {
+			continue
+		}
+
+		// 4. 创建 Artifact (如果尚未为此事件创建，或需要个性化)
+		// 注意：实际生产中可能需要一个缓存避免重复创建完全一样的 Artifact，这里简化为每人一个或共享
+		artifact := &model.AgentArtifact{
+			ArtifactType: "proactive_push",
+			Title:        "设备停机风险预警",
+			Summary:      fmt.Sprintf("Agent 自动巡检发现风险：设备【%s】预计剩余健康寿命仅剩 %d 天，建议立即干预。", equipment.Name, prediction.EstimatedRULDays),
+			ResultJSON:   "{\"prediction\": \"high_risk\"}",
+			RiskLevel:    "high",
+		}
+		_ = s.repo.CreateArtifact(artifact)
+
+		// 5. 投递
 		go s.deliverPush(sub, artifact)
 	}
 }

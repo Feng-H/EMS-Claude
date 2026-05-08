@@ -1,7 +1,6 @@
 package tool
 
 import (
-	"context"
 	"fmt"
 	"github.com/ems/backend/internal/agent/dto"
 	"github.com/ems/backend/internal/model"
@@ -54,9 +53,27 @@ func (r *ToolRegistry) Call(name string, user model.User, args map[string]interf
 	}
 
 	// Scope check
-	if !entry.IsReadOnly {
-		// Basic scope check for write operations
-		// In production, check if userScopes contains at least one of entry.Scopes
+	if len(entry.Scopes) > 0 {
+		hasScope := false
+		scopeMap := make(map[string]bool)
+		for _, s := range userScopes {
+			scopeMap[s] = true
+		}
+
+		for _, required := range entry.Scopes {
+			if scopeMap[required] {
+				hasScope = true
+				break
+			}
+		}
+
+		if !hasScope && len(userScopes) > 0 {
+			// If user has scopes (API Key), but none match
+			return nil, fmt.Errorf("permission denied: missing required scope(s) %v", entry.Scopes)
+		}
+		// If userScopes is empty, it might be a Web user (JWT), 
+		// who relies on Role/Factory checks inside the tool handler.
+		// We could strictly enforce that API Key users MUST have scopes.
 	}
 
 	return entry.Handler(user, args)

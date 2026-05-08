@@ -72,7 +72,6 @@ func (t *PromptTool) BuildGenericAnalysisPrompt(question string, context interfa
 }
 
 func (t *PromptTool) BuildKnowledgeExtractionPrompt(history interface{}) string {
-...
 	return fmt.Sprintf(`你是一个资深的工业设备知识专家。请仔细阅读下面这段工程师与 AI 助手的对话记录，判断其中是否包含有价值的设备管理知识（如故障根因、预防措施、操作经验等）。
 
 ### 对话记录

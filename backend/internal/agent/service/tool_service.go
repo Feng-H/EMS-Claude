@@ -13,10 +13,8 @@ func (s *AgentService) ListTools(user model.User) ([]dto.ToolDefinition, error) 
 }
 
 // CallTool executes a tool call for an external Agent
-func (s *AgentService) CallTool(user model.User, req *dto.CallToolRequest) (*dto.CallToolResponse, error) {
-	// Retrieve user's API Key scopes if applicable
-	// For simplicity, we'll pass nil for now.
-	result, err := s.toolRegistry.Call(req.Name, user, req.Arguments, nil)
+func (s *AgentService) CallTool(user model.User, req *dto.CallToolRequest, scopes []string) (*dto.CallToolResponse, error) {
+	result, err := s.toolRegistry.Call(req.Name, user, req.Arguments, scopes)
 	if err != nil {
 		return &dto.CallToolResponse{Content: err.Error(), IsError: true}, nil
 	}

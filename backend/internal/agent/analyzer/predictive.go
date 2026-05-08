@@ -29,9 +29,10 @@ func (a *PredictiveAnalyzer) PredictRUL(equipmentID uint, user model.User) (*dto
 	stats, err := a.repairTool.GetFailureStats(equipmentID, user)
 	if err != nil { return nil, err }
 	
-	// 2. 获取最近 30 天工况 (从证据链逻辑中简化)
-	loadFactor := 1.15 // 默认使用 Demo 中的超负荷系数
-	avgMTBFHours := 300.0 // 假设该型号标准 MTBF 为 300 小时
+	// 2. 估算负载与标准 MTBF
+	// 在生产环境中，这里应查询设备传感器数据 (Snapshots)
+	loadFactor := 1.0 
+	avgMTBFHours := 500.0 // 默认值
 	
 	repairCount := 0.0
 	if val, ok := stats["repair_count"]; ok {
@@ -42,13 +43,14 @@ func (a *PredictiveAnalyzer) PredictRUL(equipmentID uint, user model.User) (*dto
 		}
 	}
 	
-	// 如果故障频繁，动态下调预期 MTBF
-	if repairCount > 3 {
-		avgMTBFHours = avgMTBFHours * 0.7
+	// 根据历史故障密度调整 MTBF 预期
+	if repairCount > 0 {
+		avgMTBFHours = 1000.0 / (repairCount + 1)
 	}
 
-	// 3. 计算预计剩余时间
-	currentUsedHours := 240.0 // 模拟已连续运行时间
+	// 3. 模拟实时工况 (如有更多 snapshot 工具可在此调用)
+	currentUsedHours := 100.0 // 假设自上次维修已运行 100 小时
+	
 	rulHours := (avgMTBFHours - currentUsedHours) / loadFactor
 	if rulHours < 0 { rulHours = 0 }
 	
@@ -57,6 +59,7 @@ func (a *PredictiveAnalyzer) PredictRUL(equipmentID uint, user model.User) (*dto
 	// 4. 计算健康分 (0-100)
 	healthScore := (rulHours / avgMTBFHours) * 100
 	if healthScore > 100 { healthScore = 100 }
+	if healthScore < 0 { healthScore = 0 }
 
 	prediction := &dto.RULPrediction{
 		EquipmentID:      equipmentID,
@@ -67,20 +70,17 @@ func (a *PredictiveAnalyzer) PredictRUL(equipmentID uint, user model.User) (*dto
 	}
 
 	// 5. 风险因子识别
-	if loadFactor > 1.1 {
-		prediction.RiskFactors = append(prediction.RiskFactors, "超负荷运行 (115%)")
-	}
-	if repairCount > 2 {
-		prediction.RiskFactors = append(prediction.RiskFactors, "近期发生重复故障，硬件疲劳加速")
+	if repairCount > 3 {
+		prediction.RiskFactors = append(prediction.RiskFactors, "设备故障频发，系统可靠性显著下降")
 	}
 
 	// 6. 给出建议
-	if rulDays <= 3 {
-		prediction.Recommendation = "紧急建议：设备已进入高风险故障期，预计 3 天内可能发生停机，请立即安排预防性检修。"
-	} else if rulDays <= 7 {
-		prediction.Recommendation = "预警：健康分较低，建议在下周内安排油质监测和同心度校准。"
+	if healthScore < 30 {
+		prediction.Recommendation = "高风险：设备健康度极低，建议停机检查核心部件。"
+	} else if healthScore < 60 {
+		prediction.Recommendation = "注意：设备进入亚健康状态，建议缩短保养间隔。"
 	} else {
-		prediction.Recommendation = "状态良好：建议继续保持当前的预防性保养节奏。"
+		prediction.Recommendation = "良好：设备运行状态稳定，继续执行标准保养计划。"
 	}
 
 	return prediction, nil
@@ -188,8 +188,14 @@ func (a *PredictiveAnalyzer) CalculateTCO(equipmentID uint, user model.User) (*T
 	downtimeLoss := downtimeHours * hourlyLoss
 	
 	// 计算折旧 (直线折旧法)
-	yearsUsed := 3.0
-	if code, ok := profile["code"].(string); ok && code == "PRESS-05" { yearsUsed = 12.0 }
+	yearsUsed := 3.0 // 默认 3 年
+	if pd, ok := profile["purchase_date"].(*time.Time); ok && pd != nil {
+		yearsUsed = time.Since(*pd).Hours() / (24 * 365)
+	} else if pd, ok := profile["purchase_date"].(time.Time); ok {
+		yearsUsed = time.Since(pd).Hours() / (24 * 365)
+	}
+	
+	if yearsUsed < 0 { yearsUsed = 0 }
 	
 	annualDepreciation := (purchasePrice - scrapValue) / serviceLife
 	currentNetValue := purchasePrice - (annualDepreciation * yearsUsed)

@@ -107,11 +107,25 @@
                   <div class="push-body">
                     <p class="push-desc">{{ push.description }}</p>
                     <div class="scope-config">
+                      <span class="scope-label">Webhook URL</span>
+                      <el-input
+                        v-model="push.webhook_url"
+                        placeholder="https://example.com/webhook"
+                        style="margin-bottom: 10px"
+                      />
+                      <span class="scope-label">签名密钥 (Secret)</span>
+                      <el-input
+                        v-model="push.secret"
+                        type="password"
+                        show-password
+                        placeholder="用于签名 payload"
+                        style="margin-bottom: 10px"
+                      />
                       <span class="scope-label">推送范围 (JSON)</span>
                       <el-input
                         v-model="push.scope"
                         type="textarea"
-                        :rows="4"
+                        :rows="2"
                         placeholder='例如: {"workshop_id": 1}'
                       />
                     </div>
@@ -320,11 +334,23 @@ const loadTools = async () => {
 // --- Proactive Push Tab ---
 const pushConfigs = ref([
   {
+    type: 'predictive_maintenance',
+    label: '预测性维护预警',
+    description: '当分析出设备剩余寿命较低或停机风险较高时推送。',
+    enabled: false,
+    scope: '{}',
+    webhook_url: '',
+    secret: '',
+    saving: false
+  },
+  {
     type: 'ng_inspection',
     label: '点检异常推送',
     description: '当点检发现异常状态时，主动推送通知。',
     enabled: false,
     scope: '{}',
+    webhook_url: '',
+    secret: '',
     saving: false
   },
   {
@@ -333,6 +359,8 @@ const pushConfigs = ref([
     description: '当有新的报修工单创建时，主动推送通知。',
     enabled: false,
     scope: '{}',
+    webhook_url: '',
+    secret: '',
     saving: false
   },
   {
@@ -341,6 +369,8 @@ const pushConfigs = ref([
     description: '当备件库存低于设定的安全阈值时，主动推送通知。',
     enabled: false,
     scope: '{}',
+    webhook_url: '',
+    secret: '',
     saving: false
   }
 ])
@@ -354,6 +384,8 @@ const loadSubscriptions = async () => {
       if (config) {
         config.enabled = s.enabled
         config.scope = s.scope || '{}'
+        config.webhook_url = s.webhook_url || ''
+        config.secret = s.secret || ''
       }
     })
   } catch (error) {
@@ -378,7 +410,9 @@ const handleSavePush = async (push: any) => {
     await agentApi.subscribe({
       push_type: push.type,
       enabled: push.enabled,
-      scope: parsedScope
+      scope: parsedScope,
+      webhook_url: push.webhook_url,
+      secret: push.secret
     })
     ElMessage.success(`${push.label} 配置保存成功`)
   } catch (error: any) {

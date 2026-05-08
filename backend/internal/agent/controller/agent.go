@@ -739,7 +739,8 @@ func (ctrl *AgentController) CallTool(c *gin.Context) {
 		return
 	}
 
-	result, err := ctrl.agentService.CallTool(user, &req)
+	scopes, _ := middleware.GetAPIKeyScopes(c)
+	result, err := ctrl.agentService.CallTool(user, &req, scopes)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
 			Success: false,

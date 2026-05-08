@@ -144,6 +144,12 @@ export const agentApi = {
   listSubscriptions: () =>
     request.get<any[]>('/agent/subscriptions'),
 
-  subscribe: (data: { push_type: string; enabled: boolean; scope?: any }) =>
+  subscribe: (data: { 
+    push_type: string; 
+    enabled: boolean; 
+    scope?: any;
+    webhook_url?: string;
+    secret?: string;
+  }) =>
     request.post('/agent/subscribe', data),
 }

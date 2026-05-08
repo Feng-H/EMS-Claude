@@ -2,9 +2,11 @@ package analyzer
 
 import (
 	"fmt"
+	"time"
 	"github.com/ems/backend/internal/agent/dto"
 	"github.com/ems/backend/internal/agent/tool"
 	"github.com/ems/backend/internal/model"
+	"github.com/ems/backend/internal/repository"
 )
 
 type MaintenanceAnalyzer struct {
@@ -70,31 +72,65 @@ func (a *MaintenanceAnalyzer) Audit(req *dto.MaintenanceAuditRequest, user model
 		Evidence:  []dto.EvidenceItem{},
 	}
 
-	// 1. Fetch recent tasks for auditing
-	// For MVP, we'll use rule-based analysis on compliance and delays.
+	// 1. Fetch recent tasks for auditing (last 30 days by default)
+	dateFrom := time.Now().AddDate(0, 0, -30)
+	filter := repository.MaintenanceTaskFilter{
+		DateFrom: dateFrom,
+		Page:     1,
+		PageSize: 1000,
+	}
 	
-	stats := map[string]interface{}{
-		"total_tasks_checked": 0,
-		"delayed_tasks":       0,
-		"compliance_rate":     1.0,
+	tasks, _, err := a.maintenanceTool.GetTasksByFilter(filter, user)
+	if err != nil {
+		return nil, err
 	}
 
-	// Simulated logic for MVP audit
-	data.AuditSummary = "保养计划执行基本合规，但发现部分任务存在延期风险。"
+	totalTasks := len(tasks)
+	completedTasks := 0
+	delayedTasks := 0
 	
-	data.Anomalies = append(data.Anomalies, dto.AnomalyItem{
-		AnomalyType: "delayed_task",
-		Severity:    "medium",
-		Title:       "发现保养任务延期",
-		Description: "当前工厂有 3 个保养任务超过预计开始时间 48 小时未启动。",
-		SuggestedAction: "建议核查维护班组负荷，必要时调整排班或外协维护。",
-	})
+	now := time.Now()
+	for _, task := range tasks {
+		if task.Status == model.MaintenanceCompleted {
+			completedTasks++
+		}
+		
+		// Logic for delayed task: not completed and past scheduled date by 2 days
+		scheduledDate, _ := time.Parse("2006-01-02", task.ScheduledDate)
+		if task.Status != model.MaintenanceCompleted && now.After(scheduledDate.AddDate(0, 0, 2)) {
+			delayedTasks++
+			
+			if len(data.Anomalies) < 5 { // Limit anomalies
+				data.Anomalies = append(data.Anomalies, dto.AnomalyItem{
+					AnomalyType: "delayed_task",
+					Severity:    "medium",
+					Title:       fmt.Sprintf("任务延期: %s", task.Equipment.Name),
+					Description: fmt.Sprintf("设备 %s 的保养任务原定于 %s，目前已延期超过 48 小时。", task.Equipment.Code, task.ScheduledDate),
+					SuggestedAction: "核查该设备运行状态，优先补做保养任务。",
+				})
+			}
+		}
+	}
 
-	stats["total_tasks_checked"] = 45
-	stats["delayed_tasks"] = 3
-	stats["compliance_rate"] = 0.93
+	complianceRate := 1.0
+	if totalTasks > 0 {
+		complianceRate = float64(completedTasks) / float64(totalTasks)
+	}
+
+	stats := map[string]interface{}{
+		"total_tasks_checked": totalTasks,
+		"delayed_tasks":       delayedTasks,
+		"compliance_rate":     complianceRate,
+	}
+
+	if complianceRate < 0.8 {
+		data.AuditSummary = fmt.Sprintf("保养合规率较低（%.1f%%），存在较大设备故障风险。发现 %d 项延期任务。", complianceRate*100, delayedTasks)
+	} else if delayedTasks > 0 {
+		data.AuditSummary = fmt.Sprintf("保养计划执行基本合规（%.1f%%），但发现 %d 项任务存在延期风险。", complianceRate*100, delayedTasks)
+	} else {
+		data.AuditSummary = fmt.Sprintf("保养计划执行良好，合规率 %.1f%%，未发现明显延期。", complianceRate*100)
+	}
 
 	data.PlanComparisons = stats
-
 	return data, nil
 }

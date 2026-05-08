@@ -81,6 +81,11 @@ func (t *RetrievalTool) GetEquipmentProfile(id uint, user model.User) (map[strin
 		"type_name": e.Type.Name,
 		"workshop_name": e.Workshop.Name,
 		"factory_name": e.Workshop.Factory.Name,
+		"purchase_price": e.PurchasePrice,
+		"purchase_date": e.PurchaseDate,
+		"service_life_years": e.ServiceLifeYears,
+		"scrap_value": e.ScrapValue,
+		"hourly_loss": e.HourlyLoss,
 	}
 	return res, nil
 }

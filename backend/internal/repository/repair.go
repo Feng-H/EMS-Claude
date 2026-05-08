@@ -37,6 +37,7 @@ type RepairOrderFilter struct {
 	Status     string
 	Priority   int
 	AssignedTo uint
+	FactoryID  uint // Filter by factory
 	DateFrom   time.Time
 	DateTo     time.Time
 	Page       int
@@ -49,20 +50,26 @@ func (r *RepairOrderRepository) List(filter RepairOrderFilter) ([]model.RepairOr
 
 	query := r.db.Model(&model.RepairOrder{})
 
+	if filter.FactoryID > 0 {
+		query = query.Joins("JOIN equipments ON repair_orders.equipment_id = equipments.id").
+			Joins("JOIN workshops ON equipments.workshop_id = workshops.id").
+			Where("workshops.factory_id = ?", filter.FactoryID)
+	}
+
 	if filter.Status != "" {
-		query = query.Where("status = ?", filter.Status)
+		query = query.Where("repair_orders.status = ?", filter.Status)
 	}
 	if filter.Priority > 0 {
-		query = query.Where("priority = ?", filter.Priority)
+		query = query.Where("repair_orders.priority = ?", filter.Priority)
 	}
 	if filter.AssignedTo > 0 {
-		query = query.Where("assigned_to = ?", filter.AssignedTo)
+		query = query.Where("repair_orders.assigned_to = ?", filter.AssignedTo)
 	}
 	if !filter.DateFrom.IsZero() {
-		query = query.Where("created_at >= ?", filter.DateFrom)
+		query = query.Where("repair_orders.created_at >= ?", filter.DateFrom)
 	}
 	if !filter.DateTo.IsZero() {
-		query = query.Where("created_at <= ?", filter.DateTo)
+		query = query.Where("repair_orders.created_at <= ?", filter.DateTo)
 	}
 
 	// Count total
@@ -75,7 +82,7 @@ func (r *RepairOrderRepository) List(filter RepairOrderFilter) ([]model.RepairOr
 	err := query.Preload("Equipment").Preload("Equipment.Type").
 		Preload("Reporter").Preload("Assignee").
 		Preload("CostDetail").
-		Order("priority ASC, created_at DESC").
+		Order("repair_orders.priority ASC, repair_orders.created_at DESC").
 		Offset(offset).Limit(filter.PageSize).Find(&orders).Error
 
 	return orders, total, err

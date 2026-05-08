@@ -2,19 +2,24 @@ package middleware
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/ems/backend/pkg/jwt"
+	"github.com/ems/backend/pkg/redis"
 	"github.com/ems/backend/internal/model"
 	"gorm.io/gorm"
 	"github.com/gin-gonic/gin"
 )
 
 const (
-	ContextKeyUserID = "user_id"
-	ContextKeyRole   = "role"
+	ContextKeyUserID           = "user_id"
+	ContextKeyRole             = "role"
+	ContextKeyAPIKeyID         = "api_key_id"
+	ContextKeyAPIKeyScopes     = "api_key_scopes"
+	ContextKeyAPIKeyRateLimit  = "api_key_rate_limit"
 )
 
 var db *gorm.DB
@@ -37,12 +42,31 @@ func AuthMiddleware() gin.HandlerFunc {
 			if err == nil {
 				// Check expiration
 				if keyRecord.ExpiresAt == nil || keyRecord.ExpiresAt.After(time.Now()) {
+					// Enforce Rate Limit
+					if keyRecord.RateLimit > 0 {
+						if !checkRateLimit(keyRecord.ID, keyRecord.RateLimit) {
+							c.JSON(http.StatusTooManyRequests, gin.H{"error": "API rate limit exceeded"})
+							c.Abort()
+							return
+						}
+					}
+
 					// Update last used
 					now := time.Now()
 					db.Model(&keyRecord).Update("last_used_at", &now)
 
 					c.Set(ContextKeyUserID, keyRecord.UserID)
 					c.Set(ContextKeyRole, string(keyRecord.User.Role))
+					c.Set(ContextKeyAPIKeyID, keyRecord.ID)
+					
+					scopes := strings.Split(keyRecord.Scopes, ",")
+					trimmedScopes := make([]string, 0, len(scopes))
+					for _, s := range scopes {
+						if ts := strings.TrimSpace(s); ts != "" {
+							trimmedScopes = append(trimmedScopes, ts)
+						}
+					}
+					c.Set(ContextKeyAPIKeyScopes, trimmedScopes)
 					c.Next()
 					return
 				}
@@ -124,4 +148,34 @@ func GetUserRole(c *gin.Context) (string, bool) {
 		return "", false
 	}
 	return roleStr, true
+}
+
+func checkRateLimit(apiKeyID uint, limit int) bool {
+	if redis.Client == nil {
+		return true // Skip if redis is not available
+	}
+
+	key := fmt.Sprintf("ratelimit:apikey:%d:%d", apiKeyID, time.Now().Unix()/60)
+	count, err := redis.Client.Incr(redis.Ctx, key).Result()
+	if err != nil {
+		return true // Fail open on redis error
+	}
+
+	if count == 1 {
+		redis.Client.Expire(redis.Ctx, key, time.Minute)
+	}
+
+	return int(count) <= limit
+}
+
+func GetAPIKeyScopes(c *gin.Context) ([]string, bool) {
+	scopes, exists := c.Get(ContextKeyAPIKeyScopes)
+	if !exists {
+		return nil, false
+	}
+	scopesList, ok := scopes.([]string)
+	if !ok {
+		return nil, false
+	}
+	return scopesList, true
 }

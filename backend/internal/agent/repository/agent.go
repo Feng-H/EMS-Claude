@@ -88,12 +88,12 @@ func (r *DBAgentRepository) SearchManualChunks(query string, equipmentTypeID *ui
 	db := r.db.Model(&model.ManualChunk{})
 	
 	if equipmentTypeID != nil {
-		db = db.Joins("JOIN equipment_manual_documents ON equipment_manual_documents.id = equipment_manual_chunks.document_id").
-			Where("equipment_manual_documents.equipment_type_id = ?", *equipmentTypeID)
+		db = db.Joins("JOIN manual_documents ON manual_documents.id = manual_chunks.document_id").
+			Where("manual_documents.equipment_type_id = ?", *equipmentTypeID)
 	}
 	
 	// Phase 1: Simple LIKE search (will upgrade to tsvector later)
-	err := db.Where("content LIKE ?", "%"+query+"%").Limit(10).Find(&chunks).Error
+	err := db.Where("manual_chunks.content LIKE ?", "%"+query+"%").Limit(10).Find(&chunks).Error
 	return chunks, err
 }
 

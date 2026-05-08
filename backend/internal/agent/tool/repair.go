@@ -127,10 +127,7 @@ func (t *RepairTool) GetRecentOrdersByEquipment(equipmentID uint, limit int, use
 func (t *RepairTool) GetOrdersByFilter(filter repository.RepairOrderFilter, user model.User) ([]model.RepairOrder, int64, error) {
 	// If user is not admin, restrict to their factory
 	if user.Role != "admin" && user.FactoryID != nil {
-		// In a real system, we'd join with equipment and workshops to filter by factory.
-		// For now, if repository doesn't support factory filter directly, we'll need to handle it.
-		// Let's assume for MVP that repository.List might need a FactoryID filter.
-		// Since I don't want to change the repository signature right now, I'll filter after fetch or assume the user only sees their factory's data if we had that in repo.
+		filter.FactoryID = *user.FactoryID
 	}
 
 	if config.Cfg.Storage.Mode == "memory" {
@@ -138,6 +135,14 @@ func (t *RepairTool) GetOrdersByFilter(filter repository.RepairOrderFilter, user
 		var results []model.RepairOrder
 		store := memory.GetStore()
 		for _, order := range store.RepairOrders {
+			// Factory isolation in memory
+			if user.Role != "admin" && user.FactoryID != nil {
+				e := store.FindEquipment(order.EquipmentID)
+				if e == nil { continue }
+				w := store.Workshops[e.WorkshopID]
+				if w.FactoryID != *user.FactoryID { continue }
+			}
+
 			// Apply basic status filter if present
 			if filter.Status != "" && order.Status != model.RepairStatus(filter.Status) {
 				continue
