@@ -18,28 +18,35 @@
             </div>
             
             <el-table :data="apiKeys" border stripe v-loading="loadingKeys">
-              <el-table-column prop="name" label="名称" width="180" />
-              <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
-              <el-table-column label="状态" width="100">
+              <el-table-column prop="name" label="名称" width="150" />
+              <el-table-column prop="description" label="描述" min-width="150" show-overflow-tooltip />
+              <el-table-column prop="scopes" label="权限范围" width="180">
                 <template #default="{ row }">
-                  <el-tag :type="row.is_active ? 'success' : 'danger'">
+                  <el-tag v-for="s in (row.scopes || '').split(',')" :key="s" size="small" style="margin-right: 4px" v-show="s">
+                    {{ s }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="rate_limit" label="频控 (req/m)" width="120">
+                <template #default="{ row }">
+                  {{ row.rate_limit > 0 ? row.rate_limit : '无限制' }}
+                </template>
+              </el-table-column>
+              <el-table-column label="状态" width="80">
+                <template #default="{ row }">
+                  <el-tag :type="row.is_active ? 'success' : 'danger'" size="small">
                     {{ row.is_active ? '正常' : '禁用' }}
                   </el-tag>
                 </template>
               </el-table-column>
-              <el-table-column prop="last_used_at" label="最后使用时间" width="180">
+              <el-table-column prop="last_used_at" label="最后使用" width="160">
                 <template #default="{ row }">
                   {{ formatDate(row.last_used_at) }}
                 </template>
               </el-table-column>
-              <el-table-column prop="created_at" label="创建时间" width="180">
+              <el-table-column label="操作" width="100" fixed="right">
                 <template #default="{ row }">
-                  {{ formatDate(row.created_at) }}
-                </template>
-              </el-table-column>
-              <el-table-column label="操作" width="120" fixed="right">
-                <template #default="{ row }">
-                  <el-popconfirm title="确定要删除此密钥吗？这会导致使用此密钥的应用立即失效。" @confirm="handleDeleteKey(row.id)">
+                  <el-popconfirm title="确定要删除此密钥吗？" @confirm="handleDeleteKey(row.id)">
                     <template #reference>
                       <el-button type="danger" link>删除</el-button>
                     </template>
@@ -121,13 +128,25 @@
     </el-card>
 
     <!-- Create API Key Dialog -->
-    <el-dialog v-model="showCreateKeyDialog" title="创建 API 密钥" width="500px">
-      <el-form ref="keyFormRef" :model="keyForm" :rules="keyRules" label-width="80px">
+    <el-dialog v-model="showCreateKeyDialog" title="创建 API 密钥" width="550px">
+      <el-form ref="keyFormRef" :model="keyForm" :rules="keyRules" label-width="90px">
         <el-form-item label="名称" prop="name">
           <el-input v-model="keyForm.name" placeholder="请输入应用名称" />
         </el-form-item>
         <el-form-item label="描述" prop="description">
           <el-input v-model="keyForm.description" type="textarea" placeholder="描述此密钥的用途" />
+        </el-form-item>
+        <el-form-item label="权限范围" prop="scopes">
+          <el-select v-model="keyForm.scopes" multiple placeholder="请选择允许的操作范围" style="width: 100%">
+            <el-option label="读取设备档案 (read:equipment)" value="read:equipment" />
+            <el-option label="读取预测分析 (read:prediction)" value="read:prediction" />
+            <el-option label="读取备件库存 (read:sparepart)" value="read:sparepart" />
+            <el-option label="创建维修工单 (write:repair)" value="write:repair" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="频率限制" prop="rate_limit">
+          <el-input-number v-model="keyForm.rate_limit" :min="0" :max="1000" style="width: 100%" />
+          <div class="form-tip">每分钟允许的请求数 (0 为不限制)</div>
         </el-form-item>
         <el-form-item label="过期时间" prop="expires_in">
           <el-select v-model="keyForm.expires_in" style="width: 100%">
@@ -226,6 +245,8 @@ const keyFormRef = ref<FormInstance>()
 const keyForm = reactive({
   name: '',
   description: '',
+  scopes: ['read:equipment'],
+  rate_limit: 0,
   expires_in: 0
 })
 
@@ -466,5 +487,12 @@ onMounted(() => {
   padding: 15px;
   border-radius: 4px;
   border: 1px dashed #dcdfe6;
+}
+
+.form-tip {
+  font-size: 12px;
+  color: #909399;
+  line-height: 1.5;
+  margin-top: 4px;
 }
 </style>

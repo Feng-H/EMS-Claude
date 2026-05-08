@@ -117,7 +117,13 @@ export const agentApi = {
   listAPIKeys: () =>
     request.get<any[]>('/auth/apikeys'),
   
-  createAPIKey: (data: { name: string; description?: string; expires_in?: number }) =>
+  createAPIKey: (data: { 
+    name: string; 
+    description?: string; 
+    scopes?: string[]; 
+    rate_limit?: number; 
+    expires_in?: number 
+  }) =>
     request.post<any>('/auth/apikeys', data),
   
   deleteAPIKey: (id: number) =>
