@@ -2,6 +2,7 @@ package v1
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"net/http"
 	"strconv"
@@ -321,7 +322,11 @@ func CreateAPIKey(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate key"})
 		return
 	}
-	key := "ems_" + hex.EncodeToString(bytes)
+	plainKey := "ems_" + hex.EncodeToString(bytes)
+
+	// Hash for storage
+	hash := sha256.Sum256([]byte(plainKey))
+	hashedKey := hex.EncodeToString(hash[:])
 
 	var expiresAt *time.Time
 	if req.ExpiresIn > 0 {
@@ -331,7 +336,7 @@ func CreateAPIKey(c *gin.Context) {
 
 	apiKey := model.UserAPIKey{
 		UserID:      userID,
-		Key:         key,
+		Key:         hashedKey,
 		Name:        req.Name,
 		Description: req.Description,
 		ExpiresAt:   expiresAt,
@@ -345,7 +350,7 @@ func CreateAPIKey(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, dto.APIKeyResponse{
 		ID:          apiKey.ID,
-		Key:         apiKey.Key, // Only shown once
+		Key:         plainKey, // Only shown once
 		Name:        apiKey.Name,
 		Description: apiKey.Description,
 		ExpiresAt:   formatTimePtr(apiKey.ExpiresAt),

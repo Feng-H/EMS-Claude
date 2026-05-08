@@ -32,13 +32,13 @@ type IAgentRepository interface {
 	GetMessagesByConversationID(convID uint) ([]model.AgentMessage, error)
 	CreateKnowledge(knowledge *model.AgentKnowledge) error
 	UpdateKnowledgeStatus(id string, status string, verifierID *uint) error
-	ListKnowledges(status string, limit int) ([]model.AgentKnowledge, error)
+	ListKnowledges(status string, query string, limit int) ([]model.AgentKnowledge, error)
 
 	// Phase 2: Skills
 	CreateSkill(skill *model.AgentSkill) error
 	GetSkillByID(id uint) (*model.AgentSkill)
 	UpdateSkill(skill *model.AgentSkill) error
-	ListSkills(status string, limit int) ([]model.AgentSkill, error)
+	ListSkills(status string, query string, limit int) ([]model.AgentSkill, error)
 	MatchSkills(intent string, limit int) ([]model.AgentSkill, error)
 
 	// Phase 2: Experience
@@ -228,11 +228,14 @@ func (r *DBAgentRepository) UpdateKnowledgeStatus(id string, status string, veri
 	return r.db.Model(&model.AgentKnowledge{}).Where("id = ?", id).Updates(updates).Error
 }
 
-func (r *DBAgentRepository) ListKnowledges(status string, limit int) ([]model.AgentKnowledge, error) {
+func (r *DBAgentRepository) ListKnowledges(status string, query string, limit int) ([]model.AgentKnowledge, error) {
 	var results []model.AgentKnowledge
 	q := r.db.Model(&model.AgentKnowledge{})
 	if status != "" {
 		q = q.Where("status = ?", status)
+	}
+	if query != "" {
+		q = q.Where("title ILIKE ? OR summary ILIKE ?", "%"+query+"%", "%"+query+"%")
 	}
 	err := q.Order("created_at DESC").Limit(limit).Find(&results).Error
 	return results, err
@@ -258,11 +261,14 @@ func (r *DBAgentRepository) UpdateSkill(skill *model.AgentSkill) error {
 	return r.db.Save(skill).Error
 }
 
-func (r *DBAgentRepository) ListSkills(status string, limit int) ([]model.AgentSkill, error) {
+func (r *DBAgentRepository) ListSkills(status string, query string, limit int) ([]model.AgentSkill, error) {
 	var skills []model.AgentSkill
 	db := r.db.Model(&model.AgentSkill{})
 	if status != "" {
 		db = db.Where("status = ?", status)
+	}
+	if query != "" {
+		db = db.Where("name ILIKE ? OR description ILIKE ?", "%"+query+"%", "%"+query+"%")
 	}
 	err := db.Order("usage_count DESC, created_at DESC").Limit(limit).Find(&skills).Error
 	return skills, err

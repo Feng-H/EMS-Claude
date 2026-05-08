@@ -1,5 +1,7 @@
 package middleware
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"net/http"
 	"strings"
 	"time"
@@ -26,8 +28,12 @@ func AuthMiddleware() gin.HandlerFunc {
 		// 1. Try API Key first (for external Agents)
 		apiKey := c.GetHeader("X-API-KEY")
 		if apiKey != "" {
+			// Hash incoming key for comparison
+			hash := sha256.Sum256([]byte(apiKey))
+			hashedKey := hex.EncodeToString(hash[:])
+
 			var keyRecord model.UserAPIKey
-			err := db.Preload("User").Where("key = ? AND is_active = ?", apiKey, true).First(&keyRecord).Error
+			err := db.Preload("User").Where("key = ? AND is_active = ?", hashedKey, true).First(&keyRecord).Error
 			if err == nil {
 				// Check expiration
 				if keyRecord.ExpiresAt == nil || keyRecord.ExpiresAt.After(time.Now()) {

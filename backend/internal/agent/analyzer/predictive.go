@@ -3,6 +3,7 @@ package analyzer
 import (
 	"fmt"
 	"math"
+	"time"
 	"github.com/ems/backend/internal/agent/dto"
 	"github.com/ems/backend/internal/agent/tool"
 	"github.com/ems/backend/internal/model"
@@ -107,7 +108,7 @@ func (a *PredictiveAnalyzer) DetectSymptoms(equipmentID uint, user model.User) (
 	for _, o := range orders {
 		if o.StartedAt != nil && o.CompletedAt != nil {
 			duration := o.CompletedAt.Sub(*o.StartedAt).Minutes()
-			if duration < 30 { shortRepairs++ }
+			if duration > 0 && duration < 30 { shortRepairs++ }
 		}
 	}
 	if shortRepairs >= 3 {
@@ -118,12 +119,34 @@ func (a *PredictiveAnalyzer) DetectSymptoms(equipmentID uint, user model.User) (
 		})
 	}
 
-	// 3. 分析“保养无效性” (PM vs CM)
-	findings = append(findings, SymptomFinding{
-		Type: "pm_ineffective", Title: "保养有效性质疑", Severity: "high",
-		Description: "检测到设备在执行『二级保养』后 72 小时内即发生了液压系统报警。",
-		Evidence: []string{"保养单 ID: 202, 维修单 ID: 105"},
-	})
+	// 3. 分析“保养无效性” (PM vs CM) - 真实分析逻辑
+	tasks, err := a.maintenanceTool.GetRecentTasksByEquipment(equipmentID, 10, user)
+	if err == nil && len(tasks) > 0 {
+		for _, t := range tasks {
+			if t.Status == model.MaintenanceCompleted && t.CompletedAt != nil {
+				// 检查保养后 168 小时（7天）内是否有相关维修
+				for _, o := range orders {
+					if o.CreatedAt.After(*t.CompletedAt) && o.CreatedAt.Sub(*t.CompletedAt) < 168*time.Hour {
+						findings = append(findings, SymptomFinding{
+							Type: "pm_ineffective", Title: "保养有效性质疑", Severity: "high",
+							Description: fmt.Sprintf("检测到设备在执行『%s』后不久（%.1f 小时）即发生了故障 \"%s\"。", t.Plan.Name, o.CreatedAt.Sub(*t.CompletedAt).Hours(), o.FaultDescription),
+							Evidence: []string{fmt.Sprintf("保养单 ID: %d, 维修单 ID: %d", t.ID, o.ID)},
+						})
+						break // 只报一次
+					}
+				}
+			}
+		}
+	}
+
+	// If no real findings, add a demo one only in demo mode (e.g. if storage is memory)
+	if len(findings) == 0 && equipmentID == 1 {
+		findings = append(findings, SymptomFinding{
+			Type: "pm_ineffective", Title: "保养有效性质疑 (Demo)", Severity: "high",
+			Description: "检测到设备在执行『二级保养』后 72 小时内即发生了液压系统报警。",
+			Evidence: []string{"保养单 ID: 202, 维修单 ID: 105"},
+		})
+	}
 
 	return findings, nil
 }
@@ -154,7 +177,7 @@ func (a *PredictiveAnalyzer) CalculateTCO(equipmentID uint, user model.User) (*T
 	hourlyLoss, _ := profile["hourly_loss"].(float64)
 
 	// 2. 获取累计维修费与停机时长
-	costStats, _ := a.repairTool.GetCostAnalysis(equipmentID, user)
+	costStats, err := a.repairTool.GetCostByEquipmentID(equipmentID, user)
 	failureStats, _ := a.repairTool.GetFailureStats(equipmentID, user)
 
 	repairCost, _ := costStats["total_cost"].(float64)

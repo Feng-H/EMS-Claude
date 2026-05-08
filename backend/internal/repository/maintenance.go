@@ -170,6 +170,16 @@ func (r *MaintenanceTaskRepository) Delete(id uint) error {
 	return r.db.Delete(&model.MaintenanceTask{}, id).Error
 }
 
+func (r *MaintenanceTaskRepository) GetByEquipmentID(equipmentID uint, limit int) ([]model.MaintenanceTask, error) {
+	var tasks []model.MaintenanceTask
+	err := r.db.Where("equipment_id = ?", equipmentID).
+		Preload("Plan").
+		Order("scheduled_date DESC").
+		Limit(limit).
+		Find(&tasks).Error
+	return tasks, err
+}
+
 // Get tasks by equipment and date range
 func (r *MaintenanceTaskRepository) GetByEquipmentAndDateRange(equipmentID uint, start, end time.Time) ([]model.MaintenanceTask, error) {
 	var tasks []model.MaintenanceTask

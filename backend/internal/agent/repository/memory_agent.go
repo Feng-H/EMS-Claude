@@ -305,14 +305,14 @@ func (r *MemoryAgentRepository) UpdateKnowledgeStatus(id string, status string, 
 	return fmt.Errorf("knowledge not found")
 }
 
-func (r *MemoryAgentRepository) ListKnowledges(status string, limit int) ([]model.AgentKnowledge, error) {
+func (r *MemoryAgentRepository) ListKnowledges(status string, query string, limit int) ([]model.AgentKnowledge, error) {
 	var results []model.AgentKnowledge
 	count := 0
 	for _, k := range r.store.AgentKnowledges {
 		if count >= limit {
 			break
 		}
-		if status == "" || k.Status == status {
+		if (status == "" || k.Status == status) && (query == "" || strings.Contains(strings.ToLower(k.Title), strings.ToLower(query)) || strings.Contains(strings.ToLower(k.Summary), strings.ToLower(query))) {
 			results = append(results, *k)
 			count++
 		}
@@ -337,14 +337,14 @@ func (r *MemoryAgentRepository) UpdateSkill(skill *model.AgentSkill) error {
 	return nil
 }
 
-func (r *MemoryAgentRepository) ListSkills(status string, limit int) ([]model.AgentSkill, error) {
+func (r *MemoryAgentRepository) ListSkills(status string, query string, limit int) ([]model.AgentSkill, error) {
 	var results []model.AgentSkill
 	count := 0
 	for _, s := range r.store.AgentSkills {
 		if count >= limit {
 			break
 		}
-		if status == "" || s.Status == status {
+		if (status == "" || s.Status == status) && (query == "" || strings.Contains(strings.ToLower(s.Name), strings.ToLower(query)) || strings.Contains(strings.ToLower(s.Description), strings.ToLower(query))) {
 			results = append(results, *s)
 			count++
 		}

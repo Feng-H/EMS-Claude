@@ -202,7 +202,11 @@ func (ctrl *AgentController) GetSession(c *gin.Context) {
 		})
 		return
 	}
-	result, err := ctrl.agentService.GetSession(uint(id))
+	userID, role, ok := requireAuth(c)
+	if !ok {
+		return
+	}
+	result, err := ctrl.agentService.GetSession(uint(id), userID, role)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
 			Success: false,
@@ -225,7 +229,11 @@ func (ctrl *AgentController) GetArtifact(c *gin.Context) {
 		})
 		return
 	}
-	result, err := ctrl.agentService.GetArtifact(uint(id))
+	userID, role, ok := requireAuth(c)
+	if !ok {
+		return
+	}
+	result, err := ctrl.agentService.GetArtifact(uint(id), userID, role)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
 			Success: false,
@@ -270,10 +278,20 @@ func (ctrl *AgentController) AuditKnowledge(c *gin.Context) {
 		return
 	}
 
-	userID, _, ok := requireAuth(c)
+	userID, role, ok := requireAuth(c)
 	if !ok {
 		return
 	}
+	// Only admin or manager can audit knowledge
+	if role != "admin" && role != "manager" {
+		c.JSON(http.StatusForbidden, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "FORBIDDEN", Message: "Only admin or manager can audit knowledge"},
+		})
+		return
+	}
+
 	err := ctrl.agentService.AuditKnowledge(id, req.Status, userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
@@ -289,8 +307,32 @@ func (ctrl *AgentController) AuditKnowledge(c *gin.Context) {
 
 // ListKnowledges returns all agent-generated knowledge
 func (ctrl *AgentController) ListKnowledges(c *gin.Context) {
+	_, role, ok := requireAuth(c)
+	if !ok {
+		return
+	}
+	// Only admin or manager can list knowledge drafts
+	if role != "admin" && role != "manager" {
+		c.JSON(http.StatusForbidden, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "FORBIDDEN", Message: "Only admin or manager can list knowledge drafts"},
+		})
+		return
+	}
+
 	status := c.Query("status")
-	result, err := ctrl.agentService.ListKnowledges(status)
+	query := c.Query("query")
+	eqTypeIDStr := c.Query("equipment_type_id")
+	var eqTypeID *uint
+	if eqTypeIDStr != "" {
+		if id, err := strconv.ParseUint(eqTypeIDStr, 10, 32); err == nil {
+			val := uint(id)
+			eqTypeID = &val
+		}
+	}
+
+	result, err := ctrl.agentService.ListKnowledges(status, query, eqTypeID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
 			Success: false,
@@ -379,7 +421,11 @@ func (ctrl *AgentController) GetConversation(c *gin.Context) {
 		})
 		return
 	}
-	result, err := ctrl.agentService.GetConversation(uint(id))
+	userID, role, ok := requireAuth(c)
+	if !ok {
+		return
+	}
+	result, err := ctrl.agentService.GetConversation(uint(id), userID, role)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
 			Success: false,
@@ -397,8 +443,23 @@ func (ctrl *AgentController) GetConversation(c *gin.Context) {
 
 // ListSkills returns all available agent skills
 func (ctrl *AgentController) ListSkills(c *gin.Context) {
+	_, role, ok := requireAuth(c)
+	if !ok {
+		return
+	}
+	// Only admin or manager can list skills (drafts)
+	if role != "admin" && role != "manager" {
+		c.JSON(http.StatusForbidden, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "FORBIDDEN", Message: "Only admin or manager can list skills"},
+		})
+		return
+	}
+
 	status := c.Query("status")
-	result, err := ctrl.agentService.ListSkills(status)
+	query := c.Query("query")
+	result, err := ctrl.agentService.ListSkills(status, query)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
 			Success: false,
@@ -412,6 +473,20 @@ func (ctrl *AgentController) ListSkills(c *gin.Context) {
 
 // CreateSkill creates a new skill
 func (ctrl *AgentController) CreateSkill(c *gin.Context) {
+	_, role, ok := requireAuth(c)
+	if !ok {
+		return
+	}
+	// Only admin or manager can create skills
+	if role != "admin" && role != "manager" {
+		c.JSON(http.StatusForbidden, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "FORBIDDEN", Message: "Only admin or manager can create skills"},
+		})
+		return
+	}
+
 	var req dto.CreateSkillRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, dto.AgentErrorEnvelope{
@@ -444,6 +519,20 @@ func (ctrl *AgentController) GetSkill(c *gin.Context) {
 		})
 		return
 	}
+	_, role, ok := requireAuth(c)
+	if !ok {
+		return
+	}
+	// Only admin or manager can see full skill details
+	if role != "admin" && role != "manager" {
+		c.JSON(http.StatusForbidden, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "FORBIDDEN", Message: "Only admin or manager can access skill details"},
+		})
+		return
+	}
+
 	result, err := ctrl.agentService.GetSkill(uint(id))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
@@ -456,7 +545,7 @@ func (ctrl *AgentController) GetSkill(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
-// UpdateSkill updates skill status
+// UpdateSkill updates a skill
 func (ctrl *AgentController) UpdateSkill(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
@@ -467,6 +556,20 @@ func (ctrl *AgentController) UpdateSkill(c *gin.Context) {
 		})
 		return
 	}
+	_, role, ok := requireAuth(c)
+	if !ok {
+		return
+	}
+	// Only admin or manager can update skills
+	if role != "admin" && role != "manager" {
+		c.JSON(http.StatusForbidden, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "FORBIDDEN", Message: "Only admin or manager can update skills"},
+		})
+		return
+	}
+
 	var req dto.UpdateSkillRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, dto.AgentErrorEnvelope{
@@ -495,9 +598,10 @@ func (ctrl *AgentController) UpdateSkill(c *gin.Context) {
 // Subscribe configures user's push notifications
 func (ctrl *AgentController) Subscribe(c *gin.Context) {
 	var req struct {
-		PushType string `json:"push_type" binding:"required"`
-		Enabled  bool   `json:"enabled"`
-		Scope    any    `json:"scope"`
+		PushType   string `json:"push_type" binding:"required"`
+		Enabled    bool   `json:"enabled"`
+		Scope      any    `json:"scope"`
+		WebhookURL string `json:"webhook_url"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, dto.AgentErrorEnvelope{
@@ -511,7 +615,7 @@ func (ctrl *AgentController) Subscribe(c *gin.Context) {
 	if !ok {
 		return
 	}
-	err := ctrl.agentService.Subscribe(userID, req.PushType, req.Enabled, req.Scope)
+	err := ctrl.agentService.Subscribe(userID, req.PushType, req.Enabled, req.Scope, req.WebhookURL)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
 			Success: false,
@@ -553,7 +657,22 @@ func (ctrl *AgentController) GetEquipmentPrediction(c *gin.Context) {
 		return
 	}
 
-	result, err := ctrl.agentService.GetEquipmentPrediction(uint(id))
+	userID, _, ok := requireAuth(c)
+	if !ok {
+		return
+	}
+
+	var user model.User
+	if err := database.GetDB().First(&user, userID).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
+			Success: false,
+			TraceID: trace.GenerateTraceID(),
+			Error:   dto.AgentErrDetail{Code: "INTERNAL_ERROR", Message: "User not found"},
+		})
+		return
+	}
+
+	result, err := ctrl.agentService.GetEquipmentPrediction(uint(id), user)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.AgentErrorEnvelope{
 			Success: false,

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"time"
 	"strings"
 	"github.com/ems/backend/internal/agent/analyzer"
@@ -78,6 +79,12 @@ func (s *AgentService) RecommendMaintenance(user model.User, req *dto.Maintenanc
 	
 	agentCtx, err := s.policy.DeriveAgentContext(user.ID, string(user.Role), req.Language)
 	if err != nil { return nil, err }
+
+	// Prevent system prompt override for non-admin users
+	if req.SystemPrompt != "" && user.Role != "admin" {
+		log.Printf("[AgentService] Security warning: Non-admin user %d tried to override system prompt", user.ID)
+		req.SystemPrompt = ""
+	}
 
 	targetFactoryID := req.FactoryID
 	if targetFactoryID == 0 && agentCtx.FactoryID != nil {
@@ -157,6 +164,12 @@ func (s *AgentService) AuditRepair(user model.User, req *dto.RepairAuditRequest)
 	
 	agentCtx, err := s.policy.DeriveAgentContext(user.ID, string(user.Role), req.Language)
 	if err != nil { return nil, err }
+
+	// Prevent system prompt override for non-admin users
+	if req.SystemPrompt != "" && user.Role != "admin" {
+		log.Printf("[AgentService] Security warning: Non-admin user %d tried to override system prompt", user.ID)
+		req.SystemPrompt = ""
+	}
 
 	targetFactoryID := req.FactoryID
 	if targetFactoryID == 0 && agentCtx.FactoryID != nil {
@@ -262,9 +275,15 @@ func (s *AgentService) ListSessions(userID uint, limit int) ([]dto.AgentSessionR
 	return results, nil
 }
 
-func (s *AgentService) GetSession(id uint) (*dto.AgentSessionResponse, error) {
+func (s *AgentService) GetSession(id uint, userID uint, role string) (*dto.AgentSessionResponse, error) {
 	session, err := s.repo.GetSessionByID(id)
 	if err != nil { return nil, err }
+	
+	// Ownership check
+	if role != "admin" && session.UserID != userID {
+		return nil, fmt.Errorf("permission denied: unauthorized access to session")
+	}
+
 	res := &dto.AgentSessionResponse{
 		ID: session.ID, UserID: session.UserID, Scenario: session.Scenario, Language: session.Language,
 		Status: session.Status, TraceID: session.TraceID, CreatedAt: session.CreatedAt,
@@ -274,9 +293,17 @@ func (s *AgentService) GetSession(id uint) (*dto.AgentSessionResponse, error) {
 	return res, nil
 }
 
-func (s *AgentService) GetArtifact(id uint) (*dto.AgentArtifactResponse, error) {
+func (s *AgentService) GetArtifact(id uint, userID uint, role string) (*dto.AgentArtifactResponse, error) {
 	artifact, err := s.repo.GetArtifactByID(id)
 	if err != nil { return nil, err }
+	
+	// Artifact belongs to a session, check session ownership
+	session, err := s.repo.GetSessionByID(artifact.SessionID)
+	if err != nil { return nil, err }
+	if role != "admin" && session.UserID != userID {
+		return nil, fmt.Errorf("permission denied: unauthorized access to artifact")
+	}
+
 	res := &dto.AgentArtifactResponse{
 		ID: artifact.ID, SessionID: artifact.SessionID, ArtifactType: artifact.ArtifactType,
 		Title: artifact.Title, Summary: artifact.Summary, RiskLevel: artifact.RiskLevel, CreatedAt: artifact.CreatedAt,
@@ -294,8 +321,8 @@ func (s *AgentService) AuditKnowledge(id string, status string, verifierID uint)
 	return s.repo.UpdateKnowledgeStatus(id, status, &verifierID)
 }
 
-func (s *AgentService) ListKnowledges(status string) ([]model.AgentKnowledge, error) {
-	return s.repo.ListKnowledges(status, 100)
+func (s *AgentService) ListKnowledges(status string, query string, eqTypeID *uint) ([]model.AgentKnowledge, error) {
+	return s.repo.ListKnowledges(status, query, 100)
 }
 
 // =====================================================
@@ -351,11 +378,40 @@ func (s *AgentService) Chat(user model.User, req *dto.ChatRequest) (*dto.ChatRes
 	// 5. 退回到标准对话
 	if reply == "" {
 		history, _ := s.repo.GetMessagesByConversationID(convID)
-	llmMsgs := []llm.Message{
-		{Role: "system", Content: "你是一个顶级的工业资产战略专家。你拥有‘L4 级主动洞察’权限，可以基于全生命周期成本 (TCO)、资产退役 ROI 评价、剩余健康寿命 (RUL) 和亚健康故障征兆进行跨维度的深度分析。请使用中文回答，结论必须引用系统中的财务与技术证据。" + expContext},
-	}
+		
+		// Context retrieval: Find relevant equipment or knowledge
+		eqID := s.extractEquipmentID(req.Message, user)
+		businessContext := ""
+		if eqID != 1 { // If a specific equipment was found
+			profile, _ := s.retrievalTool.GetEquipmentProfile(eqID, user)
+			health, _ := s.GetEquipmentPrediction(eqID, user)
+			profileJSON, _ := json.Marshal(profile)
+			healthJSON, _ := json.Marshal(health)
+			businessContext += fmt.Sprintf("\n### 当前讨论的设备上下文\n基础信息: %s\n健康分析: %s\n", profileJSON, healthJSON)
+		}
+		
+		// Retrieve relevant knowledge
+		knowledge, _ := s.retrievalTool.SearchManualKnowledge(req.Message, nil, user)
+		if len(knowledge) > 0 {
+			businessContext += "\n### 相关知识参考\n"
+			for i, k := range knowledge {
+				if i >= 2 { break }
+				businessContext += fmt.Sprintf("- [%s]: %s\n", k.Title, k.Excerpt)
+			}
+		}
 
-		if req.SystemPrompt != "" { llmMsgs[0].Content = req.SystemPrompt }
+		llmMsgs := []llm.Message{
+			{Role: "system", Content: "你是一个顶级的工业资产战略专家。你拥有‘L4 级主动洞察’权限，可以基于全生命周期成本 (TCO)、资产退役 ROI 评价、剩余健康寿命 (RUL) 和亚健康故障征兆进行跨维度的深度分析。请使用中文回答，结论必须引用系统中的财务与技术证据。" + expContext + businessContext},
+		}
+
+		// Prevent system prompt override for non-admin users
+		if req.SystemPrompt != "" {
+			if user.Role == "admin" {
+				llmMsgs[0].Content = req.SystemPrompt
+			} else {
+				log.Printf("[AgentService] Security warning: Non-admin user %d tried to override chat system prompt", user.ID)
+			}
+		}
 
 		startIdx := 0
 		if len(history) > 10 { startIdx = len(history) - 10 }
@@ -425,9 +481,15 @@ func (s *AgentService) extractEquipmentID(message string, user model.User) uint 
 	return 1 // Default fallback
 }
 
-func (s *AgentService) GetConversation(id uint) (*dto.ConversationResponse, error) {
+func (s *AgentService) GetConversation(id uint, userID uint, role string) (*dto.ConversationResponse, error) {
 	conv, err := s.repo.GetConversationByID(id)
 	if err != nil { return nil, err }
+
+	// Ownership check
+	if role != "admin" && conv.UserID != userID {
+		return nil, fmt.Errorf("permission denied: unauthorized access to conversation")
+	}
+
 	res := &dto.ConversationResponse{
 		ID: conv.ID, Title: conv.Title, Status: conv.Status, CreatedAt: conv.CreatedAt, UpdatedAt: conv.UpdatedAt,
 	}
@@ -455,8 +517,8 @@ func (s *AgentService) CreateSkill(req *dto.CreateSkillRequest) (*dto.SkillRespo
 	return s.mapSkillToResponse(skill), nil
 }
 
-func (s *AgentService) ListSkills(status string) ([]dto.SkillResponse, error) {
-	skills, err := s.repo.ListSkills(status, 100)
+func (s *AgentService) ListSkills(status string, query string) ([]dto.SkillResponse, error) {
+	skills, err := s.repo.ListSkills(status, query, 100)
 	if err != nil { return nil, err }
 	results := make([]dto.SkillResponse, len(skills))
 	for i, sk := range skills { results[i] = *s.mapSkillToResponse(&sk) }
@@ -491,7 +553,7 @@ func (s *AgentService) ExecuteSkill(user model.User, skill *model.AgentSkill, re
 				})
 			}
 		case "get_cost_analysis":
-			if res, err := s.repairTool.GetCostAnalysis(eqID, user); err == nil {
+			if res, err := s.repairTool.GetCostByEquipmentID(eqID, user); err == nil {
 				resJSON, _ := json.Marshal(res)
 				evidence = append(evidence, dto.EvidenceItem{
 					EvidenceType: "cost_analysis", Title: "维修成本分析", Excerpt: string(resJSON), Score: 0.9,
@@ -599,24 +661,26 @@ func (s *AgentService) UpdateSkill(id uint, req *dto.UpdateSkillRequest) (*dto.S
 // Phase 2: Proactive Notification Logic
 // =====================================================
 
-func (s *AgentService) Subscribe(userID uint, pushType string, enabled bool, scope any) error {
+func (s *AgentService) Subscribe(userID uint, pushType string, enabled bool, scope any, webhookURL string) error {
 	scopeJSON, _ := json.Marshal(scope)
-	
+
 	// Check if already exists
 	db := database.GetDB()
 	var sub model.AgentPushSubscription
 	err := db.Where("user_id = ? AND push_type = ?", userID, pushType).First(&sub).Error
-	
+
 	if err == nil {
 		// Update
 		sub.Enabled = enabled
 		sub.Scope = string(scopeJSON)
+		sub.WebhookURL = webhookURL
 		return db.Save(&sub).Error
 	}
-	
+
 	// Create
 	sub = model.AgentPushSubscription{
 		UserID: userID, PushType: pushType, Enabled: enabled, Scope: string(scopeJSON),
+		WebhookURL: webhookURL,
 	}
 	return db.Create(&sub).Error
 }
@@ -629,27 +693,46 @@ func (s *AgentService) ListSubscriptions(userID uint) ([]model.AgentPushSubscrip
 }
 
 func (s *AgentService) NotifyEvent(eventType string, targetID uint, context map[string]interface{}) {
-	// 异步通知逻辑通常需要系统权限，暂不强制隔离
-	prediction, err := s.predictiveAnalyzer.PredictRUL(targetID, model.User{Role: "admin"}) 
-	if err == nil && prediction.EstimatedRULDays < 7 {
-		// 创建一个主动分析 Artifact
-		artifact := &model.AgentArtifact{
-			ArtifactType: "proactive_push",
-			Title:        "设备停机风险预警",
-			Summary:      fmt.Sprintf("Agent 自动巡检发现风险：设备预计剩余健康寿命仅剩 %d 天，建议立即干预。", prediction.EstimatedRULDays),
-			ResultJSON:   "{\"prediction\": \"high_risk\"}",
-			RiskLevel:    "high",
+	// 1. 根据事件类型执行分析 (Demo: 只处理 RUL 风险)
+	prediction, err := s.predictiveAnalyzer.PredictRUL(targetID, model.User{Role: "admin"})
+	if err != nil || prediction.EstimatedRULDays >= 7 { return }
+
+	// 2. 创建一个主动分析 Artifact
+	artifact := &model.AgentArtifact{
+		ArtifactType: "proactive_push",
+		Title:        "设备停机风险预警",
+		Summary:      fmt.Sprintf("Agent 自动巡检发现风险：设备预计剩余健康寿命仅剩 %d 天，建议立即干预。", prediction.EstimatedRULDays),
+		ResultJSON:   "{\"prediction\": \"high_risk\"}",
+		RiskLevel:    "high",
+	}
+	_ = s.repo.CreateArtifact(artifact)
+
+	// 3. 查找相关订阅并投递
+	var subs []model.AgentPushSubscription
+	database.GetDB().Where("push_type = ? AND enabled = ?", "predictive_maintenance", true).Find(&subs)
+
+	for _, sub := range subs {
+		if sub.WebhookURL != "" {
+			go func(url string, msg string) {
+				// 简单的 Webhook 投递逻辑
+				payload := map[string]string{"message": msg, "type": "agent_alert"}
+				body, _ := json.Marshal(payload)
+				log.Printf("[AgentService] Delivering proactive push to %s", url)
+				resp, err := http.Post(url, "application/json", strings.NewReader(string(body)))
+				if err != nil {
+					log.Printf("[AgentService] Webhook delivery failed: %v", err)
+				} else {
+					resp.Body.Close()
+				}
+			}(sub.WebhookURL, artifact.Summary)
 		}
-		_ = s.repo.CreateArtifact(artifact)
 	}
 }
-
-func (s *AgentService) GetEquipmentPrediction(equipmentID uint) (map[string]interface{}, error) {
-	// Web端调用，默认按管理员权限（已在Controller层校验）
-	admin := model.User{Role: "admin"}
-	rul, _ := s.predictiveAnalyzer.PredictRUL(equipmentID, admin)
-	tco, _ := s.predictiveAnalyzer.CalculateTCO(equipmentID, admin)
-	symptoms, _ := s.predictiveAnalyzer.DetectSymptoms(equipmentID, admin)
+func (s *AgentService) GetEquipmentPrediction(equipmentID uint, user model.User) (map[string]interface{}, error) {
+	// Web端调用，使用真实用户权限进行隔离校验
+	rul, _ := s.predictiveAnalyzer.PredictRUL(equipmentID, user)
+	tco, _ := s.predictiveAnalyzer.CalculateTCO(equipmentID, user)
+	symptoms, _ := s.predictiveAnalyzer.DetectSymptoms(equipmentID, user)
 
 	return map[string]interface{}{
 		"rul":      rul,

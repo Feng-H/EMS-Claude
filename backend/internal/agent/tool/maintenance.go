@@ -103,3 +103,24 @@ func (t *MaintenanceTool) GetPlanByEquipmentType(typeID uint) (*model.Maintenanc
 	}
 	return nil, nil
 }
+
+func (t *MaintenanceTool) GetRecentTasksByEquipment(equipmentID uint, limit int, user model.User) ([]model.MaintenanceTask, error) {
+	if err := t.checkPermission(equipmentID, user); err != nil { return nil, err }
+	if config.Cfg.Storage.Mode == "memory" {
+		var results []model.MaintenanceTask
+		store := memory.GetStore()
+		count := 0
+		for _, task := range store.MaintenanceTasks {
+			if task.EquipmentID == equipmentID {
+				results = append(results, *task)
+				count++
+				if count >= limit { break }
+			}
+		}
+		return results, nil
+	}
+	
+	// DB Mode
+	return t.taskRepo.GetByEquipmentID(equipmentID, limit)
+}
+

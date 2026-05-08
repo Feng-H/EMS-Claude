@@ -121,7 +121,7 @@ func (s *AgentService) CallTool(user model.User, req *dto.CallToolRequest) (*dto
 		default: return nil, fmt.Errorf("invalid 'equipment_id' type")
 		}
 		
-		result, err := s.GetEquipmentPrediction(id)
+		result, err := s.GetEquipmentPrediction(id, user)
 		if err != nil {
 			return &dto.CallToolResponse{Content: err.Error(), IsError: true}, nil
 		}
@@ -141,7 +141,12 @@ func (s *AgentService) CallTool(user model.User, req *dto.CallToolRequest) (*dto
 
 		var inventories []model.SparePartInventory
 		query := db.Preload("Factory").Preload("SparePart").Where("spare_part_id = ?", partID)
-		if fid, ok := req.Arguments["factory_id"]; ok {
+		
+		// If user is not admin, they can only see inventory in their own factory or factories they have access to.
+		// For MVP, we'll restrict to their assigned FactoryID if they are not admin.
+		if user.Role != "admin" && user.FactoryID != nil {
+			query = query.Where("factory_id = ?", *user.FactoryID)
+		} else if fid, ok := req.Arguments["factory_id"]; ok {
 			query = query.Where("factory_id = ?", fid)
 		}
 		
@@ -162,6 +167,21 @@ func (s *AgentService) CallTool(user model.User, req *dto.CallToolRequest) (*dto
 		case float64: equipID = uint(v)
 		case int: equipID = uint(v)
 		default: return nil, fmt.Errorf("invalid 'equipment_id' type")
+		}
+
+		// Ownership check: Ensure equipment belongs to user's factory
+		var equipment model.Equipment
+		if err := db.Joins("JOIN workshops ON workshops.id = equipments.workshop_id").
+			First(&equipment, equipID).Error; err != nil {
+			return &dto.CallToolResponse{Content: "Equipment not found", IsError: true}, nil
+		}
+		
+		if user.Role != "admin" && user.FactoryID != nil {
+			var workshop model.Workshop
+			db.First(&workshop, equipment.WorkshopID)
+			if workshop.FactoryID != *user.FactoryID {
+				return &dto.CallToolResponse{Content: "Permission denied: Equipment belongs to another factory", IsError: true}, nil
+			}
 		}
 
 		priority := 2

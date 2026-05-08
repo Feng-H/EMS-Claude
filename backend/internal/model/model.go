@@ -467,10 +467,11 @@ type AgentMessage struct {
 
 type AgentPushSubscription struct {
 	BaseModel
-	UserID   uint   `json:"user_id" gorm:"not null;index"`
-	PushType string `json:"push_type" gorm:"size:50;not null"`
-	Enabled  bool   `json:"enabled" gorm:"default:true"`
-	Scope    string `json:"scope" gorm:"type:text"`
+	UserID     uint   `json:"user_id" gorm:"not null;index"`
+	PushType   string `json:"push_type" gorm:"size:50;not null"`
+	Enabled    bool   `json:"enabled" gorm:"default:true"`
+	Scope      string `json:"scope" gorm:"type:text"`
+	WebhookURL string `json:"webhook_url" gorm:"size:500"`
 }
 
 type AgentUsage struct {
