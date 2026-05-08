@@ -472,6 +472,18 @@ type AgentPushSubscription struct {
 	Enabled    bool   `json:"enabled" gorm:"default:true"`
 	Scope      string `json:"scope" gorm:"type:text"`
 	WebhookURL string `json:"webhook_url" gorm:"size:500"`
+	Secret     string `json:"secret" gorm:"size:100"` // Signing secret
+}
+
+type AgentPushLog struct {
+	BaseModel
+	SubscriptionID uint      `json:"subscription_id" gorm:"not null;index"`
+	ArtifactID     uint      `json:"artifact_id" gorm:"index"`
+	Payload        string    `json:"payload" gorm:"type:text"`
+	Status         string    `json:"status" gorm:"size:20"` // success, failed
+	RetryCount     int       `json:"retry_count" gorm:"default:0"`
+	ErrorMessage   string    `json:"error_message" gorm:"type:text"`
+	DeliveredAt    *time.Time `json:"delivered_at"`
 }
 
 type AgentUsage struct {
@@ -526,6 +538,8 @@ type UserAPIKey struct {
 	Key         string     `json:"key" gorm:"size:100;uniqueIndex;not null"`
 	Name        string     `json:"name" gorm:"size:100"`
 	Description string     `json:"description" gorm:"type:text"`
+	Scopes      string     `json:"scopes" gorm:"type:text"`     // Comma separated scopes, e.g. "read:equipment,write:repair"
+	RateLimit   int        `json:"rate_limit" gorm:"default:0"` // 0 for unlimited, or requests per minute
 	LastUsedAt  *time.Time `json:"last_used_at"`
 	ExpiresAt   *time.Time `json:"expires_at"`
 	IsActive    bool       `json:"is_active" gorm:"default:true"`

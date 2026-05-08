@@ -212,7 +212,7 @@ PUT /api/v1/agent/knowledge/:id/status
 
 EMS 通过标准化的 Tool Protocol 向外部 AI Agent（如 LangChain、AutoGPT、Claude 等）暴露领域能力。这套协议遵循 MCP（Model Context Protocol）的设计理念。
 
-### 3.1 认证方式
+### 3.1 认证与安全
 
 外部 Agent 通过 `X-API-KEY` Header 进行认证：
 
@@ -221,19 +221,26 @@ GET /api/v1/agent/tools HTTP/1.1
 X-API-KEY: ems_7f8a9b2c...
 ```
 
-API Key 的特性：
-- 以 `ems_` 前缀标识
-- 继承创建者用户的角色权限
-- 支持设置过期时间（30天/90天/1年/永不过期）
-- 创建后仅显示一次
+**API Key 安全特性：**
+- **Hash 存储**：数据库仅存储 Key 的 SHA-256 哈希值，明文仅在创建时显示一次。
+- **细粒度 Scope**：支持限制 Key 的操作范围（如 `read:equipment`, `write:repair`）。
+- **频率限制 (Rate Limiting)**：支持按分钟限制请求数，防止接口被滥用。
+- **权限继承**：继承创建者用户的工厂级数据隔离策略。
+
+**创建 API Key 示例：**
+```http
+POST /api/v1/auth/apikeys
+{
+  "name": "Maintenance Agent",
+  "scopes": ["read:equipment", "read:prediction"],
+  "rate_limit": 60,
+  "expires_in": 90
+}
+```
 
 ### 3.2 工具发现 (Tool Discovery)
 
-```http
-GET /api/v1/agent/tools
-```
-
-返回系统当前支持的所有工具及其 JSON Schema 定义：
+EMS 使用统一的 **Tool Registry** 管理所有可暴露给外部的工具。Registry 为每个工具提供完整的元数据声明。
 
 ```json
 {

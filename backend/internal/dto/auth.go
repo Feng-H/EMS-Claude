@@ -112,9 +112,11 @@ type LarkConfigResp struct {
 
 // API Key DTOs
 type CreateAPIKeyRequest struct {
-	Name        string `json:"name" binding:"required"`
-	Description string `json:"description"`
-	ExpiresIn   int    `json:"expires_in"` // Days, 0 for never
+	Name        string   `json:"name" binding:"required"`
+	Description string   `json:"description"`
+	Scopes      []string `json:"scopes"`       // List of allowed scopes
+	RateLimit   int      `json:"rate_limit"`   // Requests per minute
+	ExpiresIn   int      `json:"expires_in"`   // Days, 0 for never
 }
 
 type APIKeyResponse struct {
@@ -122,6 +124,8 @@ type APIKeyResponse struct {
 	Key         string  `json:"key,omitempty"` // Only shown on creation
 	Name        string  `json:"name"`
 	Description string  `json:"description"`
+	Scopes      string  `json:"scopes"`
+	RateLimit   int     `json:"rate_limit"`
 	LastUsedAt  *string `json:"last_used_at"`
 	ExpiresAt   *string `json:"expires_at"`
 	IsActive    bool    `json:"is_active"`

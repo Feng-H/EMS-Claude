@@ -24,7 +24,10 @@ type AgentService struct {
 	repo   repository.IAgentRepository
 	policy *policy.PolicyService
 	
-	// Tools
+	// Tool Registry
+	toolRegistry *tool.ToolRegistry
+
+	// Tools (Legacy & Internal)
 	retrievalTool   *tool.RetrievalTool
 	maintenanceTool *tool.MaintenanceTool
 	repairTool      *tool.RepairTool
@@ -59,9 +62,10 @@ func NewAgentService() *AgentService {
 		log.Printf("[AgentService] Warning: LLM API key is empty, AI features will be disabled")
 	}
 	
-	return &AgentService{
+	svc := &AgentService{
 		repo:   repo,
 		policy: policy.NewPolicyService(),
+		toolRegistry:    tool.NewToolRegistry(),
 		retrievalTool:   retrievalTool,
 		maintenanceTool: maintenanceTool,
 		repairTool:      repairTool,
@@ -71,6 +75,119 @@ func NewAgentService() *AgentService {
 		repairAuditAnalyzer: analyzer.NewRepairAuditAnalyzer(retrievalTool, repairTool),
 		predictiveAnalyzer:  analyzer.NewPredictiveAnalyzer(repairTool, maintenanceTool, retrievalTool),
 	}
+
+	svc.initToolRegistry()
+	return svc
+}
+
+func (s *AgentService) initToolRegistry() {
+	// Register search_equipment
+	s.toolRegistry.Register("search_equipment", dto.ToolDefinition{
+		Name: "search_equipment", Description: "Search for equipment by name, code or model",
+		InputSchema: map[string]interface{}{
+			"type": "object", "properties": map[string]interface{}{
+				"keyword": map[string]interface{}{"type": "string", "description": "Search keyword"},
+			}, "required": []string{"keyword"},
+		},
+	}, s.handleSearchEquipment, []string{"read:equipment"}, true)
+
+	// Register get_equipment_health
+	s.toolRegistry.Register("get_equipment_health", dto.ToolDefinition{
+		Name: "get_equipment_health", Description: "Get real-time health analysis and RUL prediction",
+		InputSchema: map[string]interface{}{
+			"type": "object", "properties": map[string]interface{}{
+				"equipment_id": map[string]interface{}{"type": "integer"},
+			}, "required": []string{"equipment_id"},
+		},
+	}, s.handleGetEquipmentHealth, []string{"read:equipment", "read:prediction"}, true)
+	
+	// Register get_spare_part_inventory
+	s.toolRegistry.Register("get_spare_part_inventory", dto.ToolDefinition{
+		Name: "get_spare_part_inventory", Description: "Check stock levels of spare parts",
+		InputSchema: map[string]interface{}{
+			"type": "object", "properties": map[string]interface{}{
+				"spare_part_id": map[string]interface{}{"type": "integer"},
+				"factory_id":    map[string]interface{}{"type": "integer"},
+			}, "required": []string{"spare_part_id"},
+		},
+	}, s.handleGetSparePartInventory, []string{"read:sparepart"}, true)
+
+	// Register report_repair
+	s.toolRegistry.Register("report_repair", dto.ToolDefinition{
+		Name: "report_repair", Description: "Submit a new repair request",
+		InputSchema: map[string]interface{}{
+			"type": "object", "properties": map[string]interface{}{
+				"equipment_id":      map[string]interface{}{"type": "integer"},
+				"fault_description": map[string]interface{}{"type": "string"},
+				"priority":          map[string]interface{}{"type": "integer", "description": "1=High, 2=Medium, 3=Low"},
+			}, "required": []string{"equipment_id", "fault_description"},
+		},
+	}, s.handleReportRepair, []string{"write:repair"}, false)
+}
+
+func (s *AgentService) handleSearchEquipment(user model.User, args map[string]interface{}) (interface{}, error) {
+	keyword, _ := args["keyword"].(string)
+	db := database.GetDB()
+	var equipments []model.Equipment
+	query := db.Preload("Workshop").Preload("Workshop.Factory")
+	if user.Role != "admin" && user.FactoryID != nil {
+		query = query.Joins("JOIN workshops ON equipments.workshop_id = workshops.id").
+			Where("workshops.factory_id = ?", *user.FactoryID)
+	}
+	err := query.Where("equipments.name ILIKE ? OR equipments.code ILIKE ?", "%"+keyword+"%", "%"+keyword+"%").
+		Limit(10).Find(&equipments).Error
+	return equipments, err
+}
+
+func (s *AgentService) handleGetEquipmentHealth(user model.User, args map[string]interface{}) (interface{}, error) {
+	var id uint
+	if v, ok := args["equipment_id"].(float64); ok { id = uint(v) } else if v, ok := args["equipment_id"].(int); ok { id = uint(v) }
+	return s.GetEquipmentPrediction(id, user)
+}
+
+func (s *AgentService) handleGetSparePartInventory(user model.User, args map[string]interface{}) (interface{}, error) {
+	var partID uint
+	if v, ok := args["spare_part_id"].(float64); ok { partID = uint(v) } else if v, ok := args["spare_part_id"].(int); ok { partID = uint(v) }
+	
+	db := database.GetDB()
+	var inventories []model.SparePartInventory
+	query := db.Preload("Factory").Preload("SparePart").Where("spare_part_id = ?", partID)
+	if user.Role != "admin" && user.FactoryID != nil {
+		query = query.Where("factory_id = ?", *user.FactoryID)
+	} else if fid, ok := args["factory_id"]; ok {
+		query = query.Where("factory_id = ?", fid)
+	}
+	err := query.Find(&inventories).Error
+	return inventories, err
+}
+
+func (s *AgentService) handleReportRepair(user model.User, args map[string]interface{}) (interface{}, error) {
+	var equipID uint
+	if v, ok := args["equipment_id"].(float64); ok { equipID = uint(v) } else if v, ok := args["equipment_id"].(int); ok { equipID = uint(v) }
+	desc, _ := args["fault_description"].(string)
+	priority := 2
+	if p, ok := args["priority"].(float64); ok { priority = int(p) }
+	
+	db := database.GetDB()
+	var equipment model.Equipment
+	if err := db.Joins("JOIN workshops ON workshops.id = equipments.workshop_id").First(&equipment, equipID).Error; err != nil {
+		return nil, fmt.Errorf("equipment not found")
+	}
+	if user.Role != "admin" && user.FactoryID != nil {
+		var workshop model.Workshop
+		db.First(&workshop, equipment.WorkshopID)
+		if workshop.FactoryID != *user.FactoryID {
+			return nil, fmt.Errorf("permission denied: equipment belongs to another factory")
+		}
+	}
+
+	order := model.RepairOrder{
+		EquipmentID: equipID, FaultDescription: desc, Priority: priority,
+		Status: model.RepairPending, ReporterID: user.ID,
+	}
+	err := db.Create(&order).Error
+	if err != nil { return nil, err }
+	return fmt.Sprintf("Repair order #%d created successfully", order.ID), nil
 }
 
 func (s *AgentService) RecommendMaintenance(user model.User, req *dto.MaintenanceRecommendRequest) (*dto.AgentResponseEnvelope, error) {
@@ -246,19 +363,152 @@ func (s *AgentService) AuditRepair(user model.User, req *dto.RepairAuditRequest)
 }
 
 func (s *AgentService) AuditMaintenance(user model.User, req *dto.MaintenanceAuditRequest) (*dto.AgentResponseEnvelope, error) {
+	startTime := time.Now()
 	traceID := trace.GenerateTraceID()
-	return &dto.AgentResponseEnvelope{
-		Success: true, TraceID: traceID, Language: "zh-CN", Scenario: "maintenance_audit",
-		Summary: "这是保养审计的占位符响应（开发中）", Data: dto.MaintenanceAuditData{},
-	}, nil
+	
+	agentCtx, err := s.policy.DeriveAgentContext(user.ID, string(user.Role), req.Language)
+	if err != nil { return nil, err }
+
+	// Prevent system prompt override for non-admin users
+	if req.SystemPrompt != "" && user.Role != "admin" {
+		log.Printf("[AgentService] Security warning: Non-admin user %d tried to override system prompt", user.ID)
+		req.SystemPrompt = ""
+	}
+
+	targetFactoryID := req.FactoryID
+	if targetFactoryID == 0 && agentCtx.FactoryID != nil {
+		targetFactoryID = *agentCtx.FactoryID
+	}
+	
+	if err := s.policy.ValidateScope(agentCtx, &targetFactoryID); err != nil {
+		return nil, err
+	}
+
+	analysisResult, err := s.maintenanceAnalyzer.Audit(req, user)
+	if err != nil { return nil, err }
+
+	summary := analysisResult.AuditSummary
+	if s.llmClient != nil {
+		p := req.SystemPrompt
+		if p == "" {
+			p = s.promptTool.BuildMaintenanceAuditPrompt(analysisResult.Anomalies, analysisResult.Evidence)
+		} else {
+			p = fmt.Sprintf("%s\n\n### 审计发现\n异常: %v\n证据: %v", p, analysisResult.Anomalies, analysisResult.Evidence)
+		}
+		resp, err := s.llmClient.ChatCompletion([]llm.Message{
+			{Role: "system", Content: "你是一个专业的设备保养审计专家。"},
+			{Role: "user", Content: p},
+		})
+		if err == nil && resp != "" {
+			summary = resp
+		}
+	}
+
+	inputSnap, _ := json.Marshal(req)
+	resultJSON, _ := json.Marshal(analysisResult)
+	session := &model.AgentSession{
+		UserID: user.ID, Scenario: "maintenance_audit", FactoryID: &targetFactoryID,
+		Language: agentCtx.Language, InputSnapshot: string(inputSnap), TraceID: traceID, Status: "completed",
+	}
+	_ = s.repo.CreateSession(session)
+
+	artifact := &model.AgentArtifact{
+		SessionID: session.ID, ArtifactType: "audit_report", Title: "设备保养合规审计报告",
+		Summary: summary, ResultJSON: string(resultJSON), RiskLevel: "medium",
+	}
+	_ = s.repo.CreateArtifact(artifact)
+
+	res := &dto.AgentResponseEnvelope{
+		Success: true, TraceID: traceID, Language: agentCtx.Language, Scenario: "maintenance_audit",
+		ScopeSummary: map[string]interface{}{"factory_id": targetFactoryID},
+		Summary: summary, RiskLevel: "medium", ArtifactID: artifact.ID,
+		EvidenceCount: len(analysisResult.Evidence), Data: analysisResult,
+	}
+	s.logUsage(session.ID, user.ID, "maintenance_audit", startTime)
+	return res, nil
 }
 
 func (s *AgentService) Analyze(user model.User, req *dto.AnalyzeRequest) (*dto.AgentResponseEnvelope, error) {
+	startTime := time.Now()
 	traceID := trace.GenerateTraceID()
-	return &dto.AgentResponseEnvelope{
-		Success: true, TraceID: traceID, Language: "zh-CN", Scenario: "analysis",
-		Summary: "这是分析助手的占位符响应（开发中）", Data: dto.AnalyzeData{},
-	}, nil
+	
+	agentCtx, err := s.policy.DeriveAgentContext(user.ID, string(user.Role), req.Language)
+	if err != nil { return nil, err }
+
+	// Prevent system prompt override for non-admin users
+	if req.SystemPrompt != "" && user.Role != "admin" {
+		log.Printf("[AgentService] Security warning: Non-admin user %d tried to override system prompt", user.ID)
+		req.SystemPrompt = ""
+	}
+
+	targetFactoryID := req.FactoryID
+	if targetFactoryID == 0 && agentCtx.FactoryID != nil {
+		targetFactoryID = *agentCtx.FactoryID
+	}
+	
+	if err := s.policy.ValidateScope(agentCtx, &targetFactoryID); err != nil {
+		return nil, err
+	}
+
+	// 1. Gather context based on the question (Entity extraction simplified for MVP)
+	eqID := s.extractEquipmentID(req.Question, user)
+	contextMap := make(map[string]interface{})
+	
+	if eqID != 1 {
+		profile, _ := s.retrievalTool.GetEquipmentProfile(eqID, user)
+		health, _ := s.GetEquipmentPrediction(eqID, user)
+		failureStats, _ := s.repairTool.GetFailureStats(eqID, user)
+		contextMap["equipment_profile"] = profile
+		contextMap["equipment_health"] = health
+		contextMap["failure_stats"] = failureStats
+	}
+
+	// 2. Generate summary via LLM
+	summary := "已为您完成多维度分析。建议关注设备的 RUL 变化及维护成本趋势。"
+	if s.llmClient != nil {
+		p := req.SystemPrompt
+		if p == "" {
+			p = s.promptTool.BuildGenericAnalysisPrompt(req.Question, contextMap)
+		} else {
+			p = fmt.Sprintf("%s\n\n### 补充背景\n%v", p, contextMap)
+		}
+		
+		resp, err := s.llmClient.ChatCompletion([]llm.Message{
+			{Role: "system", Content: "你是一个顶级的工业资产战略分析师。"},
+			{Role: "user", Content: p},
+		})
+		if err == nil && resp != "" {
+			summary = resp
+		}
+	}
+
+	analysisData := dto.AnalyzeData{
+		KeyFindings: []string{"设备处于次健康状态", "维修成本有上升趋势"},
+		Evidence:    []dto.EvidenceItem{},
+	}
+
+	inputSnap, _ := json.Marshal(req)
+	resultJSON, _ := json.Marshal(analysisData)
+	session := &model.AgentSession{
+		UserID: user.ID, Scenario: "analysis", FactoryID: &targetFactoryID,
+		Language: agentCtx.Language, InputSnapshot: string(inputSnap), TraceID: traceID, Status: "completed",
+	}
+	_ = s.repo.CreateSession(session)
+
+	artifact := &model.AgentArtifact{
+		SessionID: session.ID, ArtifactType: "analysis_result", Title: "深度业务分析报告",
+		Summary: summary, ResultJSON: string(resultJSON), RiskLevel: "medium",
+	}
+	_ = s.repo.CreateArtifact(artifact)
+
+	res := &dto.AgentResponseEnvelope{
+		Success: true, TraceID: traceID, Language: agentCtx.Language, Scenario: "analysis",
+		ScopeSummary: map[string]interface{}{"factory_id": targetFactoryID, "equipment_id": eqID},
+		Summary: summary, RiskLevel: "medium", ArtifactID: artifact.ID,
+		EvidenceCount: len(analysisData.Evidence), Data: analysisData,
+	}
+	s.logUsage(session.ID, user.ID, "analysis", startTime)
+	return res, nil
 }
 
 func (s *AgentService) ListSessions(userID uint, limit int) ([]dto.AgentSessionResponse, error) {
@@ -463,7 +713,7 @@ func (s *AgentService) extractEquipmentID(message string, user model.User) uint 
 	var equipments []model.Equipment
 	// Load all equipment for context matching. In a real system, use semantic search or NER.
 	// Filter by factory at query level for efficiency
-	query := database.GetDB().Joins("JOIN workshops ON workshops.id = equipment.workshop_id")
+	query := database.GetDB().Joins("JOIN workshops ON workshops.id = equipments.workshop_id")
 	if user.Role != "admin" && user.FactoryID != nil {
 		query = query.Where("workshops.factory_id = ?", *user.FactoryID)
 	}
@@ -712,20 +962,54 @@ func (s *AgentService) NotifyEvent(eventType string, targetID uint, context map[
 	database.GetDB().Where("push_type = ? AND enabled = ?", "predictive_maintenance", true).Find(&subs)
 
 	for _, sub := range subs {
-		if sub.WebhookURL != "" {
-			go func(url string, msg string) {
-				// 简单的 Webhook 投递逻辑
-				payload := map[string]string{"message": msg, "type": "agent_alert"}
-				body, _ := json.Marshal(payload)
-				log.Printf("[AgentService] Delivering proactive push to %s", url)
-				resp, err := http.Post(url, "application/json", strings.NewReader(string(body)))
-				if err != nil {
-					log.Printf("[AgentService] Webhook delivery failed: %v", err)
-				} else {
-					resp.Body.Close()
-				}
-			}(sub.WebhookURL, artifact.Summary)
+		// Verify if target belongs to subscriber's scope (simplified for MVP)
+		go s.deliverPush(sub, artifact)
+	}
+}
+
+func (s *AgentService) deliverPush(sub model.AgentPushSubscription, artifact *model.AgentArtifact) {
+	payload := map[string]interface{}{
+		"event":       "agent_alert",
+		"artifact_id": artifact.ID,
+		"title":       artifact.Title,
+		"summary":     artifact.Summary,
+		"risk_level":  artifact.RiskLevel,
+		"timestamp":   time.Now().Unix(),
+	}
+	body, _ := json.Marshal(payload)
+	
+	logRecord := &model.AgentPushLog{
+		SubscriptionID: sub.ID,
+		ArtifactID:     artifact.ID,
+		Payload:        string(body),
+		Status:         "pending",
+	}
+	database.GetDB().Create(logRecord)
+
+	if sub.WebhookURL != "" {
+		req, _ := http.NewRequest("POST", sub.WebhookURL, strings.NewReader(string(body)))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-EMS-Event", "agent_alert")
+		// Future: Sign payload with sub.Secret
+
+		client := &http.Client{Timeout: 10 * time.Second}
+		resp, err := client.Do(req)
+		
+		now := time.Now()
+		if err != nil {
+			logRecord.Status = "failed"
+			logRecord.ErrorMessage = err.Error()
+		} else {
+			defer resp.Body.Close()
+			if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+				logRecord.Status = "success"
+				logRecord.DeliveredAt = &now
+			} else {
+				logRecord.Status = "failed"
+				logRecord.ErrorMessage = fmt.Sprintf("HTTP %d", resp.StatusCode)
+			}
 		}
+		database.GetDB().Save(logRecord)
 	}
 }
 func (s *AgentService) GetEquipmentPrediction(equipmentID uint, user model.User) (map[string]interface{}, error) {

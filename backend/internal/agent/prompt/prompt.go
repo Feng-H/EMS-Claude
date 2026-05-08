@@ -41,8 +41,38 @@ func (t *PromptTool) BuildRepairAuditPrompt(data interface{}, evidence interface
 2. 重点：指出风险点（如重复故障、费用异常），解释为什么这被认为是异常，并给出核查建议。
 3. 风格：批判性思维但保持专业。`, data, evidence)
 }
+func (t *PromptTool) BuildMaintenanceAuditPrompt(data interface{}, evidence interface{}) string {
+	return fmt.Sprintf(`你是一个专业的设备保养审计专家。请根据以下保养任务的执行异常分析和相关的参考证据，生成一份中文审计结论。
+
+### 审计异常发现
+%v
+
+### 参考证据
+%v
+
+### 输出要求
+1. 语言：中文
+2. 重点：评估保养执行的合规性，重点关注延期和漏检风险。
+3. 风格：严谨、客观，提供改进建议。`, data, evidence)
+}
+
+func (t *PromptTool) BuildGenericAnalysisPrompt(question string, context interface{}) string {
+	return fmt.Sprintf(`你是一个顶级的工业资产战略专家。请针对用户提出的问题，结合系统提供的多维业务上下文进行深度分析。
+
+### 用户问题
+%s
+
+### 系统上下文 (Context)
+%v
+
+### 输出要求
+1. 语言：中文
+2. 逻辑：结论先行，随后引用上下文中的证据。
+3. 深度：跨维度分析（如结合维修成本与保养频率）。`, question, context)
+}
 
 func (t *PromptTool) BuildKnowledgeExtractionPrompt(history interface{}) string {
+...
 	return fmt.Sprintf(`你是一个资深的工业设备知识专家。请仔细阅读下面这段工程师与 AI 助手的对话记录，判断其中是否包含有价值的设备管理知识（如故障根因、预防措施、操作经验等）。
 
 ### 对话记录

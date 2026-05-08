@@ -339,6 +339,8 @@ func CreateAPIKey(c *gin.Context) {
 		Key:         hashedKey,
 		Name:        req.Name,
 		Description: req.Description,
+		Scopes:      strings.Join(req.Scopes, ","),
+		RateLimit:   req.RateLimit,
 		ExpiresAt:   expiresAt,
 		IsActive:    true,
 	}
@@ -353,6 +355,8 @@ func CreateAPIKey(c *gin.Context) {
 		Key:         plainKey, // Only shown once
 		Name:        apiKey.Name,
 		Description: apiKey.Description,
+		Scopes:      apiKey.Scopes,
+		RateLimit:   apiKey.RateLimit,
 		ExpiresAt:   formatTimePtr(apiKey.ExpiresAt),
 		IsActive:    apiKey.IsActive,
 		CreatedAt:   apiKey.CreatedAt.Format("2006-01-02 15:04:05"),
@@ -374,6 +378,8 @@ func ListAPIKeys(c *gin.Context) {
 			ID:          k.ID,
 			Name:        k.Name,
 			Description: k.Description,
+			Scopes:      k.Scopes,
+			RateLimit:   k.RateLimit,
 			LastUsedAt:  formatTimePtr(k.LastUsedAt),
 			ExpiresAt:   formatTimePtr(k.ExpiresAt),
 			IsActive:    k.IsActive,
