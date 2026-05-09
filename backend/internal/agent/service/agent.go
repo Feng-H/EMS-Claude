@@ -14,9 +14,12 @@ import (
 	"github.com/ems/backend/internal/agent/repository"
 	"github.com/ems/backend/internal/agent/tool"
 	"github.com/ems/backend/internal/model"
+	internalRepo "github.com/ems/backend/internal/repository"
 	"github.com/ems/backend/pkg/config"
 	"github.com/ems/backend/pkg/database"
+	"github.com/ems/backend/pkg/memory"
 	"github.com/ems/backend/pkg/llm"
+
 	"github.com/ems/backend/pkg/trace"
 )
 
@@ -123,6 +126,126 @@ func (s *AgentService) initToolRegistry() {
 			}, "required": []string{"equipment_id", "fault_description"},
 		},
 	}, s.handleReportRepair, []string{"write:repair"}, false)
+
+	// Register get_equipment_financials
+	s.toolRegistry.Register("get_equipment_financials", dto.ToolDefinition{
+		Name: "get_equipment_financials", Description: "Get equipment original value, residual value, and downtime loss",
+		InputSchema: map[string]interface{}{
+			"type": "object", "properties": map[string]interface{}{
+				"equipment_id": map[string]interface{}{"type": "integer"},
+			}, "required": []string{"equipment_id"},
+		},
+	}, s.handleGetEquipmentFinancials, []string{"read:equipment"}, true)
+
+	// Register get_repair_costs
+	s.toolRegistry.Register("get_repair_costs", dto.ToolDefinition{
+		Name: "get_repair_costs", Description: "Get cumulative repair cost details (labor, spare parts)",
+		InputSchema: map[string]interface{}{
+			"type": "object", "properties": map[string]interface{}{
+				"equipment_id": map[string]interface{}{"type": "integer"},
+			}, "required": []string{"equipment_id"},
+		},
+	}, s.handleGetRepairCosts, []string{"read:repair"}, true)
+
+	// Register get_equipment_profile
+	s.toolRegistry.Register("get_equipment_profile", dto.ToolDefinition{
+		Name: "get_equipment_profile", Description: "Get equipment basic profile and specifications",
+		InputSchema: map[string]interface{}{
+			"type": "object", "properties": map[string]interface{}{
+				"equipment_id": map[string]interface{}{"type": "integer"},
+			}, "required": []string{"equipment_id"},
+		},
+	}, s.handleGetEquipmentProfile, []string{"read:equipment"}, true)
+
+	// Register get_failure_stats
+	s.toolRegistry.Register("get_failure_stats", dto.ToolDefinition{
+		Name: "get_failure_stats", Description: "Get historical failure statistics for an equipment",
+		InputSchema: map[string]interface{}{
+			"type": "object", "properties": map[string]interface{}{
+				"equipment_id": map[string]interface{}{"type": "integer"},
+			}, "required": []string{"equipment_id"},
+		},
+	}, s.handleGetFailureStats, []string{"read:repair"}, true)
+
+	// Register get_maintenance_compliance
+	s.toolRegistry.Register("get_maintenance_compliance", dto.ToolDefinition{
+		Name: "get_maintenance_compliance", Description: "Get maintenance compliance evaluation",
+		InputSchema: map[string]interface{}{
+			"type": "object", "properties": map[string]interface{}{
+				"equipment_id": map[string]interface{}{"type": "integer"},
+			}, "required": []string{"equipment_id"},
+		},
+	}, s.handleGetMaintenanceCompliance, []string{"read:maintenance"}, true)
+
+	// Register get_failure_distribution
+	s.toolRegistry.Register("get_failure_distribution", dto.ToolDefinition{
+		Name: "get_failure_distribution", Description: "Get failure distribution analysis for an equipment type",
+		InputSchema: map[string]interface{}{
+			"type": "object", "properties": map[string]interface{}{
+				"equipment_type_id": map[string]interface{}{"type": "integer"},
+			}, "required": []string{"equipment_type_id"},
+		},
+	}, s.handleGetFailureDistribution, []string{"read:repair"}, true)
+
+	// Register search_manual_knowledge
+	s.toolRegistry.Register("search_manual_knowledge", dto.ToolDefinition{
+		Name: "search_manual_knowledge", Description: "Search for technical knowledge and manual excerpts",
+		InputSchema: map[string]interface{}{
+			"type": "object", "properties": map[string]interface{}{
+				"query": map[string]interface{}{"type": "string"},
+			}, "required": []string{"query"},
+		},
+	}, s.handleSearchManualKnowledge, []string{"read:knowledge"}, true)
+
+	// Register predict_remaining_life
+	s.toolRegistry.Register("predict_remaining_life", dto.ToolDefinition{
+		Name: "predict_remaining_life", Description: "Predict Remaining Useful Life (RUL) for an equipment",
+		InputSchema: map[string]interface{}{
+			"type": "object", "properties": map[string]interface{}{
+				"equipment_id": map[string]interface{}{"type": "integer"},
+			}, "required": []string{"equipment_id"},
+		},
+	}, s.handlePredictRUL, []string{"read:prediction"}, true)
+
+	// Register detect_symptoms
+	s.toolRegistry.Register("detect_symptoms", dto.ToolDefinition{
+		Name: "detect_symptoms", Description: "Detect sub-health symptoms for an equipment",
+		InputSchema: map[string]interface{}{
+			"type": "object", "properties": map[string]interface{}{
+				"equipment_id": map[string]interface{}{"type": "integer"},
+			}, "required": []string{"equipment_id"},
+		},
+	}, s.handleDetectSymptoms, []string{"read:prediction"}, true)
+
+	// Register get_tco_analysis
+	s.toolRegistry.Register("get_tco_analysis", dto.ToolDefinition{
+		Name: "get_tco_analysis", Description: "Get Total Cost of Ownership (TCO) analysis",
+		InputSchema: map[string]interface{}{
+			"type": "object", "properties": map[string]interface{}{
+				"equipment_id": map[string]interface{}{"type": "integer"},
+			}, "required": []string{"equipment_id"},
+		},
+	}, s.handleGetTCOAnalysis, []string{"read:equipment", "read:repair"}, true)
+
+	// Register get_retirement_recommendation
+	s.toolRegistry.Register("get_retirement_recommendation", dto.ToolDefinition{
+		Name: "get_retirement_recommendation", Description: "Get asset retirement and replacement recommendation",
+		InputSchema: map[string]interface{}{
+			"type": "object", "properties": map[string]interface{}{
+				"equipment_id": map[string]interface{}{"type": "integer"},
+			}, "required": []string{"equipment_id"},
+		},
+	}, s.handleEvaluateRetirement, []string{"read:equipment", "read:prediction"}, true)
+
+	// Register get_cost_analysis (alias for get_repair_costs)
+	s.toolRegistry.Register("get_cost_analysis", dto.ToolDefinition{
+		Name: "get_cost_analysis", Description: "Get cumulative repair cost details",
+		InputSchema: map[string]interface{}{
+			"type": "object", "properties": map[string]interface{}{
+				"equipment_id": map[string]interface{}{"type": "integer"},
+			}, "required": []string{"equipment_id"},
+		},
+	}, s.handleGetRepairCosts, []string{"read:repair"}, true)
 }
 
 func (s *AgentService) handleSearchEquipment(user model.User, args map[string]interface{}) (interface{}, error) {
@@ -188,6 +311,121 @@ func (s *AgentService) handleReportRepair(user model.User, args map[string]inter
 	err := db.Create(&order).Error
 	if err != nil { return nil, err }
 	return fmt.Sprintf("Repair order #%d created successfully", order.ID), nil
+}
+
+func (s *AgentService) handleGetEquipmentFinancials(user model.User, args map[string]interface{}) (interface{}, error) {
+	var id uint
+	if v, ok := args["equipment_id"].(float64); ok {
+		id = uint(v)
+	} else if v, ok := args["equipment_id"].(int); ok {
+		id = uint(v)
+	}
+
+	if config.Cfg.Storage.Mode == "memory" {
+		store := memory.GetStore()
+		equipment := store.FindEquipment(id)
+		if equipment == nil {
+			return nil, fmt.Errorf("equipment not found")
+		}
+
+		// Permission check
+		if user.Role != model.RoleAdmin && user.FactoryID != nil {
+			workshop, ok := store.Workshops[equipment.WorkshopID]
+			if !ok || workshop.FactoryID != *user.FactoryID {
+				return nil, fmt.Errorf("permission denied")
+			}
+		}
+
+		return map[string]interface{}{
+			"purchase_price":     equipment.PurchasePrice,
+			"scrap_value":        equipment.ScrapValue,
+			"hourly_loss":        equipment.HourlyLoss,
+			"purchase_date":      equipment.PurchaseDate,
+			"service_life_years": equipment.ServiceLifeYears,
+		}, nil
+	}
+
+	repo := internalRepo.NewEquipmentRepo()
+	equipment, err := repo.GetByID(id)
+	if err != nil {
+		return nil, fmt.Errorf("equipment not found")
+	}
+
+	// Permission check
+	if user.Role != model.RoleAdmin && user.FactoryID != nil {
+		if equipment.Workshop == nil || equipment.Workshop.FactoryID != *user.FactoryID {
+			return nil, fmt.Errorf("permission denied")
+		}
+	}
+
+	return map[string]interface{}{
+		"purchase_price":     equipment.PurchasePrice,
+		"scrap_value":        equipment.ScrapValue,
+		"hourly_loss":        equipment.HourlyLoss,
+		"purchase_date":      equipment.PurchaseDate,
+		"service_life_years": equipment.ServiceLifeYears,
+	}, nil
+}
+
+func (s *AgentService) handleGetRepairCosts(user model.User, args map[string]interface{}) (interface{}, error) {
+	var id uint
+	if v, ok := args["equipment_id"].(float64); ok { id = uint(v) } else if v, ok := args["equipment_id"].(int); ok { id = uint(v) }
+	return s.repairTool.GetCostByEquipmentID(id, user)
+}
+
+func (s *AgentService) handleGetEquipmentProfile(user model.User, args map[string]interface{}) (interface{}, error) {
+	var id uint
+	if v, ok := args["equipment_id"].(float64); ok { id = uint(v) } else if v, ok := args["equipment_id"].(int); ok { id = uint(v) }
+	return s.retrievalTool.GetEquipmentProfile(id, user)
+}
+
+func (s *AgentService) handleGetFailureStats(user model.User, args map[string]interface{}) (interface{}, error) {
+	var id uint
+	if v, ok := args["equipment_id"].(float64); ok { id = uint(v) } else if v, ok := args["equipment_id"].(int); ok { id = uint(v) }
+	return s.repairTool.GetFailureStats(id, user)
+}
+
+func (s *AgentService) handleGetMaintenanceCompliance(user model.User, args map[string]interface{}) (interface{}, error) {
+	var id uint
+	if v, ok := args["equipment_id"].(float64); ok { id = uint(v) } else if v, ok := args["equipment_id"].(int); ok { id = uint(v) }
+	return s.maintenanceTool.GetMaintenanceCompliance(id, user)
+}
+
+func (s *AgentService) handleGetFailureDistribution(user model.User, args map[string]interface{}) (interface{}, error) {
+	var typeID uint
+	if v, ok := args["equipment_type_id"].(float64); ok { typeID = uint(v) } else if v, ok := args["equipment_type_id"].(int); ok { typeID = uint(v) }
+	if typeID == 0 { typeID = 12 } // Default for now to match old behavior
+	auditReq := &dto.RepairAuditRequest{EquipmentTypeID: typeID}
+	return s.repairAuditAnalyzer.Analyze(auditReq, user)
+}
+
+func (s *AgentService) handleSearchManualKnowledge(user model.User, args map[string]interface{}) (interface{}, error) {
+	query, _ := args["query"].(string)
+	return s.retrievalTool.SearchManualKnowledge(query, nil, user)
+}
+
+func (s *AgentService) handlePredictRUL(user model.User, args map[string]interface{}) (interface{}, error) {
+	var id uint
+	if v, ok := args["equipment_id"].(float64); ok { id = uint(v) } else if v, ok := args["equipment_id"].(int); ok { id = uint(v) }
+	return s.predictiveAnalyzer.PredictRUL(id, user)
+}
+
+func (s *AgentService) handleDetectSymptoms(user model.User, args map[string]interface{}) (interface{}, error) {
+	var id uint
+	if v, ok := args["equipment_id"].(float64); ok { id = uint(v) } else if v, ok := args["equipment_id"].(int); ok { id = uint(v) }
+	return s.predictiveAnalyzer.DetectSymptoms(id, user)
+}
+
+func (s *AgentService) handleGetTCOAnalysis(user model.User, args map[string]interface{}) (interface{}, error) {
+	var id uint
+	if v, ok := args["equipment_id"].(float64); ok { id = uint(v) } else if v, ok := args["equipment_id"].(int); ok { id = uint(v) }
+	return s.predictiveAnalyzer.CalculateTCO(id, user)
+}
+
+func (s *AgentService) handleEvaluateRetirement(user model.User, args map[string]interface{}) (interface{}, error) {
+	var id uint
+	if v, ok := args["equipment_id"].(float64); ok { id = uint(v) } else if v, ok := args["equipment_id"].(int); ok { id = uint(v) }
+	return s.predictiveAnalyzer.EvaluateRetirement(id, user)
 }
 
 func (s *AgentService) RecommendMaintenance(user model.User, req *dto.MaintenanceRecommendRequest) (*dto.AgentResponseEnvelope, error) {
@@ -795,107 +1033,153 @@ func (s *AgentService) ListSkills(status string, query string) ([]dto.SkillRespo
 }
 
 func (s *AgentService) ExecuteSkill(user model.User, skill *model.AgentSkill, req *dto.ChatRequest) (*dto.AgentResponseEnvelope, error) {
-	var steps []struct {
-		Step   int    `json:"step"`
-		Action string `json:"action"`
-		Tool   string `json:"tool"`
+	if s.llmClient == nil {
+		return nil, fmt.Errorf("LLM service not configured")
 	}
-	_ = json.Unmarshal([]byte(skill.Steps), &steps)
-	
+
+	// 1. 获取所有可用工具并映射为 LLM 工具格式
+	toolDefs := s.toolRegistry.List(user)
+	llmTools := make([]llm.Tool, len(toolDefs))
+	for i, def := range toolDefs {
+		llmTools[i] = s.mapToolToLLM(def)
+	}
+
+	// 2. 提取上下文：设备 ID
 	eqID := s.extractEquipmentID(req.Message, user)
 	
+	// 3. 准备 SOP 建议
+	var suggestedSteps []any
+	_ = json.Unmarshal([]byte(skill.Steps), &suggestedSteps)
+	stepsJSON, _ := json.Marshal(suggestedSteps)
+
+	// 4. 构建初始 System Prompt
+	systemPrompt := fmt.Sprintf(`你是一个专业的工业设备管理助手，正在执行预定义的分析技能：【%s】。
+技能描述：%s
+建议的操作流程（SOP）：%s
+
+请根据用户的需求和建议的 SOP，自主决定调用哪些工具来收集信息并完成任务。
+注意：如果涉及到特定设备且用户未明确指定，当前通过上下文识别出的设备 ID 可能为 %d（若为 1 则表示未识别到具体设备，需进一步确认或搜索）。
+你可以多次调用工具，直到你认为收集到了足够的证据来回答用户的问题。
+收集完证据后，请给出一份专业的中文分析摘要。`, skill.Name, skill.Description, string(stepsJSON), eqID)
+
+	messages := []llm.Message{
+		{Role: "system", Content: systemPrompt},
+		{Role: "user", Content: req.Message},
+	}
+
 	evidence := []dto.EvidenceItem{}
-	for _, step := range steps {
-		switch step.Tool {
-		case "get_equipment_profile":
-			if res, err := s.retrievalTool.GetEquipmentProfile(eqID, user); err == nil {
-				resJSON, _ := json.Marshal(res)
-				evidence = append(evidence, dto.EvidenceItem{
-					EvidenceType: "equipment_profile", Title: "设备基础信息", Excerpt: string(resJSON), Score: 1.0,
+	maxIterations := 10
+	
+	// 工具元数据映射，用于美化证据标题
+	toolMetadata := map[string]struct {
+		Type  string
+		Title string
+	}{
+		"get_equipment_profile":       {"equipment_profile", "设备基础信息"},
+		"get_failure_stats":           {"failure_stats", "故障统计分析"},
+		"get_cost_analysis":           {"cost_analysis", "维修成本分析"},
+		"get_maintenance_compliance":  {"maintenance_compliance", "保养合规性评估"},
+		"predict_remaining_life":      {"prediction", "RUL 剩余健康寿命预测"},
+		"detect_symptoms":             {"symptoms", "设备亚健康征兆识别"},
+		"get_tco_analysis":            {"tco", "资产总持有成本(TCO)分析"},
+		"get_retirement_recommendation": {"retirement", "资产退役与投资决策建议"},
+		"search_equipment":            {"equipment_search", "设备搜索结果"},
+		"get_equipment_health":        {"health_analysis", "设备健康分析"},
+	}
+
+	for i := 0; i < maxIterations; i++ {
+		resp, err := s.llmClient.ChatWithTools(messages, llmTools)
+		if err != nil {
+			log.Printf("[AgentService] LLM ChatWithTools failed in ExecuteSkill: %v", err)
+			return nil, fmt.Errorf("LLM 服务响应失败: %v", err)
+		}
+
+		// 将 LLM 的回复添加到对话历史
+		messages = append(messages, *resp)
+
+		// 如果没有工具调用，说明 LLM 给出了最终回答
+		if len(resp.ToolCalls) == 0 {
+			return &dto.AgentResponseEnvelope{
+				Success: true, Scenario: "skill_execution", Summary: resp.Content, EvidenceCount: len(evidence),
+				Data: map[string]interface{}{
+					"skill_id":       skill.ID,
+					"skill_name":     skill.Name,
+					"evidence":       evidence,
+					"final_messages": messages, // 可选，用于前端展示过程
+				},
+			}, nil
+		}
+
+		// 处理工具调用
+		for _, tc := range resp.ToolCalls {
+			var args map[string]interface{}
+			if err := json.Unmarshal([]byte(tc.Function.Arguments), &args); err != nil {
+				log.Printf("[AgentService] Failed to unmarshal tool arguments: %v", err)
+				messages = append(messages, llm.Message{
+					Role: "tool", ToolCallID: tc.ID, Content: fmt.Sprintf("Error: Invalid arguments: %v", err),
 				})
+				continue
 			}
-		case "get_failure_stats":
-			if res, err := s.repairTool.GetFailureStats(eqID, user); err == nil {
-				resJSON, _ := json.Marshal(res)
-				evidence = append(evidence, dto.EvidenceItem{
-					EvidenceType: "failure_stats", Title: "故障统计分析", Excerpt: string(resJSON), Score: 0.95,
+
+			// 启发式：如果工具需要 equipment_id 但 LLM 没提供，且我们有识别到的 eqID
+			if _, ok := args["equipment_id"]; !ok && eqID != 1 {
+				// 检查工具定义中是否包含 equipment_id
+				if tEntry, ok := s.toolRegistry.GetTool(tc.Function.Name); ok {
+					if schema, ok := tEntry.Definition.InputSchema.(map[string]interface{}); ok {
+						if props, ok := schema["properties"].(map[string]interface{}); ok {
+							if _, ok := props["equipment_id"]; ok {
+								args["equipment_id"] = eqID
+							}
+						}
+					}
+				}
+			}
+
+			// 执行工具
+			res, err := s.toolRegistry.Call(tc.Function.Name, user, args, nil)
+			if err != nil {
+				log.Printf("[AgentService] Tool call failed: %s, err: %v", tc.Function.Name, err)
+				messages = append(messages, llm.Message{
+					Role: "tool", ToolCallID: tc.ID, Content: fmt.Sprintf("Error: %v", err),
 				})
+				continue
 			}
-		case "get_cost_analysis":
-			if res, err := s.repairTool.GetCostByEquipmentID(eqID, user); err == nil {
-				resJSON, _ := json.Marshal(res)
-				evidence = append(evidence, dto.EvidenceItem{
-					EvidenceType: "cost_analysis", Title: "维修成本分析", Excerpt: string(resJSON), Score: 0.9,
-				})
-			}
-		case "get_maintenance_compliance":
-			if res, err := s.maintenanceTool.GetMaintenanceCompliance(eqID, user); err == nil {
-				resJSON, _ := json.Marshal(res)
-				evidence = append(evidence, dto.EvidenceItem{
-					EvidenceType: "maintenance_compliance", Title: "保养合规性评估", Excerpt: string(resJSON), Score: 0.85,
-				})
-			}
-		case "get_failure_distribution":
-			auditReq := &dto.RepairAuditRequest{EquipmentTypeID: 12}
-			res, err := s.repairAuditAnalyzer.Analyze(auditReq, user)
-			if err == nil { evidence = append(evidence, res.Evidence...) }
-		case "search_manual_knowledge":
-			res, err := s.retrievalTool.SearchManualKnowledge(req.Message, nil, user)
-			if err == nil {
-				evidence = append(evidence, res...)
-			}
-		case "predict_remaining_life":
-			if res, err := s.predictiveAnalyzer.PredictRUL(eqID, user); err == nil {
-				resJSON, _ := json.Marshal(res)
-				evidence = append(evidence, dto.EvidenceItem{
-					EvidenceType: "prediction", Title: "RUL 剩余健康寿命预测",
-					Excerpt: string(resJSON), Score: 0.98,
-				})
-			}
-		case "detect_symptoms":
-			if res, err := s.predictiveAnalyzer.DetectSymptoms(eqID, user); err == nil {
-				resJSON, _ := json.Marshal(res)
-				evidence = append(evidence, dto.EvidenceItem{
-					EvidenceType: "symptoms", Title: "设备亚健康征兆识别",
-					Excerpt: string(resJSON), Score: 0.92,
-				})
-			}
-		case "get_tco_analysis":
-			if res, err := s.predictiveAnalyzer.CalculateTCO(eqID, user); err == nil {
-				resJSON, _ := json.Marshal(res)
-				evidence = append(evidence, dto.EvidenceItem{
-					EvidenceType: "tco", Title: "资产总持有成本(TCO)分析",
-					Excerpt: string(resJSON), Score: 0.95,
-				})
-			}
-		case "get_retirement_recommendation":
-			if res, err := s.predictiveAnalyzer.EvaluateRetirement(eqID, user); err == nil {
-				resJSON, _ := json.Marshal(res)
-				evidence = append(evidence, dto.EvidenceItem{
-					EvidenceType: "retirement", Title: "资产退役与投资决策建议",
-					Excerpt: string(resJSON), Score: 0.99,
-				})
+
+			// 将工具结果添加到对话历史
+			resJSON, _ := json.Marshal(res)
+			messages = append(messages, llm.Message{
+				Role: "tool", ToolCallID: tc.ID, Content: string(resJSON),
+			})
+
+			// 收集证据 (只记录只读工具)
+			if tEntry, ok := s.toolRegistry.GetTool(tc.Function.Name); ok && tEntry.IsReadOnly {
+				if tc.Function.Name == "search_manual_knowledge" {
+					if evs, ok := res.([]dto.EvidenceItem); ok {
+						evidence = append(evidence, evs...)
+					}
+				} else if tc.Function.Name == "get_failure_distribution" {
+					if auditData, ok := res.(*dto.RepairAuditData); ok {
+						evidence = append(evidence, auditData.Evidence...)
+					}
+				} else {
+					title := fmt.Sprintf("工具调用: %s", tc.Function.Name)
+					eType := "tool_result"
+					if meta, ok := toolMetadata[tc.Function.Name]; ok {
+						title = meta.Title
+						eType = meta.Type
+					}
+					evidence = append(evidence, dto.EvidenceItem{
+						EvidenceType: eType,
+						Title:        title,
+						Excerpt:      string(resJSON),
+						Score:        0.9,
+					})
+				}
 			}
 		}
 	}
 
-	summary := fmt.Sprintf("执行技能【%s】: 已完成 %d 个分析步骤，收集到 %d 条证据。", skill.Name, len(steps), len(evidence))
-	if s.llmClient != nil {
-		prompt := fmt.Sprintf("用户意图: %s\n执行技能: %s\n技能描述: %s\n收集到的证据链: %v\n\n请根据以上信息给出一份专业的中文分析摘要。", req.Message, skill.Name, skill.Description, evidence)
-		resp, err := s.llmClient.ChatCompletion([]llm.Message{
-			{Role: "system", Content: "你是一个专业的工业设备管理助手，正在执行预定义的分析技能。"},
-			{Role: "user", Content: prompt},
-		})
-		if err != nil {
-			log.Printf("[AgentService] LLM request failed in SkillExecution: %v", err)
-		} else if resp != "" {
-			summary = resp
-		}
-	}
-	return &dto.AgentResponseEnvelope{
-		Success: true, Scenario: "skill_execution", Summary: summary, EvidenceCount: len(evidence),
-		Data: map[string]interface{}{"skill_id": skill.ID, "skill_name": skill.Name, "executed_steps": len(steps), "evidence": evidence},
-	}, nil
+	return nil, fmt.Errorf("达到最大迭代次数限制，分析未能完成")
 }
 
 func (s *AgentService) GetSkill(id uint) (*dto.SkillResponse, error) {
@@ -1077,6 +1361,21 @@ func (s *AgentService) mapSkillToResponse(sk *model.AgentSkill) *dto.SkillRespon
 	return &dto.SkillResponse{
 		ID: sk.ID, Name: sk.Name, Description: sk.Description, ApplicableTo: appTo, ApplicableScenarios: appSce,
 		Steps: steps, Version: sk.Version, Status: sk.Status, UsageCount: sk.UsageCount, SuccessRate: sk.SuccessRate, CreatedAt: sk.CreatedAt,
+	}
+}
+
+func (s *AgentService) mapToolToLLM(toolDef dto.ToolDefinition) llm.Tool {
+	return llm.Tool{
+		Type: "function",
+		Function: struct {
+			Name        string      `json:"name"`
+			Description string      `json:"description"`
+			Parameters  interface{} `json:"parameters"`
+		}{
+			Name:        toolDef.Name,
+			Description: toolDef.Description,
+			Parameters:  toolDef.InputSchema,
+		},
 	}
 }
 

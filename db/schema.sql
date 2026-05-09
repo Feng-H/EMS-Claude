@@ -357,6 +357,7 @@ CREATE TABLE repair_cost_details (
     spare_part_cost DECIMAL(12,2) DEFAULT 0,
     labor_cost DECIMAL(12,2) DEFAULT 0,
     other_cost DECIMAL(12,2) DEFAULT 0,
+    downtime_loss DECIMAL(12,2) DEFAULT 0,
     currency VARCHAR(10) DEFAULT 'CNY'
 );
 

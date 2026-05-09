@@ -84,17 +84,21 @@ func (t *RepairTool) GetCostByEquipmentID(equipmentID uint, user model.User) (ma
 	if err := t.checkPermission(equipmentID, user); err != nil { return nil, err }
 	if config.Cfg.Storage.Mode == "memory" {
 		store := memory.GetStore()
-		var sparePartCost, laborCost float64
+		var sparePartCost, laborCost, otherCost, downtimeLoss float64
 		for _, cost := range store.RepairCostDetails {
 			if order, ok := store.RepairOrders[cost.OrderID]; ok && order.EquipmentID == equipmentID {
 				sparePartCost += cost.SparePartCost
 				laborCost += cost.LaborCost
+				otherCost += cost.OtherCost
+				downtimeLoss += cost.DowntimeLoss
 			}
 		}
 		return map[string]interface{}{
-			"total_cost":       sparePartCost + laborCost,
+			"total_cost":      sparePartCost + laborCost + otherCost + downtimeLoss,
 			"spare_part_cost": sparePartCost,
 			"labor_cost":      laborCost,
+			"other_cost":      otherCost,
+			"downtime_loss":   downtimeLoss,
 		}, nil
 	}
 

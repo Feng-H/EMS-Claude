@@ -251,19 +251,21 @@ func (r *RepairOrderRepository) GetStatisticsByEquipmentID(equipmentID uint) (ma
 }
 
 func (r *RepairOrderRepository) GetCostByEquipmentID(equipmentID uint) (map[string]interface{}, error) {
-	var sparePartCost, laborCost float64
+	var sparePartCost, laborCost, otherCost, downtimeLoss float64
 
 	// Join with RepairCostDetail
 	r.db.Table("repair_cost_details").
-		Select("COALESCE(SUM(spare_part_cost), 0), COALESCE(SUM(labor_cost), 0)").
+		Select("COALESCE(SUM(spare_part_cost), 0), COALESCE(SUM(labor_cost), 0), COALESCE(SUM(other_cost), 0), COALESCE(SUM(downtime_loss), 0)").
 		Joins("JOIN repair_orders ON repair_orders.id = repair_cost_details.order_id").
 		Where("repair_orders.equipment_id = ?", equipmentID).
-		Row().Scan(&sparePartCost, &laborCost)
+		Row().Scan(&sparePartCost, &laborCost, &otherCost, &downtimeLoss)
 
 	return map[string]interface{}{
-		"total_cost":      sparePartCost + laborCost,
+		"total_cost":      sparePartCost + laborCost + otherCost + downtimeLoss,
 		"spare_part_cost": sparePartCost,
 		"labor_cost":      laborCost,
+		"other_cost":      otherCost,
+		"downtime_loss":   downtimeLoss,
 	}, nil
 }
 

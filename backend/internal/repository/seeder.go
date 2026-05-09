@@ -216,7 +216,12 @@ func SeedDatabase(db *gorm.DB) error {
 					CompletedAt: timePtr(date.Add(time.Hour * 4)), ClosedAt: timePtr(date.Add(time.Hour * 6)),
 				}
 				db.Create(&ro)
-				db.Create(&model.RepairCostDetail{OrderID: ro.ID, SparePartCost: float64(rnd.Intn(2000)), LaborCost: float64(rnd.Intn(1000))})
+				db.Create(&model.RepairCostDetail{
+					OrderID: ro.ID, 
+					SparePartCost: float64(rnd.Intn(2000)), 
+					LaborCost: float64(rnd.Intn(1000)),
+					DowntimeLoss: float64(rnd.Intn(500)),
+				})
 				
 				// Random spare parts
 				for i := 0; i < rnd.Intn(2)+1; i++ {
@@ -237,6 +242,42 @@ func SeedDatabase(db *gorm.DB) error {
 		{Title: "高频故障：传感器失效分析", EquipmentTypeID: &equipTypes[0].ID, FaultPhenomenon: "信号丢失或波动", CauseAnalysis: "环境油污干扰", Solution: "清理并加装防护罩", CreatedBy: admin.ID, SourceType: "expert_summary"},
 	}
 	db.Create(&articles)
+
+	db.Create(&model.AgentSkill{
+		Name: "设备生命周期经济性分析", 
+		Description: "从财务视角分析设备的全生命周期成本（TCO），判断老旧设备是该“继续维修”还是“报废替换”。",
+		Status: "active",
+		Steps: `[
+			{"step": 1, "action": "获取设备财务数据", "tool": "get_equipment_financials"},
+			{"step": 2, "action": "获取累计维修成本", "tool": "get_repair_costs"},
+			{"step": 3, "action": "经济性对比分析", "logic": "对比(累计维修成本 + 预计停机损失) 与 (设备原值 - 残值)"},
+			{"step": 4, "action": "提供决策建议", "logic": "如果维修成本占比超过 40%，发出预警并建议评估投资回报率（ROI）"}
+		]`,
+	})
+
+	db.Create(&model.AgentSkill{
+		Name: "故障根因与可靠性分析",
+		Description: "分析设备的历史报修记录，计算 MTTR/MTBF，识别高频故障模式及其根本原因。",
+		Status: "active",
+		Steps: `[
+			{"step": 1, "action": "获取历史报修详情", "tool": "query_repair_orders"},
+			{"step": 2, "action": "计算可靠性指标", "logic": "计算平均修复时间 (MTTR) 和平均故障间隔时间 (MTBF)"},
+			{"step": 3, "action": "故障模式识别", "logic": "统计高频故障代码 (fault_code) 或关键词"},
+			{"step": 4, "action": "知识库方案匹配", "tool": "search_manual_knowledge"}
+		]`,
+	})
+
+	db.Create(&model.AgentSkill{
+		Name: "维保合规与健康度综合评估",
+		Description: "综合考量巡检、保养和实时亚健康征兆，对设备的运行健康度进行评分。",
+		Status: "active",
+		Steps: `[
+			{"step": 1, "action": "检查保养合规性", "tool": "get_maintenance_compliance"},
+			{"step": 2, "action": "获取实时健康数据", "tool": "get_equipment_health"},
+			{"step": 3, "action": "亚健康征兆识别", "tool": "detect_symptoms"},
+			{"step": 4, "action": "综合评分与建议", "logic": "综合各项数据给出一个 0-100 的健康评分，并提供针对性的维护建议"}
+		]`,
+	})
 
 	db.Create(&model.AgentSkill{Name: "生产效率分析", Description: "分析停机损失与产出比", Status: "active", Steps: `[{"step": 1, "tool": "get_cost_analysis"}]`})
 	
