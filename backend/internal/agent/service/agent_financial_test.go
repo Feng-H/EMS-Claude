@@ -87,7 +87,7 @@ func TestAgentService_HandleGetRepairCosts(t *testing.T) {
 	}
 	
 	svc := NewAgentService()
-	args := map[string]interface{}{"equipment_id": eqID}
+	args := map[string]interface{}{"equipment_id": float64(eqID)}
 	
 	result, err := svc.handleGetRepairCosts(user, args)
 	if err != nil {
