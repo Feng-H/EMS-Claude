@@ -414,3 +414,13 @@ GORM converts Go field names to snake_case column names. Consecutive uppercase l
 - `EquipmentTypeID` -> column `equipment_type_id`
 
 When writing raw SQL queries in repository layer, always use the GORM-generated column name, not the Go field name. Test with `docker compose exec backend sh -c "psql -U ems -d ems_db -c '\\d users'"` to verify column names.
+
+## Testing Guidelines
+
+- All new Go packages with business logic must include `_test.go` files covering core functions
+- Tests use memory mode (`config.Cfg.Storage.Mode = "memory"`), no external services required
+- Test pattern: set `config.Cfg` directly, use `memory.GetStore()` to construct mock data
+- Use standard library `testing.T` for assertions, no third-party assertion libraries
+- Pure data definition packages (model, dto) do not need tests
+- HTTP handler layer (api/v1, controller) is exempt for now; focus on service/analyzer/tool/policy layers
+- Run `cd backend && go test ./...` before every PR — all tests must pass
