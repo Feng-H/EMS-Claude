@@ -51,8 +51,8 @@ func (r *RepairOrderRepository) List(filter RepairOrderFilter) ([]model.RepairOr
 	query := r.db.Model(&model.RepairOrder{})
 
 	if filter.FactoryID > 0 {
-		query = query.Joins("JOIN equipments ON repair_orders.equipment_id = equipments.id").
-			Joins("JOIN workshops ON equipments.workshop_id = workshops.id").
+		query = query.Joins("JOIN equipment ON repair_orders.equipment_id = equipment.id").
+			Joins("JOIN workshops ON equipment.workshop_id = workshops.id").
 			Where("workshops.factory_id = ?", filter.FactoryID)
 	}
 

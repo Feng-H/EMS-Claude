@@ -4,7 +4,7 @@
 # =====================================================
 
 # Build stage
-FROM golang:1.23-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 # Install build dependencies
 RUN apk add --no-cache git gcc musl-dev
@@ -20,6 +20,9 @@ RUN go mod download
 
 # Copy source code
 COPY . .
+
+# Add missing dependency and tidy mod file
+RUN go get github.com/ledongthuc/pdf && go mod tidy
 
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o ems-api ./main.go

@@ -92,3 +92,11 @@ export const searchKnowledgeArticles = (keyword: string) => {
 export const convertFromRepair = (data: ConvertFromRepairRequest) => {
   return request.post<KnowledgeArticle>('/knowledge/convert-repair', data)
 }
+
+export const uploadManual = (data: FormData) => {
+  return request.post<{ message: string; document_id: number; title: string }>('/knowledge/manual/upload', data, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  })
+}

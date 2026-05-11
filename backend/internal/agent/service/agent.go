@@ -254,10 +254,10 @@ func (s *AgentService) handleSearchEquipment(user model.User, args map[string]in
 	var equipments []model.Equipment
 	query := db.Preload("Workshop").Preload("Workshop.Factory")
 	if user.Role != "admin" && user.FactoryID != nil {
-		query = query.Joins("JOIN workshops ON equipments.workshop_id = workshops.id").
+		query = query.Joins("JOIN workshops ON equipment.workshop_id = workshops.id").
 			Where("workshops.factory_id = ?", *user.FactoryID)
 	}
-	err := query.Where("equipments.name ILIKE ? OR equipments.code ILIKE ?", "%"+keyword+"%", "%"+keyword+"%").
+	err := query.Where("equipment.name ILIKE ? OR equipment.code ILIKE ?", "%"+keyword+"%", "%"+keyword+"%").
 		Limit(10).Find(&equipments).Error
 	return equipments, err
 }
@@ -293,7 +293,7 @@ func (s *AgentService) handleReportRepair(user model.User, args map[string]inter
 	
 	db := database.GetDB()
 	var equipment model.Equipment
-	if err := db.Joins("JOIN workshops ON workshops.id = equipments.workshop_id").First(&equipment, equipID).Error; err != nil {
+	if err := db.Joins("JOIN workshops ON workshops.id = equipment.workshop_id").First(&equipment, equipID).Error; err != nil {
 		return nil, fmt.Errorf("equipment not found")
 	}
 	if user.Role != "admin" && user.FactoryID != nil {
@@ -970,7 +970,7 @@ func (s *AgentService) extractEquipmentID(message string, user model.User) uint 
 	var equipments []model.Equipment
 	// Load all equipment for context matching. In a real system, use semantic search or NER.
 	// Filter by factory at query level for efficiency
-	query := database.GetDB().Joins("JOIN workshops ON workshops.id = equipments.workshop_id")
+	query := database.GetDB().Joins("JOIN workshops ON workshops.id = equipment.workshop_id")
 	if user.Role != "admin" && user.FactoryID != nil {
 		query = query.Where("workshops.factory_id = ?", *user.FactoryID)
 	}
@@ -1261,7 +1261,7 @@ func (s *AgentService) NotifyEvent(eventType string, targetID uint, context map[
 
 		// 检查设备是否属于该用户的工厂范围
 		var equipment model.Equipment
-		if err := database.GetDB().Joins("JOIN workshops ON workshops.id = equipments.workshop_id").First(&equipment, targetID).Error; err != nil {
+		if err := database.GetDB().Joins("JOIN workshops ON workshops.id = equipment.workshop_id").First(&equipment, targetID).Error; err != nil {
 			continue
 		}
 		if user.Role != "admin" && user.FactoryID != nil {

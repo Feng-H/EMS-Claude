@@ -68,9 +68,10 @@ func main() {
 func runMemoryMode() {
 	log.Println("Running in MEMORY mode - data will be lost on restart")
 
-	// 初始化内存存储
+	// Initialize memory storage
 	v1.InitMemory()
 	v1.InitLark(nil)
+	v1.InitManual()
 	log.Println("Memory store initialized with mock data")
 
 	// Setup Gin
@@ -163,6 +164,7 @@ func runDatabaseMode() {
 	v1.InitSparePart()
 	v1.InitAnalytics()
 	v1.InitKnowledge()
+	v1.InitManual()
 	v1.InitLark(database.GetDB())
 
 	// 补种演示数据 (Milestone: Data Parity)
@@ -388,6 +390,7 @@ func setupMemoryRoutes(router *gin.Engine) {
 				knowledge.GET("", v1.ListKnowledgeArticlesMemory)
 				knowledge.GET("/search", v1.SearchKnowledgeArticlesMemory)
 				knowledge.POST("/convert-repair", v1.ConvertFromRepairMemory)
+				knowledge.POST("/manual/upload", v1.UploadManual)
 				knowledge.GET("/:id", v1.GetKnowledgeArticleMemory)
 				knowledge.POST("", v1.CreateKnowledgeArticleMemory)
 				knowledge.PUT("/:id", v1.UpdateKnowledgeArticleMemory)
@@ -615,6 +618,7 @@ func setupDatabaseRoutes(router *gin.Engine) {
 				knowledge.GET("", v1.ListKnowledgeArticles)
 				knowledge.GET("/search", v1.SearchKnowledgeArticles)
 				knowledge.POST("/convert-repair", v1.ConvertFromRepair)
+				knowledge.POST("/manual/upload", v1.UploadManual)
 				knowledge.GET("/:id", v1.GetKnowledgeArticle)
 				knowledge.POST("", v1.CreateKnowledgeArticle)
 				knowledge.PUT("/:id", v1.UpdateKnowledgeArticle)

@@ -2,10 +2,16 @@
   <div class="knowledge-view">
     <div class="header">
       <h2>知识库</h2>
-      <el-button type="primary" @click="showCreateDialog = true" v-if="canManage">
-        <el-icon><Plus /></el-icon>
-        新增知识
-      </el-button>
+      <div class="header-actions">
+        <el-button type="primary" @click="showUploadDialog = true" v-if="canManage" plain>
+          <el-icon><Upload /></el-icon>
+          PDF 上传
+        </el-button>
+        <el-button type="primary" @click="showCreateDialog = true" v-if="canManage">
+          <el-icon><Plus /></el-icon>
+          新增知识
+        </el-button>
+      </div>
     </div>
 
     <!-- Search -->
@@ -178,17 +184,66 @@
         </div>
       </div>
     </el-dialog>
+
+    <!-- PDF Upload Dialog -->
+    <el-dialog v-model="showUploadDialog" title="上传技术手册 (PDF)" width="450px">
+      <el-form :model="uploadForm" label-width="100px">
+        <el-form-item label="手册标题">
+          <el-input v-model="uploadForm.title" placeholder="可选，默认使用文件名" />
+        </el-form-item>
+        <el-form-item label="设备类型">
+          <el-select v-model="uploadForm.equipment_type_id" placeholder="请选择设备类型" clearable style="width: 100%">
+            <el-option
+              v-for="type in equipmentTypes"
+              :key="type.id"
+              :label="type.name"
+              :value="type.id"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="PDF 文件">
+          <el-upload
+            class="upload-demo"
+            drag
+            action="#"
+            :auto-upload="false"
+            :limit="1"
+            accept=".pdf"
+            :on-change="handleFileChange"
+            :on-remove="handleFileRemove"
+          >
+            <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+            <div class="el-upload__text">
+              将文件拖到此处，或<em>点击上传</em>
+            </div>
+            <template #tip>
+              <div class="el-upload__tip">
+                只能上传 PDF 文件
+              </div>
+            </template>
+          </el-upload>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showUploadDialog = false">取消</el-button>
+        <el-button type="primary" @click="submitUpload" :loading="uploading" :disabled="!selectedFile">
+          开始上传并分片
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue'
-import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
+import { ElMessage, type FormInstance, type FormRules, type UploadFile } from 'element-plus'
+import { Plus, Search, Upload, UploadFilled } from '@element-plus/icons-vue'
 import {
   getKnowledgeArticles,
   createKnowledgeArticle,
   updateKnowledgeArticle,
   deleteKnowledgeArticle,
+  uploadManual,
   type KnowledgeArticle,
   type CreateKnowledgeArticleRequest
 } from '@/api/knowledge'
@@ -201,6 +256,7 @@ const canManage = computed(() => authStore.hasRole('admin', 'engineer'))
 
 const loading = ref(false)
 const saving = ref(false)
+const uploading = ref(false)
 const articles = ref<KnowledgeArticle[]>([])
 const equipmentTypes = ref<EquipmentType[]>([])
 
@@ -214,6 +270,7 @@ const pagination = reactive({
 
 // Dialogs
 const showCreateDialog = ref(false)
+const showUploadDialog = ref(false)
 const showDetailDialog = ref(false)
 const editingArticle = ref<KnowledgeArticle | null>(null)
 const currentArticle = ref<KnowledgeArticle | null>(null)
@@ -228,6 +285,12 @@ const articleForm = reactive<CreateKnowledgeArticleRequest>({
   source_type: 'manual',
   tags: []
 })
+
+const uploadForm = reactive({
+  title: '',
+  equipment_type_id: undefined as number | undefined
+})
+const selectedFile = ref<File | null>(null)
 
 const articleRules: FormRules = {
   title: [{ required: true, message: '请输入标题', trigger: 'blur' }],
@@ -337,6 +400,40 @@ const handleDelete = async (id: number) => {
     loadArticles()
   } catch (err: any) {
     ElMessage.error(err.response?.data?.error || '删除失败')
+  }
+}
+
+const handleFileChange = (file: UploadFile) => {
+  selectedFile.value = file.raw || null
+}
+
+const handleFileRemove = () => {
+  selectedFile.value = null
+}
+
+const submitUpload = async () => {
+  if (!selectedFile.value) return
+  uploading.value = true
+  try {
+    const formData = new FormData()
+    formData.append('file', selectedFile.value)
+    if (uploadForm.title) {
+      formData.append('title', uploadForm.title)
+    }
+    if (uploadForm.equipment_type_id) {
+      formData.append('equipment_type_id', uploadForm.equipment_type_id.toString())
+    }
+
+    const res = await uploadManual(formData)
+    ElMessage.success(res.data.message || '上传成功，正在后台解析分片')
+    showUploadDialog.value = false
+    uploadForm.title = ''
+    uploadForm.equipment_type_id = undefined
+    selectedFile.value = null
+  } catch (err: any) {
+    ElMessage.error(err.response?.data?.error || '上传失败')
+  } finally {
+    uploading.value = false
   }
 }
 

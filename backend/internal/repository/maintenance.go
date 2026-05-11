@@ -136,8 +136,8 @@ func (r *MaintenanceTaskRepository) List(filter MaintenanceTaskFilter) ([]model.
 	query := r.db.Model(&model.MaintenanceTask{})
 
 	if filter.FactoryID > 0 {
-		query = query.Joins("JOIN equipments ON maintenance_tasks.equipment_id = equipments.id").
-			Joins("JOIN workshops ON equipments.workshop_id = workshops.id").
+		query = query.Joins("JOIN equipment ON maintenance_tasks.equipment_id = equipment.id").
+			Joins("JOIN workshops ON equipment.workshop_id = workshops.id").
 			Where("workshops.factory_id = ?", filter.FactoryID)
 	}
 
