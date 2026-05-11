@@ -43,6 +43,7 @@ type AgentService struct {
 	maintenanceAnalyzer *analyzer.MaintenanceAnalyzer
 	repairAuditAnalyzer *analyzer.RepairAuditAnalyzer
 	predictiveAnalyzer  *analyzer.PredictiveAnalyzer
+	sqlAnalystTool      *tool.SQLAnalystTool
 }
 
 func NewAgentService() *AgentService {
@@ -72,6 +73,7 @@ func NewAgentService() *AgentService {
 		retrievalTool:   retrievalTool,
 		maintenanceTool: maintenanceTool,
 		repairTool:      repairTool,
+		sqlAnalystTool:  tool.NewSQLAnalystTool(),
 		promptTool:      prompt.NewPromptTool(),
 		llmClient:       llmClient,
 		maintenanceAnalyzer: analyzer.NewMaintenanceAnalyzer(retrievalTool, maintenanceTool),
@@ -246,6 +248,30 @@ func (s *AgentService) initToolRegistry() {
 			}, "required": []string{"equipment_id"},
 		},
 	}, s.handleGetRepairCosts, []string{"read:repair"}, true)
+
+	// Register sql_data_analyst
+	s.toolRegistry.Register("sql_data_analyst", dto.ToolDefinition{
+		Name: "sql_data_analyst",
+		Description: "Execute a read-only SQL query to perform flexible data analysis across multiple tables. Use this for complex questions that pre-defined tools cannot answer.",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"sql_query": map[string]interface{}{
+					"type":        "string",
+					"description": "The standard PostgreSQL SELECT query to execute.",
+				},
+			},
+			"required": []string{"sql_query"},
+		},
+	}, s.handleSQLDataAnalyst, []string{"read:all"}, true)
+}
+
+func (s *AgentService) handleSQLDataAnalyst(user model.User, args map[string]interface{}) (interface{}, error) {
+	query, ok := args["sql_query"].(string)
+	if !ok {
+		return nil, fmt.Errorf("missing sql_query argument")
+	}
+	return s.sqlAnalystTool.ExecuteQuery(query, user)
 }
 
 func (s *AgentService) handleSearchEquipment(user model.User, args map[string]interface{}) (interface{}, error) {
@@ -1057,10 +1083,15 @@ func (s *AgentService) ExecuteSkill(user model.User, skill *model.AgentSkill, re
 技能描述：%s
 建议的操作流程（SOP）：%s
 
-请根据用户的需求和建议的 SOP，自主决定调用哪些工具来收集信息并完成任务。
-注意：如果涉及到特定设备且用户未明确指定，当前通过上下文识别出的设备 ID 可能为 %d（若为 1 则表示未识别到具体设备，需进一步确认或搜索）。
-你可以多次调用工具，直到你认为收集到了足够的证据来回答用户的问题。
-收集完证据后，请给出一份专业的中文分析摘要。`, skill.Name, skill.Description, string(stepsJSON), eqID)
+除了 SOP 中提到的工具，你还可以使用 【sql_data_analyst】 工具来执行灵活的数据分析。
+可供查询的表结构：
+1. equipments: 设备表 (id, code, name, model, status, workshop_id)
+2. repair_orders: 报修单 (id, equipment_id, fault_description, status, priority, created_at)
+3. maintenance_tasks: 保养任务 (id, equipment_id, status, scheduled_date, actual_hours)
+4. workshops/factories: 车间/工厂关系
+
+请根据用户的需求和建议的 SOP，自主决定调用哪些工具。
+收集完证据后，请给出一份专业的中文分析摘要。`, skill.Name, skill.Description, string(stepsJSON))
 
 	messages := []llm.Message{
 		{Role: "system", Content: systemPrompt},
